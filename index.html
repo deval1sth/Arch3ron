@@ -3,259 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0c10">
+<meta name="theme-color" content="#0a0b10">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Archeron">
+<meta name="description" content="Archeron: an offline GCSE mocks training programme.">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-<title>Nightwatch · GCSE</title>
-<style>
-:root{--bg:#0b0c10;--card:#15171e;--line:#252833;--y:#ffd21f;--t:#ececef;--m:#8b8f9c;--g:#3ddc84;--r:#ff5c5c}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--t);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
-header{position:sticky;top:0;background:rgba(11,12,16,.93);backdrop-filter:blur(8px);padding:calc(12px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line);z-index:5;display:flex;justify-content:space-between;align-items:center}
-.logo{display:flex;gap:8px;align-items:center;font-weight:800;letter-spacing:.16em;font-size:15px}
-.logo svg{width:36px;fill:var(--y)}
-.cd{font-size:11px;color:var(--m);text-align:right;line-height:1.2}.cd b{color:var(--y);font-size:20px;display:block}
-main{padding:16px;max-width:720px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
-h2{margin:0 0 10px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--y)}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0f1015;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;background:none;border:0;color:var(--m);padding:9px 0 11px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit}
-nav button.on{color:var(--y)}nav span{font-size:20px}
-.btn{background:var(--y);color:#111;border:0;border-radius:12px;padding:10px 16px;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer}
-.btn.ghost{background:transparent;color:var(--t);border:1px solid var(--line)}
-.btn.sm{padding:6px 10px;font-size:13px}.btn.red{background:var(--r);color:#fff}.btn.green{background:var(--g)}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
-.stat b{display:block;font-size:24px;color:var(--y)}.stat small{color:var(--m);font-size:12px}
-.sess{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
-.sess:first-of-type{border-top:0}
-.dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--y);background:none;cursor:pointer}
-.dot.done{background:var(--y);box-shadow:0 0 10px rgba(255,210,31,.5)}
-.timer{font-size:60px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;margin:4px 0 8px}
-.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--y);transition:width .3s}
-input,select,textarea{background:#0f1015;border:1px solid var(--line);color:var(--t);border-radius:10px;padding:9px;font:inherit;width:100%}
-label.f{font-size:12px;color:var(--m);display:block;margin-bottom:8px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.chk{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);align-items:center;cursor:pointer}
-.chk input{width:22px;height:22px;accent-color:var(--y);flex:none}
-.chk.d span{color:var(--m);text-decoration:line-through}
-.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px}
-.tabs button{background:var(--card);border:1px solid var(--line);color:var(--t);border-radius:20px;padding:7px 12px;white-space:nowrap;font-family:inherit;cursor:pointer}
-.tabs button.on{background:var(--y);color:#111;border-color:var(--y)}
-.flash{min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:21px;cursor:pointer;padding:24px;user-select:none}
-.flash small{display:block;color:var(--m);font-size:13px;margin-top:12px}
-table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px 4px;border-top:1px solid var(--line);text-align:left}th{color:var(--m);font-weight:600;font-size:12px}
-.muted{color:var(--m);font-size:13px}
-.due{border-left:3px solid var(--y);padding-left:10px}
-.heat{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}.heat i{aspect-ratio:1;border-radius:4px;background:var(--line)}
-.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--y);color:#111;padding:10px 18px;border-radius:22px;font-weight:700;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.5);transition:opacity .4s;white-space:nowrap}
-#intro{position:fixed;inset:0;background:#000;z-index:50;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .6s}
-#intro .bat{width:240px;fill:var(--y);filter:drop-shadow(0 0 28px rgba(255,210,31,.75));animation:fly 2.3s cubic-bezier(.45,0,.3,1) forwards}
-#intro .w{transform-origin:100px 45px;animation:flap .2s ease-in-out infinite alternate}
-#intro .txt{position:absolute;bottom:22%;letter-spacing:.5em;color:var(--y);font-weight:800;opacity:0;animation:txt 2.3s forwards}
-@keyframes fly{0%{transform:translateY(65vh) scale(.25);opacity:0}15%{opacity:1}55%{transform:translateY(0) scale(1.15)}72%{transform:translateY(0) scale(1)}100%{transform:translateY(-75vh) scale(.45);opacity:0}}
-@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(.5)}}
-@keyframes txt{0%,45%{opacity:0}65%{opacity:1}90%,100%{opacity:0}}
-canvas{width:100%;height:220px;display:block}
-</style>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<title>Archeron</title>
 </head>
 <body>
-<div id="intro" onclick="endIntro()">
- <svg class="bat" viewBox="0 0 200 100"><g class="w"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></g></svg>
- <div class="txt">NIGHTWATCH</div>
+<div id="intro" aria-hidden="true">
+  <svg class="bat" viewBox="0 0 200 100"><g class="w"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></g></svg>
+  <div class="txt">ARCHERON</div>
 </div>
+<a class="skip-link" href="#view">Skip to content</a>
 <header>
- <div class="logo"><svg viewBox="0 0 200 100"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></svg>NIGHTWATCH</div>
- <div class="cd" id="cd"></div>
+  <div class="logo"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></svg><span>ARCHERON</span></div>
+  <div class="cd" id="cd" aria-live="polite"></div>
 </header>
-<main id="view"></main>
-<nav id="nav"></nav>
-<script>
-const $=s=>document.querySelector(s);
-const K='nightwatch-v1';
-const SUBJ=['Maths','Science','English Language','English Literature','RE','Geography','Business'];
-const DEF={xp:0,days:{},cards:{},checks:{},mistakes:[],scores:[],grades:{},mock:'2027-01-11'};
-let S=Object.assign({},DEF,JSON.parse(localStorage.getItem(K)||'{}'));
-const save=()=>localStorage.setItem(K,JSON.stringify(S));
-const dkey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const addDays=(n,from)=>{const d=from?new Date(from+'T12:00'):new Date();d.setDate(d.getDate()+n);return dkey(d)};
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.style.opacity=0,1600);setTimeout(()=>t.remove(),2100)}
-function xp(n){S.xp=Math.max(0,S.xp+n);save()}
-
-/* ---------- PLAN (Beast Mode) ---------- */
-const PLAN={
-1:[['3:30','Maths: 5-a-day + one topic',2],['4:30','Tutoring',0],['7:00','Science: Biology',3]],
-2:[['3:30','Maths',2],['4:30','Tutoring',0],['7:00','English Lit: quotes + essay plan',3]],
-3:[['3:30','Maths',2],['4:30','Tutoring',0],['7:00','Science: Chemistry',3]],
-4:[['3:45','Maths past paper section + corrections',4],['6:45','RE',3]],
-5:[['3:45','English Language timed answers',4],['Eve','Free evening: earned rest',0]],
-6:[['9:00','Full timed Maths paper + marking',4],['11:30','Science: Physics',3],['2:00','Geography',2],['3:00','Business',2],['Pm','Rest of the day off',0]],
-0:[['2:00','Mistakes list redo (all subjects)',3],['3:45','Science past paper questions + plan the week',2]]};
-const DAYN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-function setsOn(k){const d=S.days[k];if(!d)return 0;let n=0;for(const key in d)if(Array.isArray(d[key]))n+=d[key].filter(Boolean).length;return n}
-function streak(){let n=0,i=setsOn(dkey())?0:1;while(setsOn(addDays(-i))){n++;i++}return n}
-function weekSets(){const d=new Date(),off=(d.getDay()+6)%7;let n=0;for(let i=0;i<=off;i++)n+=setsOn(addDays(-i));return n}
-const RANKS=['Rookie','Night Owl','Shadow','Vigilant','Dark Knight','Legend'];
-function level(){const l=Math.floor(S.xp/200)+1;return{l,rank:RANKS[Math.min(RANKS.length-1,Math.floor((l-1)/3))],pct:(S.xp%200)/2}}
-
-/* ---------- FLASHCARDS ---------- */
-const DECKS={
-mac:{name:'Macbeth',cards:[
-['"Fair is foul, and foul is fair"','The Witches: nothing is what it seems; sets up deception'],
-['"brave Macbeth"','Captain: loyal hero at the start, so his fall is bigger'],
-['"Stars, hide your fires"','Macbeth: hides his "black and deep desires"; ambition already there'],
-['"too full o\'th\' milk of human kindness"','Lady Macbeth: thinks he is too gentle to kill'],
-['"unsex me here"','Lady Macbeth: rejects womanhood to be ruthless; gender roles'],
-['"look like th\'innocent flower, But be the serpent under\'t"','Lady Macbeth: deception; serpent links to the devil in Eden'],
-['"vaulting ambition"','Macbeth: ambition is his only reason to kill Duncan'],
-['"Is this a dagger which I see before me"','Macbeth: guilt + supernatural before the murder'],
-['"Will all great Neptune\'s ocean wash this blood clean from my hand?"','Macbeth: instant overwhelming guilt'],
-['"A little water clears us of this deed"','Lady Macbeth: dismisses guilt; contrast with later breakdown'],
-['"full of scorpions is my mind"','Macbeth: power brings torment, not peace'],
-['"Out, damned spot!"','Lady Macbeth: guilt destroys her mind; reverses "a little water"'],
-['"a tale told by an idiot... signifying nothing"','Macbeth: ambition leaves him empty and hopeless'],
-['"this dead butcher and his fiend-like queen"','Malcolm: how they end up seen; order restored']]},
-acc:{name:'Christmas Carol',cards:[
-['"squeezing, wrenching, grasping, scraping, clutching, covetous old sinner!"','Narrator, Stave 1: list of verbs piles up his greed'],
-['"solitary as an oyster"','Narrator, Stave 1: isolated, closed off, maybe a pearl inside'],
-['"Are there no prisons?"','Scrooge, Stave 1: cruel attitude of the rich to the poor'],
-['"decrease the surplus population"','Scrooge, Stave 1: sees the poor as numbers; thrown back at him later'],
-['"I wear the chain I forged in life"','Marley: your choices have consequences'],
-['"Mankind was my business"','Marley: Dickens\'s message, we are responsible for each other'],
-['"a golden one"','Belle, Stave 2: money replaced love as his idol'],
-['"This boy is Ignorance. This girl is Want."','Ghost of Christmas Present: warning to society about poverty'],
-['"God bless us, every one!"','Tiny Tim: goodness and hope despite poverty'],
-['"I will honour Christmas in my heart, and try to keep it all the year"','Scrooge, Stave 4: his promise to change'],
-['"as merry as a schoolboy"','Scrooge, Stave 5: redemption, reborn and childlike'],
-['"as good a friend, as good a master, and as good a man"','Narrator, Stave 5: complete transformation']]},
-phy:{name:'Physics equations',cards:[
-['Weight','W = m × g  (N, kg, N/kg)'],['Work done','W = F × s  (J, N, m)'],['Spring force','F = k × e  (N, N/m, m)'],
-['Speed','v = s ÷ t  (m/s, m, s)'],['Acceleration','a = Δv ÷ t  (m/s², m/s, s)'],['Resultant force','F = m × a  (N, kg, m/s²)'],
-['Momentum','p = m × v  (kg m/s, kg, m/s)'],['Kinetic energy','E = ½ m v²  (J, kg, m/s)'],['Gravitational potential energy','E = m g h  (J, kg, N/kg, m)'],
-['Power (energy)','P = E ÷ t  (W, J, s)'],['Efficiency','useful output ÷ total input'],['Charge','Q = I × t  (C, A, s)'],
-['Potential difference','V = I × R  (V, A, Ω)'],['Power (electrical)','P = V × I  (W, V, A)'],['Power (resistance)','P = I² × R  (W, A, Ω)'],
-['Energy transferred (power)','E = P × t  (J, W, s)'],['Energy transferred (charge)','E = Q × V  (J, C, V)'],['Density','ρ = m ÷ V  (kg/m³, kg, m³)'],['Wave speed','v = f × λ  (m/s, Hz, m)']]},
-mat:{name:'Maths formulas',cards:[
-['Area of a rectangle','length × width'],['Area of a triangle','½ × base × height'],['Area of a trapezium','½ × (a + b) × height'],
-['Area of a circle','π × r²'],['Circumference','π × diameter'],['Volume of a prism','area of cross-section × length'],
-['Pythagoras','a² + b² = c²'],['Speed','distance ÷ time'],['Angles in a triangle','add up to 180°'],['Angles on a straight line','add up to 180°'],
-['Angles around a point','add up to 360°'],['Interior angles of a polygon','(n − 2) × 180°'],['Percentage change','(change ÷ original) × 100'],['Compound interest','amount × (1 + r/100)ⁿ']]}};
-const INT=[0,1,2,4,8,16];
-let CD={deck:'mac',flip:false,i:0};
-function dueCards(d){const t=dkey();return DECKS[d].cards.map((c,i)=>({c,id:d+i})).filter(o=>{const s=S.cards[o.id];return !s||s.due<=t})}
-function rate(ok){const list=dueCards(CD.deck);if(!list.length)return;const o=list[CD.i%list.length];const s=S.cards[o.id]||{box:0};
- s.box=ok?Math.min(s.box+1,5):0;s.due=addDays(INT[s.box]);S.cards[o.id]=s;if(ok)xp(2);else CD.i++;CD.flip=false;save();render()}
-
-/* ---------- CHECKLISTS ---------- */
-const LISTS={
-mm:{name:'Maths: must-know',items:['Place value, rounding, decimal places','Four operations without a calculator','Negative numbers','Order of operations (BIDMAS)','Fractions: simplify, add, subtract, multiply, divide','Fractions, decimals, percentages conversions','Percentage of an amount','Factors, multiples, primes','Squares, cubes, square roots','Simplifying expressions','Substituting into formulas','Solving simple equations','Sequences and the nth term','Ratio: simplify and share','Perimeter and area of rectangles and triangles','Angles on a line, around a point, in a triangle','Reading bar charts, pictograms, tables','Mean, median, mode, range','Probability basics','Time, money and unit conversions']},
-mp:{name:'Maths: push to a 4',items:['Percentage increase and decrease','Simple and compound interest','Best buys and proportion','Expanding brackets and factorising','Equations with brackets / unknowns both sides','Inequalities','Straight line graphs, y = mx + c','Area of circles, trapeziums, compound shapes','Volume of prisms and cuboids','Angles in polygons and parallel lines','Pythagoras','Speed, distance, time','Standard form','Index laws','Pie charts and scatter graphs','Transformations','Probability trees and Venn diagrams']},
-bp:{name:'Biology practicals',items:['Microscopy + magnification','Osmosis (potato)','Food tests','Enzymes: pH and amylase','Photosynthesis: light intensity','Reaction time','Field investigation: quadrats']},
-cp:{name:'Chemistry practicals',items:['Making salts','Neutralisation / titration (check with teacher)','Electrolysis','Temperature changes','Rates of reaction','Chromatography + Rf','Water purification']},
-pp:{name:'Physics practicals',items:['Specific heat capacity','Resistance of a wire','I-V characteristics','Density','Force and extension of a spring','Acceleration: force and mass','Waves: ripple tank + string','Infrared radiation']},
-st:{name:'Science topics',items:['B: Cells','B: Organisation','B: Infection and response','B: Bioenergetics','B: Homeostasis','B: Inheritance and evolution','B: Ecology','C: Atomic structure + periodic table','C: Bonding','C: Quantitative chemistry','C: Chemical changes','C: Energy changes','C: Rates and equilibrium','C: Organic chemistry','C: Chemical analysis','C: Atmosphere and resources','P: Energy','P: Electricity','P: Particle model','P: Atomic structure','P: Forces','P: Waves','P: Magnetism']},
-pa:{name:'Past papers',items:['Maths P1 (non-calc) set 1','Maths P2 (calc) set 1','Maths P3 (calc) set 1','Maths P1 set 2','Maths P2 set 2','Maths P3 set 2','Biology P1','Biology P2','Chemistry P1','Chemistry P2','Physics P1','Physics P2','English Language P1','English Language P2','English Lit P1 (Macbeth + ACC)','English Lit P2 (Journey\'s End + poetry)','Geography P1','Geography P2','Business P1','Business P2','RE P1','RE P2']}};
-let LT='mm';
-function listPct(k){const L=LISTS[k];return Math.round(L.items.filter((_,i)=>S.checks[k+i]).length/L.items.length*100)}
-
-/* ---------- TIMER ---------- */
-let T={mode:'focus',left:1500,run:false,end:0};
-const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
-const tTotal=()=>T.mode==='focus'?1500:300;
-function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.2);o.start(a.currentTime+t);o.stop(a.currentTime+t+.22)})}catch(e){}if(navigator.vibrate)navigator.vibrate([200,100,200])}
-function tgl(){if(T.run){T.left=Math.max(0,(T.end-Date.now())/1000);T.run=false}else{T.end=Date.now()+T.left*1000;T.run=true}render()}
-function rst(){T.run=false;T.left=tTotal();render()}
-function skip(){T.run=false;T.mode=T.mode==='focus'?'break':'focus';T.left=tTotal();render()}
-setInterval(()=>{if(!T.run)return;T.left=Math.max(0,(T.end-Date.now())/1000);
- if(T.left<=0){beep();T.run=false;if(T.mode==='focus'){xp(5);toast('Set done! +5 XP. Tick a dot, then rest.');T.mode='break'}else{toast('Break over. Next set!');T.mode='focus'}T.left=tTotal();render();return}
- const m=$('#tm'),b=$('#tb');if(m)m.textContent=fmt(Math.ceil(T.left));if(b)b.style.width=(100-T.left/tTotal()*100)+'%';document.title=fmt(Math.ceil(T.left))+' · Nightwatch'},400);
-
-/* ---------- VIEWS ---------- */
-function statsRow(){const lv=level();return `<div class="stats"><div class="stat"><b>🔥 ${streak()}</b><small>day streak</small></div><div class="stat"><b>${weekSets()}<span style="font-size:14px;color:var(--m)">/42</span></b><small>sets this week</small></div><div class="stat"><b>${S.xp}</b><small>XP · Lv ${lv.l}</small></div></div>`}
-function vToday(){const t=dkey(),day=new Date().getDay(),plan=PLAN[day];S.days[t]=S.days[t]||{};const lv=level();
- let h=statsRow()+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Rank: ${lv.rank}</h2><span class="muted">${S.xp%200}/200 to Lv ${lv.l+1}</span></div><div class="bar" style="margin-top:8px"><i style="width:${lv.pct}%"></i></div></div>`;
- h+=`<div class="card"><h2>${T.mode==='focus'?'Focus set · 25 min':'Break · 5 min'}</h2><div class="timer" id="tm">${fmt(Math.ceil(T.left))}</div><div class="bar"><i id="tb" style="width:${100-T.left/tTotal()*100}%"></i></div><div class="row" style="justify-content:center;margin-top:14px"><button class="btn" onclick="tgl()">${T.run?'Pause':'Start'}</button><button class="btn ghost" onclick="rst()">Reset</button><button class="btn ghost" onclick="skip()">Skip</button></div><p class="muted" style="text-align:center;margin:10px 0 0">Phone face down. No notes open unless the set says so.</p></div>`;
- h+=`<div class="card"><h2>Today's sets · ${DAYN[day]}</h2>`;
- plan.forEach((p,i)=>{const done=S.days[t][i]||[];h+=`<div class="sess"><div><b>${esc(p[1])}</b><div class="muted">${p[0]}${p[2]?' · '+p[2]+' sets':''}</div></div><div class="dots">${Array.from({length:p[2]},(_,j)=>`<button class="dot ${done[j]?'done':''}" aria-label="set" onclick="tick(${i},${j})"></button>`).join('')}</div></div>`});
- h+=`</div><div class="card"><h2>Daily finishers</h2>${['Corbettmaths 5-a-day (Foundation)','15 min flashcards','Homework done the day it was set'].map((f,i)=>`<label class="chk ${S.days[t]['f'+i]?'d':''}"><input type="checkbox" ${S.days[t]['f'+i]?'checked':''} onchange="fin(${i},this.checked)"><span>${f}</span></label>`).join('')}</div>`;
- const dueM=S.mistakes.filter(m=>!m.fixed&&m.redo<=t).length,dueC=Object.keys(DECKS).reduce((n,d)=>n+dueCards(d).length,0);
- h+=`<div class="card"><h2>Waiting for you</h2><div class="row"><button class="btn ghost" onclick="go('fix')">🛠 ${dueM} mistakes to redo</button><button class="btn ghost" onclick="go('cards')">🃏 ${dueC} cards due</button></div></div>`;
- return h}
-function tick(i,j){const t=dkey();const d=S.days[t]=S.days[t]||{};const a=d[i]=d[i]||[];a[j]=!a[j];xp(a[j]?10:-10);
- const n=PLAN[new Date().getDay()][i][2];if(a[j]&&a.filter(Boolean).length===n){xp(20);toast('Session complete! +20 bonus XP 💪')}save();render()}
-function fin(i,v){const t=dkey();S.days[t]=S.days[t]||{};S.days[t]['f'+i]=v;xp(v?5:-5);render()}
-
-let CS='Maths';
-function vStats(){let h=statsRow();
- h+=`<div class="card"><h2>Last 28 days</h2><div class="heat">${Array.from({length:28},(_,i)=>{const n=setsOn(addDays(i-27));const o=n?Math.min(1,.25+n/11):0;return `<i title="${addDays(i-27)}: ${n} sets" style="${n?`background:rgba(255,210,31,${o})`:''}"></i>`}).join('')}</div></div>`;
- h+=`<div class="card"><h2>Grades</h2><table><tr><th>Subject</th><th>Now</th><th>Target</th><th>Best %</th></tr>${SUBJ.map(s=>{const g=S.grades[s]||{};const b=S.scores.filter(x=>x.subj===s).map(x=>Math.round(x.score/x.max*100));return `<tr><td>${s}</td><td>${esc(g.cur||'–')}</td><td style="color:var(--y)">${esc(g.tgt||'–')}</td><td>${b.length?Math.max(...b)+'%':'–'}</td></tr>`}).join('')}</table><p class="muted">Set your grades in the Me tab.</p></div>`;
- h+=`<div class="card"><h2>Score chart</h2><div class="tabs">${SUBJ.map(s=>`<button class="${s===CS?'on':''}" onclick="CS='${s}';render()">${s}</button>`).join('')}</div><canvas id="ch"></canvas></div>`;
- h+=`<div class="card"><h2>Log a past paper</h2><div class="grid2"><label class="f">Date<input type="date" id="sd" value="${dkey()}"></label><label class="f">Subject<select id="ss">${SUBJ.map(s=>`<option ${s===CS?'selected':''}>${s}</option>`).join('')}</select></label></div><label class="f">Paper<input id="sp" placeholder="e.g. Paper 1 non-calc, June 2023"></label><div class="grid2"><label class="f">Score<input type="number" id="sc" inputmode="numeric"></label><label class="f">Out of<input type="number" id="sm" value="80" inputmode="numeric"></label></div><button class="btn" onclick="addScore()">Log score (+25 XP)</button></div>`;
- const rec=[...S.scores].sort((a,b)=>a.date<b.date?1:-1);
- h+=`<div class="card"><h2>All scores</h2>${rec.length?`<table><tr><th>Date</th><th>Paper</th><th>%</th><th></th></tr>${rec.map(s=>`<tr><td>${s.date.slice(5)}</td><td>${esc(s.subj)}<div class="muted">${esc(s.paper)}</div></td><td><b>${Math.round(s.score/s.max*100)}%</b><div class="muted">${s.score}/${s.max}</div></td><td><button class="btn ghost sm" onclick="delScore(${s.id})">✕</button></td></tr>`).join('')}</table>`:'<p class="muted">No papers logged yet. Your first one is coming on Saturday.</p>'}</div>`;
- return h}
-function addScore(){const sc=+$('#sc').value,mx=+$('#sm').value;if(!mx||isNaN(sc)||$('#sc').value===''){toast('Enter a score');return}
- S.scores.push({id:Date.now(),date:$('#sd').value||dkey(),subj:$('#ss').value,paper:$('#sp').value,score:sc,max:mx});CS=$('#ss').value;xp(25);toast(Math.round(sc/mx*100)+'% logged. +25 XP');render()}
-function delScore(id){if(!confirm('Delete this score?'))return;S.scores=S.scores.filter(s=>s.id!==id);save();render()}
-function drawChart(){const c=$('#ch');if(!c)return;const dpr=devicePixelRatio||1,W=c.clientWidth,H=220;c.width=W*dpr;c.height=H*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);
- const pts=S.scores.filter(s=>s.subj===CS).sort((a,b)=>a.date<b.date?-1:1);const L=36,R=10,Tp=12,B=22,py=v=>Tp+(H-Tp-B)*(1-v/100);
- x.font='11px system-ui';x.lineWidth=1;for(let v=0;v<=100;v+=25){x.strokeStyle='#252833';x.beginPath();x.moveTo(L,py(v));x.lineTo(W-R,py(v));x.stroke();x.fillStyle='#8b8f9c';x.fillText(v+'%',2,py(v)+4)}
- const tg=+(S.grades[CS]||{}).pct;if(tg){x.setLineDash([6,5]);x.strokeStyle='#3ddc84';x.beginPath();x.moveTo(L,py(tg));x.lineTo(W-R,py(tg));x.stroke();x.setLineDash([]);x.fillStyle='#3ddc84';x.fillText('target '+tg+'%',W-R-72,py(tg)-6)}
- if(!pts.length){x.fillStyle='#8b8f9c';x.fillText('No '+CS+' scores yet',L+12,H/2);return}
- const px=i=>pts.length===1?(L+W-R)/2:L+8+(W-L-R-16)*i/(pts.length-1);
- x.strokeStyle='#ffd21f';x.lineWidth=3;x.lineJoin='round';x.beginPath();pts.forEach((p,i)=>{const y=py(p.score/p.max*100);i?x.lineTo(px(i),y):x.moveTo(px(i),y)});x.stroke();
- pts.forEach((p,i)=>{const v=Math.round(p.score/p.max*100);x.fillStyle='#ffd21f';x.beginPath();x.arc(px(i),py(v),5,0,7);x.fill();x.fillStyle='#ececef';x.fillText(v+'%',px(i)-10,py(v)-10);x.fillStyle='#8b8f9c';x.fillText(p.date.slice(5),px(i)-14,H-5)})}
-
-function vCards(){const list=dueCards(CD.deck),D=DECKS[CD.deck];
- let h=`<div class="tabs">${Object.keys(DECKS).map(k=>`<button class="${k===CD.deck?'on':''}" onclick="CD={deck:'${k}',flip:false,i:0};render()">${DECKS[k].name} · ${dueCards(k).length}</button>`).join('')}</div>`;
- if(!list.length){const m=D.cards.filter((_,i)=>(S.cards[CD.deck+i]||{}).box>=3).length;return h+`<div class="card flash"><div>✅ All ${esc(D.name)} cards done for today</div><small>${m}/${D.cards.length} cards strongly learned. Come back tomorrow.</small></div>`}
- const o=list[CD.i%list.length],box=(S.cards[o.id]||{box:0}).box;
- h+=`<div class="card flash" onclick="CD.flip=!CD.flip;render()"><div>${esc(o.c[0])}</div>${CD.flip?`<div style="color:var(--y);font-size:17px;margin-top:16px">${esc(o.c[1])}</div>`:'<small>Say it out loud, then tap to check</small>'}</div>`;
- h+=CD.flip?`<div class="row" style="justify-content:center"><button class="btn red" onclick="rate(false)">✕ Missed it</button><button class="btn green" onclick="rate(true)">✓ Got it</button></div>`:'';
- h+=`<p class="muted" style="text-align:center">${list.length} due · box ${box}/5 · cards you miss come back sooner</p>`;return h}
-
-function vLists(){const L=LISTS[LT];let h=`<div class="tabs">${Object.keys(LISTS).map(k=>`<button class="${k===LT?'on':''}" onclick="LT='${k}';render()">${LISTS[k].name} · ${listPct(k)}%</button>`).join('')}</div>`;
- h+=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${L.name}</h2><b style="color:var(--y)">${listPct(LT)}%</b></div><div class="bar" style="margin:10px 0 6px"><i style="width:${listPct(LT)}%"></i></div>`;
- h+=L.items.map((it,i)=>{const on=S.checks[LT+i];return `<label class="chk ${on?'d':''}"><input type="checkbox" ${on?'checked':''} onchange="chk('${LT}',${i},this.checked)"><span>${esc(it)}</span></label>`}).join('');
- return h+`<p class="muted">Only tick a topic when you can do an exam question on it without notes.</p></div>`}
-function chk(k,i,v){S.checks[k+i]=v;xp(v?3:-3);if(v&&listPct(k)===100)toast('List complete! 🦇');render()}
-
-function vFix(){const t=dkey(),open=S.mistakes.filter(m=>!m.fixed).sort((a,b)=>a.redo<b.redo?-1:1),fixed=S.mistakes.filter(m=>m.fixed).length;
- let h=`<div class="card"><h2>Add a mistake</h2><div class="grid2"><label class="f">Subject<select id="ms">${SUBJ.map(s=>`<option>${s}</option>`).join('')}</select></label><label class="f">Topic<input id="mt" placeholder="e.g. Ratio"></label></div><label class="f">What went wrong<textarea id="mn" rows="2" placeholder="e.g. Shared in the wrong order"></textarea></label><button class="btn" onclick="addMis()">Add (redo in 3 days)</button></div>`;
- h+=`<div class="card"><h2>Redo list · ${fixed} fixed so far</h2>${open.length?open.map(m=>`<div class="sess ${m.redo<=t?'due':''}"><div><b>${esc(m.subj)}: ${esc(m.topic)}</b><div class="muted">${esc(m.note)}</div><div class="muted">${m.redo<=t?'⚡ Redo now':'Redo on '+m.redo}</div></div><div class="row" style="flex-wrap:nowrap">${m.redo<=t?`<button class="btn green sm" onclick="misOk(${m.id})">Fixed</button><button class="btn ghost sm" onclick="misAgain(${m.id})">Again</button>`:`<button class="btn ghost sm" onclick="misDel(${m.id})">✕</button>`}</div></div>`).join(''):'<p class="muted">No mistakes logged. After every paper or 5-a-day, add what you got wrong.</p>'}</div>`;
- return h}
-function addMis(){const tp=$('#mt').value.trim();if(!tp){toast('Add a topic');return}S.mistakes.push({id:Date.now(),date:dkey(),subj:$('#ms').value,topic:tp,note:$('#mn').value.trim(),redo:addDays(3),fixed:false});xp(3);toast('Added. Redo on '+addDays(3));render()}
-function misOk(id){const m=S.mistakes.find(x=>x.id===id);m.fixed=true;xp(15);toast('Mistake fixed! +15 XP');render()}
-function misAgain(id){const m=S.mistakes.find(x=>x.id===id);m.redo=addDays(3);save();render()}
-function misDel(id){S.mistakes=S.mistakes.filter(x=>x.id!==id);save();render()}
-
-function vMe(){let h=`<div class="card"><h2>My grades</h2><p class="muted">Saved only on this device. Target % is what you aim for on past papers (drawn on your chart).</p><table><tr><th>Subject</th><th>Now</th><th>Target</th><th>Target %</th></tr>${SUBJ.map((s,i)=>{const g=S.grades[s]||{};return `<tr><td style="font-size:13px">${s}</td><td><input id="gc${i}" value="${esc(g.cur||'')}"></td><td><input id="gt${i}" value="${esc(g.tgt||'')}"></td><td><input id="gp${i}" type="number" value="${esc(g.pct||'')}"></td></tr>`}).join('')}</table><div class="row" style="margin-top:12px"><button class="btn" onclick="saveGrades()">Save grades</button></div></div>`;
- h+=`<div class="card"><h2>Mock exams start</h2><input type="date" id="md" value="${S.mock}" onchange="S.mock=this.value;save();hdr();toast('Countdown updated')"><p class="muted">Change this when you get your exact mock timetable.</p></div>`;
- h+=`<div class="card"><h2>Backup</h2><p class="muted">Your progress lives in this browser. Back it up every week, and use it to move to another device.</p><div class="row"><button class="btn" onclick="exp()">⬇ Download backup</button><label class="btn ghost">⬆ Restore<input type="file" accept=".json" style="display:none" onchange="imp(this)"></label></div></div>`;
- h+=`<div class="card"><h2>Install</h2><p class="muted"><b>iPhone:</b> open in Safari → Share → Add to Home Screen.<br><b>Android:</b> Chrome menu ⋮ → Add to Home screen / Install app.</p></div>`;
- h+=`<div class="card"><h2>Danger zone</h2><button class="btn red" onclick="if(confirm('Wipe ALL progress? Download a backup first.')){localStorage.removeItem('${K}');location.reload()}">Reset everything</button></div>`;
- return h}
-function saveGrades(){SUBJ.forEach((s,i)=>S.grades[s]={cur:$('#gc'+i).value.trim(),tgt:$('#gt'+i).value.trim(),pct:$('#gp'+i).value});save();toast('Grades saved')}
-function exp(){const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='nightwatch-backup-'+dkey()+'.json';a.click()}
-function imp(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{S=Object.assign({},DEF,JSON.parse(t));save();toast('Backup restored');render()}catch(e){toast('That file is not a backup')}})}
-
-/* ---------- SHELL ---------- */
-const TABS=[['today','🦇','Today',vToday],['stats','📈','Progress',vStats],['cards','🃏','Cards',vCards],['lists','✅','Lists',vLists],['fix','🛠','Fixes',vFix],['me','👤','Me',vMe]];
-let TAB=localStorage.getItem(K+'-tab')||'today';
-function go(t){TAB=t;localStorage.setItem(K+'-tab',t);scrollTo(0,0);render()}
-function hdr(){const d=Math.ceil((new Date(S.mock+'T09:00')-new Date())/864e5);$('#cd').innerHTML=d>0?`<b>${d} days</b>until mocks`:'<b>Mocks</b>you\'ve got this'}
-function render(){save();hdr();const tb=TABS.find(x=>x[0]===TAB)||TABS[0];$('#view').innerHTML=tb[3]();$('#nav').innerHTML=TABS.map(x=>`<button class="${x[0]===TAB?'on':''}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('');if(TAB==='stats')drawChart()}
-function endIntro(){const i=$('#intro');if(!i)return;i.style.opacity=0;setTimeout(()=>i.remove(),600)}
-setTimeout(endIntro,2400);
-addEventListener('resize',()=>{if(TAB==='stats')drawChart()});
-render();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-</script>
+<nav id="nav" aria-label="Sections"></nav>
+<main id="view" tabindex="-1"></main>
+<div id="toasts" aria-live="polite" aria-atomic="false"></div>
+<noscript><p style="padding:24px">Archeron needs JavaScript turned on.</p></noscript>
+<script src="data.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
