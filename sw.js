@@ -1,5 +1,5 @@
 /* Archeron service worker. Bump VERSION on every release so phones pick up the new files. */
-const VERSION = 'archeron-3.0.0';
+const VERSION = 'archeron-3.0.1';
 const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'data.js', 'fx.js', 'learn.js', 'app.js', 'manifest.json', 'icon.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 

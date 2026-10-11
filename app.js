@@ -358,7 +358,7 @@ function todayStrip(n) {
 function quickWins() {
   const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
   const items = [
-    h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'maths' }, icon('sparkle'), h('span', null, h('b', null, 'Maths warm-up'), h('small', null, '5 questions, about 5 minutes'))),
+    h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'maths' }, icon('sparkle'), h('span', null, h('b', null, 'Maths warm-up'), h('small', null, 'A few quick questions'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`)))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
