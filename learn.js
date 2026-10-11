@@ -269,21 +269,160 @@ const LEARN = (() => {
     return { q: `“${blank}”`, sub: 'Fill the missing word', kind: 'word', w, show: w, steps: [`“${text}”`, c.b] };
   }
 
+  /* ---------- Science, Business and Geography calculations ---------- */
+  const C = {};
+  const CT = (id, subject, name, gen) => { C[id] = { name, subject, gen }; };
+  const sum = xs => xs.reduce((a, b) => a + b, 0);
+  const d1 = x => Math.round(x * 10) / 10, d2 = x => Math.round(x * 100) / 100;
+
+  CT('bc-mag', 'biology', 'Magnification', () => {
+    const real = pick([.01, .02, .05, .1, .2, .5]), mg = pick([40, 50, 100, 200, 400, 500]), img = clean(real * mg), f = ri(0, 2);
+    if (f === 0) return { q: `A cell is ${n(real)} mm wide. In a drawing it is ${n(img)} mm wide. What is the magnification?`, kind: 'num', v: mg, pre: '×', show: '×' + mg,
+      steps: ['Magnification = image size ÷ real size', `= ${n(img)} ÷ ${n(real)}`, `= ×${mg}`] };
+    if (f === 1) return { q: `A cell ${n(real)} mm wide is viewed at ×${mg}. How wide is the image?`, kind: 'num', v: img, suf: 'mm', show: n(img) + ' mm',
+      steps: ['Image size = magnification × real size', `= ${mg} × ${n(real)}`, `= ${n(img)} mm`] };
+    return { q: `The image of a cell is ${n(img)} mm wide at ×${mg}. What is its real size?`, kind: 'num', v: real, suf: 'mm', show: n(real) + ' mm',
+      steps: ['Real size = image size ÷ magnification', `= ${n(img)} ÷ ${mg}`, `= ${n(real)} mm`] };
+  });
+  CT('bc-osmosis', 'biology', 'Percentage change in mass', () => {
+    const s = ri(20, 50) / 10, ch = ri(-12, 12) / 10 || .3, e = clean(s + ch), diff = clean(e - s), p = d1(diff / s * 100);
+    return { q: `A potato cylinder had a mass of ${s.toFixed(1)} g. After soaking it was ${e.toFixed(1)} g. Calculate the percentage change in mass to 1 d.p.`, kind: 'num', v: p, tol: .051, suf: '%', show: n(p) + '%',
+      steps: ['Change = final mass − starting mass', `= ${e.toFixed(1)} − ${s.toFixed(1)} = ${n(diff)} g`, '% change = change ÷ starting mass × 100', `= ${n(diff)} ÷ ${s.toFixed(1)} × 100 = ${n(p)}%${p < 0 ? ' (negative means mass was lost)' : ''}`] };
+  });
+  CT('bc-mean', 'biology', 'Mean of results', () => {
+    const k = ri(3, 5), xs = Array.from({ length: k }, () => ri(8, 40)), s = sum(xs), m = d1(s / k);
+    return { q: `In a photosynthesis experiment the bubbles counted per minute were ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: m, tol: .051, show: n(m),
+      steps: [`Add them: ${xs.join(' + ')} = ${s}`, `Divide by how many: ${s} ÷ ${k} = ${n(m)}`] };
+  });
+
+  const AR = { H: 1, C: 12, N: 14, O: 16, Na: 23, Mg: 24, Al: 27, S: 32, Cl: 35.5, K: 39, Ca: 40 };
+  const FORMULAS = ['H2O', 'CO2', 'NaCl', 'MgO', 'CaCO3', 'H2SO4', 'NH3', 'CH4', 'NaOH', 'HCl', 'CaO', 'MgCl2', 'KOH', 'C2H6', 'Na2O', 'Al2O3', 'KCl', 'CaCl2', 'SO2', 'C3H8', 'HNO3', 'Na2CO3', 'MgSO4'];
+  const SUB = { 0: '₀', 1: '₁', 2: '₂', 3: '₃', 4: '₄', 5: '₅', 6: '₆', 7: '₇', 8: '₈', 9: '₉' };
+  const subF = f => f.replace(/\d/g, c => SUB[c]);
+  const parseF = f => { const m = {}; for (const [, e, c] of f.matchAll(/([A-Z][a-z]?)(\d*)/g)) m[e] = (m[e] || 0) + (c ? +c : 1); return Object.entries(m); };
+  CT('cc-mr', 'chemistry', 'Relative formula mass', () => {
+    const f = pick(FORMULAS), parts = parseF(f), mr = clean(sum(parts.map(([e, c]) => AR[e] * c)));
+    return { q: `Calculate the relative formula mass (Mr) of ${subF(f)}. Relative atomic masses: ${parts.map(([e]) => `${e} = ${AR[e]}`).join(', ')}.`, kind: 'num', v: mr, show: n(mr),
+      steps: [...parts.map(([e, c]) => `${e}: ${c} × ${AR[e]} = ${n(c * AR[e])}`), `Mr = ${parts.map(([e, c]) => n(c * AR[e])).join(' + ')} = ${n(mr)}`] };
+  });
+  CT('cc-pct', 'chemistry', 'Percentage by mass', () => {
+    const f = pick(FORMULAS.filter(x => parseF(x).length > 1)), parts = parseF(f), mr = clean(sum(parts.map(([e, c]) => AR[e] * c))), [e, c] = pick(parts), p = d1(AR[e] * c / mr * 100);
+    return { q: `Calculate the percentage by mass of ${e} in ${subF(f)} to 1 d.p. Relative atomic masses: ${parts.map(([x]) => `${x} = ${AR[x]}`).join(', ')}.`, kind: 'num', v: p, tol: .051, suf: '%', show: n(p) + '%',
+      steps: [`Mr of ${subF(f)} = ${n(mr)}`, `Mass of ${e} in the formula = ${c} × ${AR[e]} = ${n(c * AR[e])}`, `% = ${n(c * AR[e])} ÷ ${n(mr)} × 100 = ${n(p)}%`] };
+  });
+  CT('cc-conc', 'chemistry', 'Concentration (g/dm³)', () => {
+    const m = pick([2, 4, 5, 8, 10, 12.5, 20, 25]), v = pick([100, 200, 250, 500]), dm = v / 1000, c = clean(m / dm);
+    return { q: `${n(m)} g of solute is dissolved to make ${v} cm³ of solution. What is the concentration in g/dm³?`, kind: 'num', v: c, rel: .005, suf: 'g/dm³', show: n(c) + ' g/dm³',
+      steps: [`Convert the volume: ${v} cm³ ÷ 1000 = ${n(dm)} dm³`, 'Concentration = mass ÷ volume', `= ${n(m)} ÷ ${n(dm)} = ${n(c)} g/dm³`] };
+  });
+  CT('cc-rf', 'chemistry', 'Rf values', () => {
+    const sol = ri(50, 90) / 10, spot = ri(10, sol * 10 - 5) / 10, rf = d2(spot / sol);
+    return { q: `In chromatography the solvent moved ${sol.toFixed(1)} cm and a spot moved ${spot.toFixed(1)} cm. Calculate the Rf value to 2 d.p.`, kind: 'num', v: rf, tol: .006, show: rf.toFixed(2),
+      steps: ['Rf = distance moved by the spot ÷ distance moved by the solvent', `= ${spot.toFixed(1)} ÷ ${sol.toFixed(1)} = ${rf.toFixed(2)}`, 'Rf is always less than 1 and has no units'] };
+  });
+  CT('cc-rate', 'chemistry', 'Mean rate of reaction', () => {
+    const v = pick([20, 30, 40, 45, 60, 80, 90, 120]), t = pick([10, 15, 20, 30, 40, 60]), r = d2(v / t);
+    return { q: `A reaction produced ${v} cm³ of gas in ${t} seconds. Calculate the mean rate of reaction to 2 d.p.`, kind: 'num', v: r, tol: .006, suf: 'cm³/s', show: n(r) + ' cm³/s',
+      steps: ['Mean rate = quantity of product ÷ time', `= ${v} ÷ ${t} = ${n(r)} cm³/s`] };
+  });
+
+  CT('bz-profit', 'business', 'Revenue, costs and profit', () => {
+    const p = ri(4, 20), vc = ri(1, p - 2), q = ri(5, 60) * 10, fc = ri(5, 40) * 100, rev = p * q, tc = fc + vc * q, pr = rev - tc, f = ri(0, 2);
+    const given = `A business sells ${q} units at £${p} each. Fixed costs are £${fc} and variable costs are £${vc} per unit.`;
+    if (f === 0) return { q: `${given} Calculate the revenue.`, kind: 'num', v: rev, pre: '£', show: '£' + rev, steps: ['Revenue = price × quantity sold', `= £${p} × ${q} = £${rev}`] };
+    if (f === 1) return { q: `${given} Calculate the total costs.`, kind: 'num', v: tc, pre: '£', show: '£' + tc, steps: ['Total costs = fixed costs + (variable cost per unit × quantity)', `= £${fc} + (£${vc} × ${q})`, `= £${fc} + £${vc * q} = £${tc}`] };
+    return { q: `${given} Calculate the profit (use a minus sign for a loss).`, kind: 'num', v: pr, pre: '£', show: (pr < 0 ? '−£' : '£') + Math.abs(pr),
+      steps: [`Revenue = £${p} × ${q} = £${rev}`, `Total costs = £${fc} + (£${vc} × ${q}) = £${tc}`, `Profit = revenue − total costs = £${rev} − £${tc} = ${pr < 0 ? '−£' + Math.abs(pr) + ' (a loss)' : '£' + pr}`] };
+  });
+  CT('bz-breakeven', 'business', 'Break-even', () => {
+    const p = ri(5, 30), vc = ri(1, p - 2), c = p - vc, be = ri(20, 400), fc = c * be;
+    return { q: `Fixed costs are £${fc}. Each unit sells for £${p} and has a variable cost of £${vc}. Calculate the break-even output.`, kind: 'num', v: be, suf: 'units', show: be + ' units',
+      steps: ['Break-even = fixed costs ÷ (selling price − variable cost per unit)', `Contribution per unit = £${p} − £${vc} = £${c}`, `Break-even = £${fc} ÷ £${c} = ${be} units`] };
+  });
+  CT('bz-margins', 'business', 'Profit margins', () => {
+    const rev = ri(20, 200) * 1000, cos = Math.round(rev * ri(30, 70) / 100 / 100) * 100, gp = rev - cos, exp = Math.round(gp * ri(20, 70) / 100 / 100) * 100, np = gp - exp, net = Math.random() < .5;
+    if (!net) { const m = d1(gp / rev * 100); return { q: `Revenue is £${rev} and cost of sales is £${cos}. Calculate the gross profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: n(m) + '%',
+      steps: [`Gross profit = revenue − cost of sales = £${rev} − £${cos} = £${gp}`, 'Gross profit margin = gross profit ÷ revenue × 100', `= £${gp} ÷ £${rev} × 100 = ${n(m)}%`] }; }
+    const m = d1(np / rev * 100);
+    return { q: `Revenue is £${rev}, cost of sales is £${cos} and other expenses are £${exp}. Calculate the net profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: n(m) + '%',
+      steps: [`Gross profit = £${rev} − £${cos} = £${gp}`, `Net profit = gross profit − expenses = £${gp} − £${exp} = £${np}`, `Net profit margin = £${np} ÷ £${rev} × 100 = ${n(m)}%`] };
+  });
+  CT('bz-cash', 'business', 'Cash flow', () => {
+    const open = ri(-5, 20) * 100, inf = ri(20, 80) * 100, out = ri(20, 80) * 100, net = inf - out, close = open + net, money = x => (x < 0 ? '−£' : '£') + Math.abs(x);
+    if (Math.random() < .5) return { q: `Cash inflows this month are £${inf} and cash outflows are £${out}. Calculate the net cash flow (use a minus sign if negative).`, kind: 'num', v: net, pre: '£', show: money(net),
+      steps: ['Net cash flow = total inflows − total outflows', `= £${inf} − £${out} = ${money(net)}`] };
+    return { q: `The opening balance is ${money(open)}. Inflows are £${inf} and outflows are £${out}. Calculate the closing balance (use a minus sign if negative).`, kind: 'num', v: close, pre: '£', show: money(close),
+      steps: [`Net cash flow = £${inf} − £${out} = ${money(net)}`, 'Closing balance = opening balance + net cash flow', `= ${money(open)} ${net < 0 ? '−' : '+'} £${Math.abs(net)} = ${money(close)}`] };
+  });
+  CT('bz-arr', 'business', 'Average rate of return', () => {
+    const cost = ri(5, 50) * 1000, arr = pick([5, 8, 10, 12, 15, 20, 25]), y = ri(3, 5), avg = cost * arr / 100, tot = avg * y;
+    return { q: `An investment costs £${cost}. Over ${y} years it makes a total profit of £${tot} (after the cost is taken off). Calculate the average rate of return.`, kind: 'num', v: arr, suf: '%', show: arr + '%',
+      steps: [`Average annual profit = total profit ÷ years = £${tot} ÷ ${y} = £${n(avg)}`, 'ARR = average annual profit ÷ cost of investment × 100', `= £${n(avg)} ÷ £${cost} × 100 = ${arr}%`] };
+  });
+
+  CT('gc-density', 'geography', 'Population density', () => {
+    const pop = ri(5, 200) * 10000, area = ri(20, 900), d = Math.round(pop / area);
+    return { q: `A region has ${pop.toLocaleString('en-GB')} people living in ${area} km². Calculate its population density to the nearest whole number.`, kind: 'num', v: d, tol: .51, suf: 'people/km²', show: d + ' people per km²',
+      steps: ['Population density = population ÷ area', `= ${pop.toLocaleString('en-GB')} ÷ ${area} = ${n(clean(pop / area))}…`, `≈ ${d} people per km²`] };
+  });
+  CT('gc-natinc', 'geography', 'Natural increase', () => {
+    const br = ri(8, 45), dr = ri(5, 20), ni = br - dr;
+    return { q: `A country has a birth rate of ${br} per 1000 and a death rate of ${dr} per 1000. What is the natural increase per 1000?`, kind: 'num', v: ni, show: n(ni) + ' per 1000',
+      steps: ['Natural increase = birth rate − death rate', `= ${br} − ${dr} = ${n(ni)} per 1000`, ni < 0 ? 'Negative means the population is naturally falling' : `As a percentage that is ${n(ni / 10)}%`] };
+  });
+  CT('gc-data', 'geography', 'Rainfall data', () => {
+    const xs = Array.from({ length: 6 }, () => ri(20, 180)), range = Math.max(...xs) - Math.min(...xs), s = sum(xs), mean = d1(s / 6), useMean = Math.random() < .5;
+    if (useMean) return { q: `Monthly rainfall (mm) was ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: mean, tol: .051, suf: 'mm', show: n(mean) + ' mm', steps: [`Total = ${xs.join(' + ')} = ${s}`, `Mean = ${s} ÷ 6 = ${n(mean)} mm`] };
+    return { q: `Monthly rainfall (mm) was ${xs.join(', ')}. Calculate the range.`, kind: 'num', v: range, suf: 'mm', show: range + ' mm', steps: [`Range = highest − lowest = ${Math.max(...xs)} − ${Math.min(...xs)} = ${range} mm`] };
+  });
+
+  /* ---------- Recall banks → multiple-choice questions ---------- */
+  const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const R = {};
+  for (const [id, [subject, title, text]] of Object.entries(typeof BANKS !== 'undefined' ? BANKS : {})) {
+    const items = text.trim().split('\n').map(l => l.split('|')).filter(p => p.length >= 2)
+      .map(([q, a, d]) => ({ q: q.trim(), a: a.trim(), d: d ? d.split(';').map(s => s.trim()).filter(Boolean) : null }));
+    R[id] = { name: title, subject, items };
+  }
+  function genRecall(id) {
+    const t = R[id], it = pick(t.items);
+    let ds = it.d;
+    if (!ds) {
+      const others = shuffle([...new Set(t.items.map(x => x.a))].filter(a => a !== it.a));
+      ds = shuffle(others.sort((x, y) => Math.abs(x.length - it.a.length) - Math.abs(y.length - it.a.length)).slice(0, 5)).slice(0, 3);
+    }
+    const options = shuffle([it.a, ...ds.filter(x => x !== it.a).slice(0, 3)]);
+    return { kind: 'mcq', q: it.q, sub: t.name, options, a: options.indexOf(it.a), show: it.a, steps: [`${it.q} → ${it.a}`] };
+  }
+
   /* ---------- registry ---------- */
-  const QDECKS = { 'q-mac': ['mac', 'Macbeth'], 'q-acc': ['acc', 'A Christmas Carol'], 'q-je': ['je', "Journey's End"] };
-  const MATHS = Object.keys(M), PHYS = Object.keys(P).map(k => 'p-' + k), QUOTES = Object.keys(QDECKS);
-  const trackOf = id => id.startsWith('p-') ? 'physics' : id.startsWith('q-') ? 'quotes' : 'maths';
-  const name = id => M[id] ? M[id].name : P[id.slice(2)] ? P[id.slice(2)].name : QDECKS[id] ? QDECKS[id][1] : id;
+  const QDECKS = { 'q-mac': ['mac', 'Macbeth quotes'], 'q-acc': ['acc', 'A Christmas Carol quotes'], 'q-je': ['je', "Journey's End quotes"] };
+  const TOPIC = {};
+  for (const id of Object.keys(M)) TOPIC[id] = { name: M[id].name, subject: 'maths', type: 'calc' };
+  for (const k of Object.keys(P)) TOPIC['p-' + k] = { name: P[k].name, subject: 'physics', type: 'calc' };
+  for (const [id, c] of Object.entries(C)) TOPIC[id] = { name: c.name, subject: c.subject, type: 'calc' };
+  for (const [id, r] of Object.entries(R)) TOPIC[id] = { name: r.name, subject: r.subject, type: 'recall', size: r.items.length };
+  for (const [id, q] of Object.entries(QDECKS)) TOPIC[id] = { name: q[1], subject: 'englit', type: 'quote' };
+  const SUBJECTS = [
+    ['maths', 'Maths', 'target', 'Maths'], ['biology', 'Biology', 'leaf', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'bolt', 'Science'],
+    ['englit', 'English Literature', 'feather', 'English Literature'], ['englang', 'English Language', 'scroll', 'English Language'],
+    ['geography', 'Geography', 'map', 'Geography'], ['business', 'Business', 'coin', 'Business'], ['re', 'RE', 'sparkle', 'RE']
+  ].map(([id, name, icon, subj]) => ({ id, name, icon, subj, topics: Object.keys(TOPIC).filter(t => TOPIC[t].subject === id) }));
+  const trackOf = id => TOPIC[id] ? TOPIC[id].subject : 'maths';
+  const name = id => TOPIC[id] ? TOPIC[id].name : id;
   function gen(id) {
     let q = null;
     try {
       if (M[id]) q = M[id].gen();
-      else if (P[id.slice(2)]) q = genPhys(P[id.slice(2)]);
+      else if (id.startsWith('p-') && P[id.slice(2)]) q = genPhys(P[id.slice(2)]);
+      else if (C[id]) q = C[id].gen();
+      else if (R[id]) q = genRecall(id);
       else if (QDECKS[id]) q = genQuote(QDECKS[id][0]);
     } catch (e) { q = null; }
-    if (q) q.id = id;
+    if (q) { q.id = id; if (!q.sub) q.sub = name(id); }
     return q;
   }
+  const MATHS = SUBJECTS[0].topics, PHYS = Object.keys(P).map(k => 'p-' + k), QUOTES = Object.keys(QDECKS), RECALL = Object.keys(R);
 
   /* ---------- answer checking ---------- */
   const norm = s => String(s || '').trim().replace(/[−–—]/g, '-').replace(/\s+/g, ' ');
@@ -321,6 +460,7 @@ const LEARN = (() => {
   function check(q, raw) {
     const s = norm(raw);
     if (!s) return { valid: false, msg: 'Type an answer first' };
+    if (q.kind === 'mcq') { const i = Number(s); return Number.isInteger(i) && i >= 0 && i < q.options.length ? { valid: true, ok: i === q.a } : { valid: false, msg: 'Pick an answer' }; }
     if (q.kind === 'num') {
       const x = parseNum(s); if (x == null) return { valid: false, msg: 'Type a number' };
       const tol = q.tol != null ? q.tol : q.rel != null ? Math.max(Math.abs(q.v) * q.rel, q.rel >= .005 ? .01 : 0) : 1e-6;
@@ -358,5 +498,5 @@ const LEARN = (() => {
   }
 
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-  return { MATHS, PHYS, QUOTES, gen, check, name, trackOf, setQuoteSource: f => { quoteSource = f; } };
+  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, name, trackOf, setQuoteSource: f => { quoteSource = f; } };
 })();

@@ -2,7 +2,7 @@
    Pure canvas/DOM, no assets. Everything is skipped under prefers-reduced-motion. */
 'use strict';
 const FX = (() => {
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches, inited = false;
   const cv = document.getElementById('fx');
   const ctx = cv && cv.getContext('2d');
   let W = 0, H = 0, dpr = 1, embers = [], sparks = [], running = false;
@@ -44,13 +44,19 @@ const FX = (() => {
     running = true; requestAnimationFrame(loop);
   }
   function init() {
-    if (!cv || reduced) return;
+    if (!cv || inited) return;
+    inited = true;
     size();
     const n = Math.round(Math.min(46, W * H / 26000));
     embers = Array.from({ length: n }, () => ember(true));
     addEventListener('resize', () => { size(); });
     document.addEventListener('visibilitychange', () => { running = false; if (!document.hidden) start(); });
     start();
+  }
+  function setReduced(v) {
+    reduced = !!v;
+    if (reduced) { running = false; sparks = []; if (ctx) ctx.clearRect(0, 0, W, H); }
+    else if (inited) start();
   }
   function burst(el, n = 26, hue = 40) {
     if (!cv || reduced || !el) return;
@@ -83,11 +89,11 @@ const FX = (() => {
     const r = document.createElement('h2'); r.textContent = item[1];
     const s = document.createElement('p'); s.className = 'rv-s'; s.textContent = item[2] || '';
     inner.append(k, r, s); o.append(inner); document.body.append(o);
-    requestAnimationFrame(() => requestAnimationFrame(() => inner.setAttribute('data-open', 'true')));
+    requestAnimationFrame(() => requestAnimationFrame(() => inner.setAttribute('data-open', 'true'))); setTimeout(() => inner.setAttribute('data-open', 'true'), 100);
     let done = false;
     const close = () => { if (done) return; done = true; inner.setAttribute('data-open', 'false'); o.classList.add('out'); setTimeout(() => { o.remove(); next(); }, 450); };
     o.addEventListener('click', close); setTimeout(close, 3000);
     if (!reduced) burst({ getBoundingClientRect: () => ({ left: innerWidth / 2, top: innerHeight / 2 - 20, width: 0, height: 0 }) }, 80, 40);
   }
-  return { init, burst, countUp, reveal };
+  return { init, burst, countUp, reveal, setReduced };
 })();

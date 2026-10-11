@@ -6,7 +6,16 @@
 const FXS = typeof FX !== 'undefined' ? FX : { init() {}, burst() {}, countUp() {}, reveal() {} };
 const K = 'archeron-v2', OLD = 'nightwatch-v1', TK = 'archeron-timer', TABK = 'archeron-tab';
 const $ = s => document.querySelector(s);
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Motion: 'auto' follows the device's reduce-motion setting; the user can override it in Settings */
+const MQ_REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+let REDUCED = MQ_REDUCED.matches, HAS_VT = false;
+function applyMotion() {
+  const m = (S && S.motion) || 'auto';
+  REDUCED = m === 'full' ? false : m === 'reduced' ? true : MQ_REDUCED.matches;
+  HAS_VT = typeof document.startViewTransition === 'function' && !REDUCED;
+  document.documentElement.classList.toggle('rm', REDUCED); document.documentElement.classList.toggle('vt', HAS_VT);
+  if (FXS.setReduced) FXS.setReduced(REDUCED);
+}
 
 /* ---------- dates ---------- */
 const DAYN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -43,13 +52,14 @@ function svg(view, d, cls) {
   for (const p of [].concat(d)) { const e = document.createElementNS(NS, 'path'); e.setAttribute('d', p); s.append(e); }
   return s;
 }
-const icon = (n, cls) => svg('0 0 24 24', ICONS[n], cls);
+const icon = (n, cls) => svg('0 0 24 24', ICONS[n] || ICONS.sparkle, cls);
 const B = (label, act, cls = '', extra = {}) => h('button', Object.assign({ type: 'button', class: 'btn ' + cls, 'data-act': act }, extra), label);
 const card = (title, right, ...kids) => h('section', { class: 'card' }, (title || right) && h('div', { class: 'card-h' }, title && h('h2', null, title), right), kids);
 const chip = (label, on, act, extra = {}) => h('button', Object.assign({ type: 'button', class: 'chip' + (on ? ' on' : ''), 'data-act': act, 'aria-pressed': String(!!on) }, extra), label);
 const field = (label, input) => h('label', { class: 'f' }, h('span', null, label), input);
 const bar = p => h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(p) }, h('i', { style: `width:${clamp(p, 0, 100)}%` }));
 const selectSubj = (path, val) => h('select', { 'data-draft': path, value: val }, SUBJ.map(s => h('option', { value: s }, s)));
+
 /* Transitions.dev-based helpers (styles in transitions.css) */
 const ACC = {};
 function acc(key, head, body, { open = false, cls = 'card' } = {}) {
@@ -63,9 +73,12 @@ function acc(key, head, body, { open = false, cls = 'card' } = {}) {
 const checkBox = () => { const s = h('span', { class: 't-check', 'aria-hidden': 'true' }); s.append(svg('0 0 10.1668 10.1668', 'M1 5.52L3.92 9.17L9.17 1', '')); return s; };
 const successCheck = () => { const s = h('span', { class: 't-success-check', 'data-state': 'in', 'aria-hidden': 'true' }); s.append(svg('0 0 24 24', 'M5 13l4 4L19 7', '')); return s; };
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
+/* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
+function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
+const BACKS = { home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
-const subHero = (eyebrow, title, back, lede) => h('div', { class: 'hero' },
-  B([icon('back'), { home: 'Focus', learn: 'Learn', tools: 'Toolkit' }[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
+const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
+  B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
   h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 
 /* ---------- state + migration ---------- */
@@ -74,10 +87,13 @@ function makePlan() {
   for (let w = 0; w < 7; w++) p[w] = DEFAULT_PLAN[w].map((r, i) => ({ id: `d${w}-${i}`, t: r[0], label: r[1], sets: r[2], kind: r[3] }));
   return p;
 }
+const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 2, xp: 0, days: {}, cards: {}, custom: {}, checks: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-11', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    relics: {}, skill: {}, learnOk: 0, quoteOk: 0 };
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false,
+    game: { tokens: 1, lastFree: '', best: 0, boat: 'raft', zone: 'twilight' },
+    stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
 const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
 const arr = v => Array.isArray(v) ? v : [];
@@ -92,13 +108,20 @@ function normalize(raw) {
   s.mock = isKey(r.mock) ? r.mock : s.mock;
   for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
   s.deload = !!r.deload;
+  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint;
   const t = obj(r.timer);
   s.timer = { focus: clamp(Math.round(num(t.focus, 25)), 1, 120), brk: clamp(Math.round(num(t.brk, 5)), 1, 60) };
   for (const [k, c] of Object.entries(obj(r.cards))) { const o = obj(c); if (isKey(o.due)) s.cards[k] = { box: clamp(Math.round(num(o.box)), 0, 5), due: o.due }; }
-  for (const [k, v] of Object.entries(obj(r.checks))) if (v) s.checks[k] = true;
+  for (const [k, v] of Object.entries(obj(r.checks))) if (v) s.conf[k] = 3; /* v1/v2 ticks → exam-ready */
+  for (const [k, v] of Object.entries(obj(r.conf))) { const n = clamp(Math.round(num(v)), 0, 3); if (n) s.conf[k] = n; }
   for (const [k, g] of Object.entries(obj(r.grades))) { const o = obj(g); s.grades[k] = { cur: str(o.cur, 8), tgt: str(o.tgt, 8), pct: str(o.pct, 4) }; }
-  for (const [k, v] of Object.entries(obj(r.relics))) if (isKey(v)) s.relics[k] = v;
   for (const [k, v] of Object.entries(obj(r.skill))) { const o = obj(v); s.skill[k] = { n: num(o.n), ok: num(o.ok), best: num(o.best), run: num(o.run), rec: arr(o.rec).slice(-6).map(Boolean) }; }
+  for (const [k, v] of Object.entries(obj(r.ach))) { const o = obj(v); if (num(o.tier) > 0) s.ach[k] = { tier: Math.round(num(o.tier)), date: isKey(o.date) ? o.date : dkey() }; }
+  for (const [k, v] of Object.entries(obj(r.hidden))) if (v) s.hidden[k] = true;
+  const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k]));
+  const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) };
+  const g = obj(r.game); s.game = { tokens: Math.max(0, Math.round(num(g.tokens, 1))), lastFree: isKey(g.lastFree) ? g.lastFree : '', best: Math.max(0, num(g.best)), boat: str(g.boat || 'raft', 20), zone: str(g.zone || 'twilight', 20) };
+  s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
   for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
     s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
   s.mistakes = arr(r.mistakes).map(obj).filter(m => m.topic).map(m => ({
@@ -163,61 +186,90 @@ const weekTarget = () => [0, 1, 2, 3, 4, 5, 6].reduce((n, w) => n + daySets(w), 
 const learnedCards = () => Object.values(S.cards).filter(c => c.box >= 3).length;
 const xp = n => { S.xp = Math.max(0, S.xp + n); save(); };
 function fmtHours(min) { if (min < 60) return Math.round(min) + 'm'; const hh = Math.floor(min / 60), mm = Math.round(min % 60); return hh + 'h' + (mm ? ' ' + mm + 'm' : ''); }
+const TITLES = [[0, 'Wanderer'], [5, 'Lamplighter'], [15, 'Lantern Bearer'], [30, 'Night Scholar'], [60, 'Ferryman'], [100, 'Keeper of the Crossing'], [200, 'Legend of Acheron']];
+const titleFor = n => TITLES.filter(t => n >= t[0]).pop()[1];
+const nextTitle = n => TITLES.find(t => t[0] > n);
+const EMBLEMS = [['bat', 0], ['flame', 0], ['lantern', 5], ['feather', 10], ['moon', 15], ['gem', 30], ['shield', 45], ['crown', 60], ['star', 100]];
 
-/* ---------- skills (Learn) ---------- */
+/* ---------- subjects, topics and skills (Learn) ---------- */
+const SUBJ_BY = Object.fromEntries(LEARN.SUBJECTS.map(s => [s.id, s]));
+const TRACK_NAME = t => t === 'science' ? 'Science mix' : t === 'all' ? 'All subjects' : (SUBJ_BY[t] || { name: t }).name;
+function quoteCards(id) { const deck = { 'q-mac': 'mac', 'q-acc': 'acc', 'q-je': 'je' }[id]; return deck ? cardsOf(deck).filter(c => /^["“'‘]/.test(c.f.trim())) : []; }
+const usable = id => !S.hidden[id] && (LEARN.TOPIC[id].type !== 'quote' || quoteCards(id).length > 0);
+function topicsFor(track) {
+  const ids = track === 'all' ? Object.keys(LEARN.TOPIC) : track === 'science' ? ['biology', 'chemistry', 'physics'].flatMap(s => SUBJ_BY[s].topics) : SUBJ_BY[track] ? SUBJ_BY[track].topics : (LEARN.TOPIC[track] ? [track] : []);
+  return ids.filter(usable);
+}
 const skill = id => S.skill[id] || { n: 0, ok: 0, best: 0, run: 0, rec: [] };
 const stars = id => { const k = skill(id); return k.best >= 5 ? 3 : k.best >= 3 ? 2 : k.ok >= 1 ? 1 : 0; };
-const topicIds = track => track === 'maths' ? LEARN.MATHS : track === 'physics' ? LEARN.PHYS : LEARN.QUOTES.filter(id => quoteCards(id).length);
-const mastered = track => topicIds(track).filter(id => stars(id) === 3).length;
-const TRACKS = { maths: ['Maths · Foundation', 'Maths'], physics: ['Physics equations', 'Science'], quotes: ['Quote recall', 'English Literature'] };
-function quoteCards(id) { const deck = { 'q-mac': 'mac', 'q-acc': 'acc', 'q-je': 'je' }[id]; return deck ? cardsOf(deck).filter(c => /^["“'‘]/.test(c.f.trim())) : []; }
+const masteredIn = ids => ids.filter(id => stars(id) === 3).length;
+const masteredAll = () => masteredIn(Object.keys(LEARN.TOPIC));
+const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.some(t => skill(t).ok > 0)).length;
 function record(id, ok) {
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
-  if (ok) { k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++; }
-  else k.run = 0;
+  if (ok) {
+    k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++;
+    if (++S.stat.rightTowardsVoyage >= 10) { S.stat.rightTowardsVoyage = 0; S.game.tokens++; toast('10 right answers · voyage earned', 'big'); }
+  } else k.run = 0;
   save();
 }
 function pickTopic(track, avoid) {
-  const ids = topicIds(track); if (!ids.length) return null;
+  const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
   const w = pool.map(id => {
     const k = skill(id); if (!k.n) return 3;
-    const acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
-    return k.best >= 5 && acc >= .8 ? .5 : 1 + (1 - acc) * 3;
+    const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
+    return k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3;
   });
   let r = Math.random() * w.reduce((a, b) => a + b);
   for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
   return pool[pool.length - 1];
 }
 
-/* ---------- relics: permanent, never lost ---------- */
-const RELICS = [
-  { id: 'ember', name: 'First Ember', how: 'Finish your first set', icon: 'flame', test: () => lifeSets() >= 1 },
-  { id: 'lantern', name: 'Lantern Bearer', how: 'Finish 10 sets', icon: 'lantern', test: () => lifeSets() >= 10 },
-  { id: 'scholar', name: 'Night Scholar', how: 'Finish 25 sets', icon: 'feather', test: () => lifeSets() >= 25 },
-  { id: 'torch', name: 'Torch of the Crossing', how: 'Finish 50 sets', icon: 'bolt', test: () => lifeSets() >= 50 },
-  { id: 'beacon', name: 'Beacon', how: 'Finish 100 sets', icon: 'sparkle', test: () => lifeSets() >= 100 },
-  { id: 'fires', name: 'Seven Fires', how: 'Study on 7 different days', icon: 'calendar', test: () => daysTrained() >= 7 },
-  { id: 'hourglass', name: 'Hourglass', how: 'Focus for 10 hours in total', icon: 'hourglass', test: () => S.focusMin >= 600 },
-  { id: 'first-right', name: 'Spark of Insight', how: 'Answer your first Learn question right', icon: 'sparkle', test: () => S.learnOk >= 1 },
-  { id: 'hundred', name: 'Hundred Answers', how: 'Answer 100 Learn questions right', icon: 'gem', test: () => S.learnOk >= 100 },
-  { id: 'mind', name: 'Sharpened Mind', how: 'Master 5 Maths topics', icon: 'target', test: () => mastered('maths') >= 5 },
-  { id: 'smith', name: 'Formula Smith', how: 'Master 5 physics equations', icon: 'bolt', test: () => mastered('physics') >= 5 },
-  { id: 'tongue', name: 'Silver Tongue', how: 'Recall 25 quotes', icon: 'feather', test: () => S.quoteOk >= 25 },
-  { id: 'quill', name: 'Quill of Recall', how: 'Learn 20 flashcards well', icon: 'cards', test: () => learnedCards() >= 20 },
-  { id: 'coin', name: "Ferryman's Coin", how: 'Log your first past paper', icon: 'coin', test: () => S.scores.length >= 1 },
-  { id: 'deep', name: 'Deep Water', how: 'Log 5 past papers', icon: 'scroll', test: () => S.scores.length >= 5 },
-  { id: 'blade', name: 'Mended Blade', how: 'Fix 5 mistakes', icon: 'shield', test: () => S.fixedCount >= 5 },
-  { id: 'map', name: 'Cartographer', how: 'Complete any checklist', icon: 'map', test: () => Object.keys(LISTS).some(k => listPct(k) === 100) }
-];
-function checkRelics(silent) {
+/* ---------- checklists ---------- */
+const CONF = ['Not started', 'Learning', 'Nearly there', 'Exam-ready'];
+function listPct(k) { const L = LISTS[k]; return Math.round(L.items.reduce((t, _, i) => t + (S.conf[k + i] || 0), 0) / (3 * L.items.length) * 100); }
+const examReady = () => Object.entries(S.conf).filter(([k, v]) => v === 3 && !k.startsWith('pa')).length;
+
+/* ---------- achievements: tiered, permanent ---------- */
+const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Legend'];
+const ACH = [
+  ['sets', 'Focus', 'Lantern Keeper', 'lantern', 'sets finished', [1, 10, 50, 150, 300], () => lifeSets()],
+  ['hours', 'Focus', 'Hourglass', 'hourglass', 'hours focused', [1, 5, 20, 50, 100], () => S.focusMin / 60],
+  ['days', 'Focus', 'Many Fires', 'calendar', 'days studied', [3, 7, 21, 50, 100], () => daysTrained()],
+  ['sessions', 'Focus', 'Full Session', 'check', 'planned sessions completed', [1, 10, 40, 100], () => S.stat.sessions],
+  ['night', 'Focus', 'Night Owl', 'moon', 'sets finished after 8pm', [1, 10, 30, 75], () => S.stat.night],
+  ['early', 'Focus', 'First Light', 'sparkle', 'sets finished before 9am', [1, 5, 20], () => S.stat.early],
+  ['weekend', 'Focus', 'Weekend Warrior', 'shield', 'weekend sets', [5, 20, 60, 120], () => S.stat.weekend],
+  ['right', 'Learn', 'Sharp Mind', 'target', 'questions right', [10, 100, 300, 750, 1500], () => S.learnOk],
+  ['run', 'Learn', 'Unbroken', 'bolt', 'right in a row', [5, 10, 20, 40], () => S.stat.bestRun],
+  ['mastered', 'Learn', 'Master', 'crown', 'topics mastered', [1, 5, 15, 30, 60], () => masteredAll()],
+  ['polymath', 'Learn', 'Polymath', 'compass', 'subjects practised', [3, 6, 9], () => subjectsPractised()],
+  ['quotes', 'Learn', 'Silver Tongue', 'feather', 'quotes recalled', [10, 50, 150], () => S.quoteOk],
+  ['cards', 'Learn', 'Quill of Recall', 'cards', 'flashcards learned well', [10, 30, 60], () => learnedCards()],
+  ['plans', 'Learn', 'Architect', 'edit', 'plans written', [1, 5, 15, 40], () => S.stat.plans],
+  ['papers', 'Exams', "Ferryman's Coin", 'coin', 'past papers logged', [1, 5, 15, 30], () => S.scores.length],
+  ['improve', 'Exams', 'Rising Tide', 'chart', 'personal bests on papers', [1, 5, 15], () => S.stat.improve],
+  ['fixes', 'Exams', 'Mended Blade', 'wrench', 'mistakes fixed', [1, 10, 30, 75], () => S.fixedCount],
+  ['ready', 'Exams', 'Cartographer', 'map', 'topics rated exam-ready', [5, 25, 60, 120], () => examReady()],
+  ['voyages', 'Voyage', 'Ferryman', 'ship', 'voyages sailed', [1, 10, 30, 75], () => S.stat.voyages],
+  ['distance', 'Voyage', 'Far Shore', 'star', 'best voyage score', [500, 2000, 5000, 10000, 20000], () => S.game.best],
+  ['gates', 'Voyage', 'Gatekeeper', 'sparkle', 'knowledge gates passed', [1, 10, 50, 150], () => S.stat.gates]
+].map(([id, cat, name, ic, unit, t, v]) => ({ id, cat, name, icon: ic, unit, t, v }));
+const tierOf = a => a.t.filter(x => a.v() >= x).length;
+function checkAch(silent) {
   const fresh = [];
-  for (const r of RELICS) if (!S.relics[r.id] && r.test()) { S.relics[r.id] = dkey(); fresh.push(r); }
+  for (const a of ACH) {
+    const tier = tierOf(a), had = S.ach[a.id] ? S.ach[a.id].tier : 0;
+    if (tier > had) { S.ach[a.id] = { tier, date: dkey() }; fresh.push([a, tier]); }
+  }
   if (!fresh.length) return;
   save();
-  if (!silent) for (const r of fresh) FXS.reveal('Relic unlocked', r.name, r.how + ' · yours for good');
+  if (!silent) for (const [a, tier] of fresh.slice(0, 3)) FXS.reveal(`${TIERS[tier - 1]} achievement`, a.name, `${a.t[tier - 1].toLocaleString('en-GB')} ${a.unit} · yours for good`);
 }
+const badgeCount = () => Object.values(S.ach).reduce((t, a) => t + a.tier, 0);
+const badgeTotal = ACH.reduce((t, a) => t + a.t.length, 0);
 
 /* ---------- flashcards ---------- */
 function cardsOf(k) {
@@ -225,7 +277,6 @@ function cardsOf(k) {
 }
 function dueCards(k) { const t = dkey(); return cardsOf(k).filter(o => { const s = S.cards[o.id]; return !s || s.due <= t; }); }
 const allDue = () => Object.keys(DECKS).reduce((n, k) => n + dueCards(k).length, 0);
-const listPct = k => { const L = LISTS[k]; return Math.round(L.items.filter((_, i) => S.checks[k + i]).length / L.items.length * 100); };
 LEARN.setQuoteSource(deck => cardsOf(deck));
 
 /* ---------- timer (wall-clock based, survives reload and phone sleep) ---------- */
@@ -255,13 +306,16 @@ function timerTick() {
 function timerDone() {
   T.run = false; beep();
   if (T.mode === 'focus') {
-    S.focusSets++; S.focusMin += S.timer.focus;
-    const d = ensureDay(dkey()), s = T.sid && S.plan[new Date().getDay()].find(x => x.id === T.sid && x.kind === 'train');
-    let sub = `Rest ${S.timer.brk} minutes. You earned it.`;
+    S.focusSets++; S.focusMin += S.timer.focus; S.game.tokens++;
+    const now = new Date(), hr = now.getHours(), wd = now.getDay();
+    if (hr >= 20 || hr < 4) S.stat.night++; else if (hr < 9) S.stat.early++;
+    if (wd === 0 || wd === 6) S.stat.weekend++;
+    const d = ensureDay(dkey()), s = T.sid && S.plan[wd].find(x => x.id === T.sid && x.kind === 'train');
+    let sub = `Rest ${S.timer.brk} minutes · a voyage is waiting if you want one`;
     if (s) {
       const n = target(s), a = d.s[s.id] = d.s[s.id] || [];
       const j = Array.from({ length: n }, (_, i) => i).find(i => !a[i]);
-      if (j != null) { a[j] = true; xp(10); if (countDone(a, n) === n) { xp(20); sub = `${s.label}: session complete. Rest ${S.timer.brk} minutes.`; } }
+      if (j != null) { a[j] = true; xp(10); if (countDone(a, n) === n) { xp(20); S.stat.sessions++; sub = `${s.label}: session complete. Rest ${S.timer.brk} minutes.`; } }
       else (d.s.free = d.s.free || []).push(true);
     } else (d.s.free = d.s.free || []).push(true);
     /* rest starts by itself, timed from when the set actually ended (correct even if the phone was locked) */
@@ -270,7 +324,7 @@ function timerDone() {
     saveT(); save();
     FXS.reveal('Set complete', `Lantern ${lifeSets()} lit`, sub);
   } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); }
-  render(); checkRelics();
+  render(); checkAch();
 }
 function beep() {
   try {
@@ -284,11 +338,26 @@ function beep() {
 /* ---------- UI state ---------- */
 let TAB = 'home';
 let CD = { deck: 'mac', flip: false, i: 0 };
-let LT = 'mm', PD = new Date().getDay(), SEL = null, CHOOSE = false, DR = null;
+let LT = 'mm', PD = new Date().getDay(), SEL = null, CHOOSE = false, DR = null, SUBJ_SEL = 'maths', ACH_CAT = 'All', PB = {}, FREE_TRACK = null;
 const CHART = new Set(S.scores.length ? S.scores.map(s => s.subj).filter(s => SUBJ.includes(s)) : ['Maths']);
 const blankScore = (subj = 'Maths') => ({ date: dkey(), subj, paper: '', score: '', max: '80', lost: [] });
-const DRAFT = { score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '' };
+const DRAFT = { score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '', plans: {} };
 function setPath(o, path, v) { const p = path.split('.'); for (let i = 0; i < p.length - 1; i++) { o = o[p[i]]; if (!o) return; } o[p[p.length - 1]] = v; }
+
+/* ---------- missions: what to actually do in each set ---------- */
+const PRACTISE_STEPS = ['Answer each question from memory, no notes', 'Wrong? Read the method, then hit "Try a similar one"', 'Anything that keeps tripping you up: add it to your fix list'];
+function missionFor(label) {
+  const L = (label || '').toLowerCase();
+  const subj = /math/.test(L) ? 'maths' : /biolog/.test(L) ? 'biology' : /chemi/.test(L) ? 'chemistry' : /physic/.test(L) ? 'physics' : /scien/.test(L) ? 'science'
+    : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : null;
+  if (/mistake/.test(L)) return { id: 'fixes', title: 'Redo your mistakes', steps: ['Redo each mistake below from scratch, no notes', 'Got it right? Tap Fixed. Still shaky? Tap Again', 'Nothing waiting? Do the mixed drill instead'] };
+  if (/paper|full timed/.test(L)) return { id: 'paper', subj, title: 'Past paper practice', steps: ['Use a paper from your teacher or your exam board website', 'Work timed, in silence, phone face down', 'Mark it with the mark scheme straight after', 'Log the score and where the marks went'].concat(/plan the week/.test(L) ? ['Last few minutes: check next week in your plan'] : []) };
+  if (/lit|quote|essay|macbeth|carol|journey/.test(L)) return { id: 'lit', title: 'Quotes and an essay plan', steps: ['Warm up: quote and context questions until you get 5 right', 'Then plan one essay below: thesis and three paragraphs', 'Each paragraph: point, quote, method, effect, context'] };
+  if (/english lang|language|timed answer|writing/.test(L)) return { id: 'lang', title: 'English Language practice', steps: ['Pick a question type and read the method', 'Write your answer on paper, timed', 'Check it against the method, then plan a piece of writing'] };
+  if (/\bre\b|religio/.test(L)) return { id: 're', title: 'RE: key terms and a 12-mark plan', steps: ['Answer key-term questions until you get 5 right', 'Plan a 12-mark answer below: both sides, then a justified conclusion'] };
+  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? ['Start with Corbettmaths 5-a-day (Foundation) on paper', ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
+  return { id: 'choose', title: 'Choose what to study', steps: ['Pick a subject below', ...PRACTISE_STEPS.slice(0, 2)] };
+}
 
 /* ---------- Focus (home) ---------- */
 function todayTrain() {
@@ -301,12 +370,11 @@ function currentSid() {
   if (SEL && open.find(x => x.s.id === SEL)) return SEL;
   return open.length ? open[0].s.id : 'free';
 }
-const trackFor = label => /math/i.test(label) ? 'maths' : /physic|science|chem|bio/i.test(label) ? 'physics' : /lit|quote|macbeth|carol|journey|english/i.test(label) ? 'quotes' : null;
-function ringEl() {
-  const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') });
+function ringEl(compact) {
+  const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') + (compact ? ' compact' : '') });
   r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc9a"/><stop offset=".55" stop-color="#e2b04f"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><circle class="halo" cx="60" cy="60" r="54"/><circle class="trk" cx="60" cy="60" r="54"/><circle id="tr" class="prg" cx="60" cy="60" r="54"/></svg>';
   r.querySelector('#tr').style.strokeDasharray = String(RING);
-  r.append(h('div', { class: 'ring-c' }, h('div', { id: 'tm', class: 'time', role: 'timer' }, fmt(Math.ceil(T.left))), h('small', null, T.mode === 'focus' ? 'focus' : 'rest')));
+  r.append(h('div', { class: 'ring-c' }, h('div', { id: 'tm', class: 'time', role: 'timer' }, fmt(Math.ceil(T.left))), !compact && h('small', null, T.mode === 'focus' ? 'focus' : 'rest')));
   return r;
 }
 function vHome() {
@@ -314,54 +382,346 @@ function vHome() {
   const list = todayTrain(), open = list.filter(x => x.left > 0), active = timerActive(), todayN = setsOn(dkey());
   const cur = active && T.mode === 'focus' ? (T.sid || 'free') : currentSid(), item = list.find(x => x.s.id === cur);
   const restState = !active && T.mode === 'focus' && !open.length && SEL !== 'free';
+  const label = item ? item.s.label : '';
+  const M = missionFor(label);
+
+  if (T.mode === 'break' && active) return h('div', { class: 'stack home' },
+    h('section', { class: 'focus brk' + (T.run ? ' live' : '') },
+      h('p', { class: 'eyebrow' }, 'Recovery'), h('h1', { class: 'focus-title' }, 'Rest'),
+      h('p', { class: 'focus-meta' }, 'Stand up, drink water, look at something far away.'), ringEl(),
+      h('div', { class: 'row center' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'begin sm'), B([icon('skip'), 'Skip rest'], 'skip', 'ghost')),
+      S.game.tokens > 0 && h('button', { type: 'button', class: 'practise', 'data-act': 'go', 'data-tab': 'voyage' }, icon('ship'),
+        h('span', null, h('b', null, 'Take a voyage while you rest'), h('small', null, `${S.game.tokens} voyage${S.game.tokens === 1 ? '' : 's'} ready`)))));
 
   if (restState) return h('div', { class: 'stack home' },
     h('section', { class: 'focus calm' },
       h('p', { class: 'eyebrow' }, part),
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
-      h('p', { class: 'focus-meta' }, list.length ? `Today's sets are done. Recovery is part of the programme.` : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
+      h('p', { class: 'focus-meta' }, list.length ? "Today's sets are done. Recovery is part of the programme." : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
       h('div', { class: 'moon' }, icon('moon')),
-      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('sparkle'), 'Quick practice'], 'drill', 'ghost', { 'data-track': 'maths' }))),
+      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('ship'), 'Voyage'], 'go', 'ghost', { 'data-tab': 'voyage' }))),
     todayStrip(todayN));
 
-  let title, meta;
-  if (T.mode === 'break') { title = 'Rest'; meta = 'Stand up, drink water, look at something far away.'; }
-  else if (item) { title = item.s.label; meta = `Set ${Math.min(item.c + 1, item.n)} of ${item.n} · ${S.timer.focus} minutes`; }
-  else { title = list.length && !open.length ? 'Bonus set' : 'Free study'; meta = `${S.timer.focus} minutes · anything you choose`; }
-  const track = T.mode === 'focus' && trackFor(item ? item.s.label : '');
+  const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
+  const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
+
+  if (active) return h('div', { class: 'stack home working' },
+    h('section', { class: 'focus-bar' + (T.run ? ' live' : '') },
+      ringEl(true),
+      h('div', { class: 'fb-txt' }, h('p', { class: 'eyebrow' }, T.run ? 'In the zone' : 'Paused'), h('b', null, title), h('small', null, meta)),
+      h('div', { class: 'fb-ctl' }, B(T.run ? icon('pause') : icon('play'), 'tgl', 'primary icon-only', { 'aria-label': T.run ? 'Pause' : 'Resume' }), B('End', 'rst', 'ghost sm'))),
+    missionCard(M, true));
 
   return h('div', { class: 'stack home' },
-    h('section', { class: 'focus' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') },
-      h('p', { class: 'eyebrow' }, active ? (T.mode === 'break' ? 'Recovery' : T.run ? 'In the zone' : 'Paused') : `${part} · next up`),
+    h('section', { class: 'focus' },
+      h('p', { class: 'eyebrow' }, `${part} · next up`),
       h('h1', { class: 'focus-title' }, title),
       h('p', { class: 'focus-meta' }, meta),
       ringEl(),
-      !active ? B([icon('play'), 'Begin'], 'tgl', 'begin')
-        : h('div', { class: 'row center' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'begin sm'),
-          T.mode === 'break' ? B([icon('skip'), 'Skip rest'], 'skip', 'ghost') : B('End set', 'rst', 'ghost')),
-      track && h('button', { type: 'button', class: 'practise', 'data-act': 'drill', 'data-track': track },
-        icon('sparkle'), h('span', null, h('b', null, `Practise here: ${TRACKS[track][0]}`), h('small', null, 'Real questions with worked methods'))),
-      !active && T.mode === 'focus' && h('div', { class: 'focus-links' },
+      B([icon('play'), 'Begin'], 'tgl', 'begin'),
+      h('div', { class: 'focus-links' },
         B(CHOOSE ? 'Close' : 'Choose something else', 'choose', 'link'), h('span', { 'aria-hidden': 'true' }, '·'), B("Today's plan", 'go', 'link', { 'data-tab': 'today' })),
-      CHOOSE && !active && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
+      CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
-    !active && todayStrip(todayN),
-    !active && quickWins());
+    motionHint(),
+    missionCard(M, false),
+    todayStrip(todayN),
+    quickWins());
+}
+function missionCard(M, live) {
+  const head = h('div', { class: 'm-head' }, h('span', { class: 'lc-ic' }, icon(M.id === 'fixes' ? 'wrench' : M.id === 'paper' ? 'scroll' : M.id === 'lit' ? 'feather' : M.id === 'lang' ? 'book' : M.id === 're' ? 'sparkle' : 'target')),
+    h('div', null, h('p', { class: 'eyebrow' }, live ? 'Your mission' : 'In this set you will'), h('h2', null, M.title)));
+  const steps = h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)));
+  if (!live) return h('section', { class: 'card mission' }, head, steps, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
+  return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
+}
+function missionPanel(M) {
+  if (M.id === 'fixes') {
+    const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey());
+    if (due.length) return h('div', { class: 'm-panel' }, h('h3', null, `${due.length} ready to redo`), fixList(due));
+    return h('div', { class: 'm-panel' }, h('p', { class: 'muted' }, 'No mistakes are waiting. Here is a mixed drill instead.'), drillZone('all'));
+  }
+  if (M.id === 'paper') return h('div', { class: 'm-panel' },
+    h('div', { class: 'row' }, B([icon('scroll'), 'Log this paper'], 'go', 'primary', { 'data-tab': 'papers' }), B([icon('check'), 'Past papers list'], 'listGo', 'ghost', { 'data-k': 'pa' })),
+    h('p', { class: 'muted xs' }, 'Finished early, or waiting for a paper? Warm up below.'), drillZone(M.subj || 'science'));
+  if (M.id === 'lit') return h('div', { class: 'm-panel' }, drillZone('englit'), planBuilder(['macbeth', 'acc', 'je', 'poetry'], 'focus-lit'));
+  if (M.id === 'lang') return h('div', { class: 'm-panel' }, langGuides(), planBuilder(['writing1', 'writing2'], 'focus-lang'), drillZone('englang'));
+  if (M.id === 're') return h('div', { class: 'm-panel' }, drillZone('re'), planBuilder(['re'], 'focus-re'));
+  if (M.id === 'drill') return h('div', { class: 'm-panel' }, drillZone(M.subj));
+  return h('div', { class: 'm-panel' },
+    h('div', { class: 'chips' }, LEARN.SUBJECTS.map(s => chip([icon(s.icon), s.name], FREE_TRACK === s.id, 'freeTrack', { 'data-track': s.id }))),
+    FREE_TRACK ? drillZone(FREE_TRACK) : h('p', { class: 'muted xs' }, 'Pick a subject to get questions.'));
+}
+function motionHint() {
+  if (!MQ_REDUCED.matches || S.motion !== 'auto' || S.motionHint) return null;
+  return h('div', { class: 'banner motion' }, icon('sparkle'), h('div', { class: 'grow' }, h('b', null, 'Animations are switched off on this device'),
+    h('p', null, 'Your device asked apps to reduce motion, so Archeron is keeping still. Want the full animated version?'),
+    h('div', { class: 'row' }, B([icon('sparkle'), 'Turn on animations'], 'motion', 'primary sm', { 'data-v': 'full' }), B('Keep it still', 'motion', 'ghost sm', { 'data-v': 'reduced' }))));
 }
 function todayStrip(n) {
   const shown = Math.min(n, 12);
   return h('div', { class: 'strip' },
     h('div', { class: 'embers', 'aria-hidden': 'true' }, Array.from({ length: Math.max(shown, 1) }, (_, i) => h('i', { class: i < n ? 'lit' : '' }))),
-    h('span', null, n ? `${n} ${n === 1 ? 'set' : 'sets'} today${n > 12 ? '' : ''}` : 'Your first set today lights a lantern.'));
+    h('span', null, n ? `${n} ${n === 1 ? 'set' : 'sets'} today` : 'Your first set today lights a lantern.'));
 }
 function quickWins() {
   const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
   const items = [
-    h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'maths' }, icon('sparkle'), h('span', null, h('b', null, 'Maths warm-up'), h('small', null, 'A few quick questions'))),
+    h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
-    dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`)))];
+    dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
+    S.game.tokens > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'voyage' }, icon('ship'), h('span', null, h('b', null, 'Voyage'), h('small', null, `${S.game.tokens} ready to sail`)))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
+}
+
+/* ---------- Learn ---------- */
+function vLearn() {
+  const hard = Object.keys(LEARN.TOPIC).filter(id => { const k = skill(id); return usable(id) && k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; }).slice(0, 5);
+  return h('div', { class: 'stack' },
+    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Topics you find hard come back more often until they click. Every 10 right answers earns a voyage.'),
+    tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'drill', 'data-track': 'all' }, h('span', { class: 'lc-ic' }, icon('compass')), h('b', null, 'Mixed practice'),
+      h('span', { class: 'lc-d' }, 'Questions from all your subjects, weighted towards what you find hardest.'), h('small', null, `${S.learnOk.toLocaleString('en-GB')} answered right so far`))),
+    h('div', { class: 'sgrid' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id);
+      return tilt(h('button', { type: 'button', class: 'scard', 'data-act': 'subject', 'data-track': s.id },
+        h('span', { class: 'lc-ic' }, icon(s.icon)), h('b', null, s.name), h('small', null, `${masteredIn(ids)} of ${ids.length} mastered`), bar(ids.length ? masteredIn(ids) / ids.length * 100 : 0))); })),
+    h('div', { class: 'lgrid' },
+      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'write' }, h('span', { class: 'lc-ic' }, icon('edit')), h('b', null, 'Plans and writing'),
+        h('span', { class: 'lc-d' }, 'Essay plans, RE 12-markers, creative and viewpoint writing, and how to answer each English question.'), h('small', null, S.plans.length ? `${S.plans.length} plans saved` : 'Plan beats panic'))),
+      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
+        h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
+    hard.length && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
+    h('p', { class: 'muted xs center' }, '★ answered right · ★★ 3 in a row · ★★★ 5 in a row (mastered). Stars are never taken away.'));
+}
+const starsEl = id => h('span', { class: 'stars', 'aria-label': `${stars(id)} of 3 stars` }, [1, 2, 3].map(i => h('i', { class: i <= stars(id) ? 'on' : '' })));
+function vSubject() {
+  const s = SUBJ_BY[SUBJ_SEL] || LEARN.SUBJECTS[0], ids = topicsFor(s.id);
+  const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
+    h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} facts`) : null), starsEl(id)))))) : null; };
+  const extras = s.id === 'englit' ? [B([icon('edit'), 'Plan an essay'], 'go', 'ghost', { 'data-tab': 'write' }), B([icon('cards'), 'Quote flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })]
+    : s.id === 're' ? [B([icon('edit'), 'Plan a 12-mark answer'], 'go', 'ghost', { 'data-tab': 'write' })]
+    : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
+    : s.id === 'physics' || s.id === 'maths' ? [B([icon('cards'), 'Formula flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })] : [];
+  return h('div', { class: 'stack narrow' },
+    subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
+    h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
+    group('recall', 'Key facts'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
+    !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')));
+}
+function startDrill(track, topic, ctx = 'learn') {
+  DR = { track, topic: topic || null, ctx, q: null, state: 'ask', count: 0, ok: 0, run: 0, last: null, picked: null };
+  nextQ();
+}
+function nextQ(sameTopic) {
+  const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
+  DR.q = id && LEARN.gen(id); DR.state = 'ask'; DR.msg = ''; DR.last = id; DR.picked = null; DRAFT.dr = '';
+}
+function drillZone(track) {
+  if (!DR || DR.ctx !== 'focus' || DR.track !== track) startDrill(track, null, 'focus');
+  return drillPanel();
+}
+function vDrill() {
+  if (!DR) return vLearn();
+  const title = DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
+  const back = DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
+  if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
+  return h('div', { class: 'stack narrow' },
+    subHero(DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
+    drillPanel(),
+    h('p', { class: 'muted xs center' }, 'Keys: 1–4 pick an answer, Enter checks or moves on. Getting it wrong here is how it sticks for the exam.'));
+}
+function drillPanel() {
+  const q = DR && DR.q;
+  if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
+  const st = DR.state, mcq = q.kind === 'mcq';
+  const answerBox = mcq
+    ? h('div', { class: 'mcq' }, q.options.map((o, i) => h('button', { type: 'button', class: 'opt' + (st !== 'ask' ? (i === q.a ? ' correct' : i === DR.picked ? ' picked' : ' dim') : ''), 'data-act': 'mcq', 'data-i': i, disabled: st !== 'ask', id: i === 0 ? 'opt0' : null },
+      h('span', { class: 'opt-k' }, 'ABCD'[i]), h('span', null, o))))
+    : h('div', { class: 'answer' },
+      q.pre && h('span', { class: 'adorn' }, q.pre),
+      h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer' }),
+      q.suf && h('span', { class: 'adorn' }, q.suf));
+  return h('section', { class: 'card qcard ' + st },
+    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
+    h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
+    answerBox,
+    st === 'ask' && !mcq && q.hint && h('p', { class: 'muted xs' }, q.hint),
+    st === 'ask' ? (mcq ? h('div', { class: 'row end' }, B('Show me', 'reveal', 'link')) : h('div', { class: 'row' }, B('Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost')))
+      : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
+        h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
+        !mcq && acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
+        B('Next question', 'next', 'primary wide', { id: 'nextq' }))
+      : h('div', { class: 'fb no t-panel-slide', 'data-open': 'false' },
+        h('p', { class: 'fb-h' }, st === 'shown' ? 'Here is how it works.' : 'Not quite.', DR.msg && h('span', null, ' ' + DR.msg)),
+        h('p', null, 'Answer: ', h('b', null, q.show)),
+        !mcq && h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))),
+        h('div', { class: 'row' }, B('Try a similar one', 'similar', 'primary grow', { id: 'nextq' }), B('Next', 'next', 'ghost')),
+        B([icon('plus'), 'Add to fix list'], 'drillFix', 'link')));
+}
+
+/* ---------- plans and writing ---------- */
+const PLAN_FIELDS = {
+  lit: ['Thesis: your argument in one sentence', 'Paragraph 1: point, quote, method, effect', 'Paragraph 2: point, quote, method, effect', 'Paragraph 3: point, quote, method, effect', 'Context you will weave in', 'Conclusion: link back to the question'],
+  re: ['Argument for, with a religious teaching', 'Argument against, with a religious teaching', 'A non-religious or different view', 'Your justified conclusion'],
+  writing: ['Opening hook', 'Paragraph ideas (4–5)', 'Ending', 'Five ambitious words or devices to use']
+};
+const PLAN_KIND = { macbeth: ['Macbeth', 'lit'], acc: ['A Christmas Carol', 'lit'], je: ["Journey's End", 'lit'], poetry: ['Poetry', 'lit'], re: ['RE 12-marker', 're'], writing1: ['Creative writing (P1 Q5)', 'writing'], writing2: ['Viewpoint writing (P2 Q5)', 'writing'] };
+function planDraft(kind) { return DRAFT.plans[kind] = DRAFT.plans[kind] || { pi: Math.floor(Math.random() * PROMPTS[kind].length), f: PLAN_FIELDS[PLAN_KIND[kind][1]].map(() => '') }; }
+function planBuilder(kinds, key) {
+  const kind = kinds.includes(PB[key]) ? PB[key] : kinds[0], D = planDraft(kind), fields = PLAN_FIELDS[PLAN_KIND[kind][1]];
+  return h('section', { class: 'planner' },
+    h('div', { class: 'card-h' }, h('h3', null, 'Plan it'), h('span', { class: 'muted xs' }, '5–10 minutes')),
+    kinds.length > 1 && h('div', { class: 'chips scroll' }, kinds.map(k => chip(PLAN_KIND[k][0], k === kind, 'pbKind', { 'data-k': key, 'data-kind': k }))),
+    h('div', { class: 'prompt' }, h('p', null, PROMPTS[kind][D.pi]), B([icon('reset'), 'New prompt'], 'pbNext', 'ghost sm', { 'data-kind': kind })),
+    fields.map((f, i) => field(f, h('textarea', { rows: i === 1 && kind.startsWith('writing') ? 3 : 2, 'data-draft': `plans.${kind}.f.${i}`, value: D.f[i], maxlength: 2000 }))),
+    B([icon('check'), 'Save plan'], 'pbSave', 'primary', { 'data-kind': kind }));
+}
+function langGuides() {
+  return h('div', { class: 'guides' }, LANG_GUIDES.map(([t, steps], i) => acc('guide' + i, h('b', null, t), h('ol', { class: 'steps' }, steps.map(s => h('li', null, s))), { cls: 'guide' })));
+}
+function vWrite() {
+  return h('div', { class: 'stack narrow' },
+    subHero('Learn', 'Plans and writing', 'learn', 'A five-minute plan is the fastest way to a structured answer. Plans are saved on this device.'),
+    card('Plan an answer', null, planBuilder(Object.keys(PLAN_KIND), 'write')),
+    card('How to answer English Language questions', null, langGuides()),
+    S.plans.length ? card('Saved plans', h('span', { class: 'muted' }, S.plans.length + ' saved'),
+      [...S.plans].reverse().slice(0, 30).map(p => acc('plan' + p.id, h('span', { class: 'pl-h' }, h('b', null, PLAN_KIND[p.kind] ? PLAN_KIND[p.kind][0] : p.kind), h('small', null, `${fmtDate(p.date)} · ${p.prompt}`)),
+        [h('dl', { class: 'pl' }, (PLAN_FIELDS[(PLAN_KIND[p.kind] || [, 'lit'])[1]] || []).map((f, i) => p.f[i] ? [h('dt', null, f), h('dd', null, p.f[i])] : null)),
+          B([icon('x'), 'Delete plan'], 'pbDel', 'link', { 'data-id': p.id })], { cls: 'saved' }))) : null);
+}
+
+/* ---------- Profile ---------- */
+function emblemEl(id, cls = 'emb') {
+  const e = h('span', { class: cls });
+  e.append(id === 'bat' ? svg('0 0 200 100', BAT, 'bat') : icon(id));
+  return e;
+}
+function vProfile() {
+  const life = lifeSets(), nt = nextTitle(life), CH = 20, chapter = Math.floor(life / CH) + 1, inCh = life % CH;
+  const stats = [['lantern', life, 'lanterns lit'], ['hourglass', fmtHours(S.focusMin), 'focused'], ['target', S.learnOk, 'questions right'], ['crown', masteredAll(), 'topics mastered'],
+    ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed'], ['ship', S.game.best, 'best voyage']];
+  const cats = ['All', 'Focus', 'Learn', 'Exams', 'Voyage'];
+  const shown = ACH.filter(a => ACH_CAT === 'All' || a.cat === ACH_CAT);
+  return h('div', { class: 'stack' },
+    h('section', { class: 'card idcard' },
+      h('div', { class: 'id-emb' }, emblemEl(S.profile.emblem, 'emb big')),
+      h('div', { class: 'id-txt' },
+        h('input', { class: 'id-name', value: S.profile.name, placeholder: 'Your name', maxlength: 30, 'data-act': 'pname', 'aria-label': 'Your name' }),
+        h('p', { class: 'id-title' }, titleFor(life)),
+        h('p', { class: 'muted xs' }, nt ? `${nt[0] - life} more lantern${nt[0] - life === 1 ? '' : 's'} to become ${nt[1]}` : 'The highest title on the river.'),
+        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('lantern'), life), h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('ship'), `${S.game.tokens} voyages`)))),
+    acc('emblems', [h('h2', null, 'Emblem'), h('span', { class: 'muted acc-r' }, 'unlocked by lanterns')],
+      h('div', { class: 'emblems' }, EMBLEMS.map(([id, need]) => { const ok = life >= need;
+        return h('button', { type: 'button', class: 'emb-pick' + (S.profile.emblem === id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'emblem', 'data-id': id, disabled: !ok, 'aria-label': ok ? `Use ${id} emblem` : `Locked: light ${need} lanterns` },
+          emblemEl(id), !ok && h('small', null, need)); }))),
+    h('div', { class: 'feats' }, stats.map(([ic, v, l]) => h('div', { class: 'feat' }, icon(ic), h('b', null, typeof v === 'number' ? h('span', { 'data-count': v }, v.toLocaleString('en-GB')) : v), h('span', null, l)))),
+    card(`The river · chapter ${chapter}`, h('span', { class: 'muted' }, `${inCh} of ${CH}`), riverSvg(inCh, CH),
+      h('p', { class: 'muted xs' }, 'Every set you finish lights a lantern. They never go out, and they unlock boats and river zones in Voyage.')),
+    card('Achievements', h('span', { class: 'muted' }, `${badgeCount()} of ${badgeTotal} badges`),
+      h('div', { class: 'chips scroll' }, cats.map(c => chip(c, c === ACH_CAT, 'achCat', { 'data-k': c }))),
+      h('ul', { class: 'achs' }, shown.map(a => {
+        const tier = S.ach[a.id] ? S.ach[a.id].tier : 0, v = a.v(), next = a.t[tier], prev = tier ? a.t[tier - 1] : 0;
+        const p = next ? clamp((v - prev) / (next - prev) * 100, 0, 100) : 100;
+        return h('li', { class: 'ach t' + tier }, h('span', { class: 'ach-ic' }, icon(a.icon)),
+          h('div', { class: 'ach-b' }, h('b', null, a.name), h('small', null, tier ? `${TIERS[tier - 1]} · ` : '', next ? `${Math.floor(v).toLocaleString('en-GB')} / ${next.toLocaleString('en-GB')} ${a.unit}` : `All tiers earned · ${Math.floor(v).toLocaleString('en-GB')} ${a.unit}`), bar(p)),
+          h('span', { class: 'pips', 'aria-label': `${tier} of ${a.t.length} tiers` }, a.t.map((_, i) => h('i', { class: i < tier ? 'on t' + (i + 1) : '' })))); }))),
+    card('Subject mastery', null, h('ul', { class: 'mastery' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id), m = masteredIn(ids);
+      return h('li', null, h('button', { type: 'button', 'data-act': 'subject', 'data-track': s.id }, icon(s.icon), h('span', null, s.name), h('small', null, `${m}/${ids.length}`)), bar(ids.length ? m / ids.length * 100 : 0)); }))),
+    h('div', { class: 'row center' }, B([icon('user'), 'Settings and backup'], 'go', 'ghost', { 'data-tab': 'me' })));
+}
+function riverSvg(lit, N) {
+  const W = 400, H = 150, xs = i => 24 + i * ((W - 48) / (N - 1)), ys = i => 75 + 42 * Math.sin(i * .62);
+  let d = ''; for (let x = 0; x <= W; x += 4) { const i = (x - 24) / ((W - 48) / (N - 1)); d += (x ? ' L' : 'M') + x + ' ' + (75 + 42 * Math.sin(i * .62)).toFixed(1); }
+  let dots = '';
+  for (let i = 0; i < N; i++) {
+    const cls = i < lit ? 'lit' : i === lit ? 'next' : '';
+    dots += `<g class="lan ${cls}" style="--i:${i}"><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="11" class="glow"/><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="5" class="core"/></g>`;
+  }
+  const wrap = h('div', { class: 'river', role: 'img', 'aria-label': `${lit} of ${N} lanterns lit in this chapter` });
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><path d="${d}" class="water"/><path d="${d}" class="water2"/>${dots}</svg>`;
+  return wrap;
+}
+
+/* ---------- Voyage ---------- */
+let GAMECTL = null, GATE = null, GAME_RESULT = null;
+function boatSvg(b, big) {
+  const wrap = h('span', { class: 'boat-ic' + (big ? ' big' : '') });
+  wrap.innerHTML = `<svg viewBox="0 0 40 60" aria-hidden="true"><ellipse cx="20" cy="30" rx="18" ry="26" fill="${b.trim}" opacity=".12"/><path d="M20 6 Q34 24 31 52 L9 52 Q6 24 20 6Z" fill="${b.hull}" stroke="${b.trim}" stroke-width="2"/><line x1="12" y1="38" x2="28" y2="38" stroke="rgba(0,0,0,.35)"/><circle cx="20" cy="27" r="4" fill="#fff3c4"/></svg>`;
+  return wrap;
+}
+function grantDaily() { if (S.game.lastFree !== dkey()) { S.game.lastFree = dkey(); S.game.tokens++; save(); } }
+function vVoyage() {
+  const life = lifeSets(), boat = VOYAGE.BOATS.find(b => b.id === S.game.boat) || VOYAGE.BOATS[0], zone = VOYAGE.ZONES.find(z => z.id === S.game.zone) || VOYAGE.ZONES[0];
+  return h('div', { class: 'stack' },
+    hero('Voyage', 'The river Acheron', 'Steer your ferry, dodge the rocks and gather wisps. Knowledge gates ask a question: get it right for an extra life.'),
+    h('section', { class: 'card sail' },
+      h('div', { class: 'sail-art' }, boatSvg(boat, true)),
+      h('div', { class: 'sail-txt' },
+        h('p', { class: 'eyebrow' }, `${zone.name} · ${boat.name}`),
+        h('h2', null, S.game.tokens ? `${S.game.tokens} voyage${S.game.tokens === 1 ? '' : 's'} ready` : 'No voyages ready'),
+        h('p', { class: 'muted xs' }, S.game.tokens ? `Best score: ${S.game.best.toLocaleString('en-GB')}` : 'Finish a focus set, or get 10 Learn answers right, to earn one. You also get a free one every day.'),
+        B([icon('ship'), 'Set sail'], 'sail', 'begin sm', { disabled: !S.game.tokens }))),
+    card('Boats', h('span', { class: 'muted' }, 'unlocked by lanterns'), h('div', { class: 'boats' }, VOYAGE.BOATS.map(b => { const ok = life >= b.need;
+      return tilt(h('button', { type: 'button', class: 'boat' + (b.id === boat.id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'boat', 'data-id': b.id, disabled: !ok },
+        boatSvg(b), h('b', null, b.name), h('small', null, ok ? b.perk : `Light ${b.need} lanterns (${b.need - life} to go)`))); }))),
+    card('River zones', h('span', { class: 'muted' }, 'harder zones score more'), h('div', { class: 'zones' }, VOYAGE.ZONES.map(z => { const ok = life >= z.need;
+      return h('button', { type: 'button', class: 'zone' + (z.id === zone.id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'zone', 'data-id': z.id, disabled: !ok, style: `--zc:${z.glow};--zw:${z.water[1]}` },
+        h('b', null, z.name), h('small', null, ok ? `Score ×${z.mult}` : `Light ${z.need} lanterns`)); }))),
+    card('How to play', null, h('ul', { class: 'howto' },
+      h('li', null, 'Drag left and right, or use the arrow keys'), h('li', null, 'Rocks cost a life. Wisps add to your score'),
+      h('li', null, 'Knowledge gates ask a question. Right answer: +1 life and bonus points'), h('li', null, 'Earn voyages: finish focus sets, get 10 answers right, or come back tomorrow'))));
+}
+function startVoyage() {
+  if (GAMECTL || S.game.tokens <= 0) return;
+  S.game.tokens--; save(); GAME_RESULT = null;
+  const zone = VOYAGE.ZONES.find(z => z.id === S.game.zone) || VOYAGE.ZONES[0];
+  const ov = h('div', { class: 'game-ov', role: 'dialog', 'aria-label': 'Voyage', 'aria-modal': 'true' },
+    h('div', { class: 'game-top' }, h('b', null, zone.name), h('div', { class: 'row nowrap' }, B([icon('pause'), 'Pause'], 'gPause', 'ghost sm', { id: 'gpause' }), B(icon('x'), 'gQuit', 'ghost icon-only', { 'aria-label': 'End voyage' }))),
+    h('div', { class: 'game-stage' }, h('canvas', { id: 'gcv', 'aria-label': 'Voyage game. Drag or use arrow keys to steer.' })),
+    h('div', { id: 'gmodal', class: 'gmodal', hidden: true }));
+  document.body.append(ov); document.body.classList.add('gaming');
+  GAMECTL = VOYAGE.start($('#gcv'), { boat: S.game.boat, zone: S.game.zone, onGate: gateAsk, onEnd: voyageEnd, reduced: REDUCED });
+}
+function gmodal(...kids) { const m = $('#gmodal'); if (!m) return; m.replaceChildren(h('div', { class: 'gm-card t-panel-slide', 'data-open': 'false' }, kids)); m.hidden = false; const open = () => m.firstChild && m.firstChild.setAttribute('data-open', 'true'); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 100); }
+function gmodalClose() { const m = $('#gmodal'); if (m) { m.hidden = true; m.replaceChildren(); } }
+function gateAsk(cb) {
+  const ids = Object.keys(LEARN.TOPIC).filter(id => usable(id) && (LEARN.TOPIC[id].type === 'recall'));
+  const q = ids.length && LEARN.gen(pick(ids));
+  if (!q) { cb(true); return; }
+  GATE = { q, cb, done: false };
+  gmodal(h('p', { class: 'eyebrow' }, 'Knowledge gate · ' + (q.sub || '')), h('p', { class: 'qtext' }, q.q),
+    h('div', { class: 'mcq' }, q.options.map((o, i) => h('button', { type: 'button', class: 'opt', 'data-act': 'gate', 'data-i': i }, h('span', { class: 'opt-k' }, 'ABCD'[i]), h('span', null, o)))));
+}
+function voyageEnd(r) {
+  const best = r.score > S.game.best;
+  S.stat.voyages++; S.stat.gates += r.gates; if (best) S.game.best = r.score; save(); GAME_RESULT = r;
+  gmodal(h('p', { class: 'eyebrow' }, 'Voyage over'), h('h2', { class: 'gm-score' }, r.score.toLocaleString('en-GB')),
+    h('p', { class: 'muted' }, best ? 'New best score!' : `Best: ${S.game.best.toLocaleString('en-GB')}`),
+    h('div', { class: 'gm-stats' }, h('span', null, h('b', null, r.wisps), ' wisps'), h('span', null, h('b', null, r.gates), ' gates'), h('span', null, h('b', null, r.dist), ' distance')),
+    h('div', { class: 'row center' }, S.game.tokens > 0 && B([icon('ship'), `Sail again (${S.game.tokens} left)`], 'sailAgain', 'primary'), B('Back to the shore', 'gClose', 'ghost')));
+  checkAch();
+}
+function closeVoyage() {
+  if (GAMECTL) { GAMECTL.stop(); GAMECTL = null; }
+  GATE = null; document.querySelector('.game-ov')?.remove(); document.body.classList.remove('gaming');
+  render(); checkAch();
+}
+
+/* ---------- Toolkit ---------- */
+function vTools() {
+  const dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
+  const tool = (tab, ic, name, sub, extra = {}) => tilt(h('button', Object.assign({ type: 'button', class: 'tool', 'data-act': 'go', 'data-tab': tab }, extra), h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
+  return h('div', { class: 'stack' },
+    hero('Toolkit', 'Everything else', 'Here when you need it.'),
+    h('div', { class: 'tools' },
+      tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
+      tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
+      tool('fix', 'wrench', 'Fix list', dueM ? `${dueM} ready to redo` : 'Turn mistakes into marks'),
+      tool('cards', 'cards', 'Flashcards', allDue() ? `${allDue()} ready to review` : 'All reviewed for today'),
+      tool('today', 'flame', "Today's plan", 'Tick sets you did away from the app'),
+      tool('plan', 'calendar', 'Weekly plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''}`),
+      tool('write', 'edit', 'Plans and writing', `${S.plans.length} saved`),
+      tool('me', 'user', 'Settings', 'Subjects, grades, timer, backup')));
 }
 
 /* Today's plan (manual ticking, finishers) */
@@ -385,112 +745,6 @@ function sessionRow(s, day) {
     h('div', { class: 'sess-b' }, h('b', null, s.label), h('small', null, c >= n ? 'Complete' : `${c} of ${n} sets`)),
     h('div', { class: 'dots' }, Array.from({ length: n }, (_, j) => h('button', { type: 'button', class: 'dot' + (done[j] ? ' on' : ''), 'data-act': 'tick', 'data-sid': s.id, 'data-j': j,
       'aria-pressed': String(!!done[j]), 'aria-label': `Set ${j + 1} of ${n}: ${s.label}` }))));
-}
-
-/* ---------- Learn ---------- */
-function vLearn() {
-  const starsEl = id => h('span', { class: 'stars', 'aria-label': `${stars(id)} of 3 stars` }, [1, 2, 3].map(i => h('i', { class: i <= stars(id) ? 'on' : '' })));
-  const tcard = (track, ic, desc, stat) => h('button', { type: 'button', class: 'lcard', 'data-act': 'drill', 'data-track': track },
-    h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, TRACKS[track][0]), h('span', { class: 'lc-d' }, desc), h('small', null, stat));
-  const hard = [...LEARN.MATHS, ...LEARN.PHYS].filter(id => { const k = skill(id); return k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; }).slice(0, 4);
-  const jeCount = quoteCards('q-je').length;
-  return h('div', { class: 'stack' },
-    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Topics you find hard come back more often until they click.'),
-    h('div', { class: 'lgrid' },
-      tcard('maths', 'target', 'Percentages, fractions, ratio, equations, Pythagoras and more. Every question is new.', `${mastered('maths')} of ${LEARN.MATHS.length} topics mastered`),
-      tcard('physics', 'bolt', 'Use and rearrange every equation you need to recall, with units.', `${mastered('physics')} of ${LEARN.PHYS.length} equations mastered`),
-      tcard('quotes', 'feather', `Fill the missing word: Macbeth, A Christmas Carol${jeCount ? " and Journey's End" : ''}.`, S.quoteOk ? `${S.quoteOk} quotes recalled` : 'Recall beats rereading'),
-      h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
-        h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today'))),
-    hard.length && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
-    acc('maths-topics', [h('h2', null, 'Practise one Maths topic'), h('span', { class: 'muted acc-r' }, LEARN.MATHS.length + ' topics')],
-      h('ul', { class: 'topics' }, LEARN.MATHS.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id)), starsEl(id)))))),
-    acc('phys-topics', [h('h2', null, 'Practise one equation'), h('span', { class: 'muted acc-r' }, LEARN.PHYS.length + ' equations')],
-      h('ul', { class: 'topics' }, LEARN.PHYS.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id)), starsEl(id)))))),
-    h('p', { class: 'muted xs center' }, '★ answered right · ★★ 3 in a row · ★★★ 5 in a row (mastered). Stars are never taken away.'));
-}
-function startDrill(track, topic) {
-  DR = { track, topic: topic || null, q: null, state: 'ask', count: 0, ok: 0, last: null };
-  nextQ();
-}
-function nextQ(sameTopic) {
-  const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
-  const q = id && LEARN.gen(id);
-  DR.q = q; DR.state = 'ask'; DR.msg = ''; DR.last = id; DRAFT.dr = '';
-}
-function vDrill() {
-  if (!DR) return vLearn();
-  const q = DR.q, title = DR.topic ? LEARN.name(DR.topic) : TRACKS[DR.track][0];
-  if (!q) return h('div', { class: 'stack narrow' }, subHero('Learn', title, 'learn'),
-    card(null, null, h('p', null, DR.track === 'quotes' ? 'No quotes to practise yet. Add quotes to a deck in Flashcards and they appear here.' : 'Nothing to practise here yet.')));
-  const st = DR.state, inputMode = q.kind === 'num' ? 'decimal' : 'text';
-  return h('div', { class: 'stack narrow' },
-    subHero(DR.topic ? TRACKS[LEARN.trackOf(DR.topic)][0] : 'Mixed practice', title, 'learn'),
-    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, LEARN.name(q.id)), h('span', null, DR.ok ? `${DR.ok} right this session` : 'Take your time')),
-    h('section', { class: 'card qcard ' + st },
-      q.sub && h('p', { class: 'eyebrow' }, q.sub),
-      h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
-      h('div', { class: 'answer' },
-        q.pre && h('span', { class: 'adorn' }, q.pre),
-        h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: inputMode, enterkeyhint: 'done', 'aria-label': 'Your answer' }),
-        q.suf && h('span', { class: 'adorn' }, q.suf)),
-      st === 'ask' && q.hint && h('p', { class: 'muted xs' }, q.hint),
-      st === 'ask' ? h('div', { class: 'row' }, B('Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost'))
-        : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
-          h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
-          acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
-          B('Next question', 'next', 'primary wide', { id: 'nextq' }))
-        : h('div', { class: 'fb no t-panel-slide', 'data-open': 'false' },
-          h('p', { class: 'fb-h' }, st === 'shown' ? 'Here is how it works.' : 'Not quite.', DR.msg && h('span', null, ' ' + DR.msg)),
-          h('p', null, 'Answer: ', h('b', null, q.show)),
-          h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))),
-          h('div', { class: 'row' }, B('Try a similar one', 'similar', 'primary grow', { id: 'nextq' }), B('Next', 'next', 'ghost')),
-          B([icon('plus'), 'Add to fix list'], 'drillFix', 'link'))),
-    h('p', { class: 'muted xs center' }, 'Press Enter to check. Getting it wrong here is how it sticks for the exam.'));
-}
-
-/* ---------- Journey ---------- */
-function vPath() {
-  const life = lifeSets(), CH = 20, chapter = Math.floor(life / CH) + 1, inCh = life % CH;
-  const feats = [['hourglass', S.focusMin ? fmtHours(S.focusMin) : 0, 'focused'], ['target', mastered('maths') + mastered('physics'), 'topics mastered'],
-    ['sparkle', S.learnOk, 'questions right'], ['cards', learnedCards(), 'cards learned'], ['scroll', S.scores.length, 'papers done'], ['shield', S.fixedCount, 'mistakes fixed']].filter(f => f[1]);
-  const got = RELICS.filter(r => S.relics[r.id]).length;
-  return h('div', { class: 'stack' },
-    h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, 'Your journey'),
-      h('h1', null, life ? [h('span', { 'data-count': life }, life), life === 1 ? ' lantern lit' : ' lanterns lit'] : 'The path begins'),
-      h('p', { class: 'lede' }, life ? 'Every set you finish lights one. They never go out.' : 'Finish your first focus set and the first lantern on the river lights up.')),
-    card(`Chapter ${chapter}`, h('span', { class: 'muted' }, `${inCh} of ${CH}`), riverSvg(inCh, CH)),
-    feats.length && h('div', { class: 'feats' }, feats.map(([ic, v, l]) => h('div', { class: 'feat' }, icon(ic), h('b', null, typeof v === 'number' ? h('span', { 'data-count': v }, v) : v), h('span', null, l)))),
-    card('Relics', h('span', { class: 'muted' }, `${got} of ${RELICS.length} found`),
-      h('ul', { class: 'relics' }, RELICS.map(r => { const on = S.relics[r.id];
-        return h('li', { class: on ? 'on' : '' }, h('span', { class: 'rl-ic' }, icon(r.icon)), h('b', null, r.name), h('small', null, on ? 'Found ' + fmtDate(on) : r.how)); }))));
-}
-function riverSvg(lit, N) {
-  const W = 400, H = 150, xs = i => 24 + i * ((W - 48) / (N - 1)), ys = i => 75 + 42 * Math.sin(i * .62);
-  let d = ''; for (let x = 0; x <= W; x += 4) { const i = (x - 24) / ((W - 48) / (N - 1)); d += (x ? ' L' : 'M') + x + ' ' + (75 + 42 * Math.sin(i * .62)).toFixed(1); }
-  let dots = '';
-  for (let i = 0; i < N; i++) {
-    const cls = i < lit ? 'lit' : i === lit ? 'next' : '';
-    dots += `<g class="lan ${cls}" style="--i:${i}"><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="11" class="glow"/><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="5" class="core"/></g>`;
-  }
-  const wrap = h('div', { class: 'river', role: 'img', 'aria-label': `${lit} of ${N} lanterns lit in this chapter` });
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="rv" x1="0" x2="1"><stop offset="0" stop-color="#3a3354"/><stop offset="1" stop-color="#1c1a2a"/></linearGradient></defs><path d="${d}" class="water"/><path d="${d}" class="water2"/>${dots}</svg>`;
-  return wrap;
-}
-
-/* ---------- Toolkit ---------- */
-function vTools() {
-  const dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
-  const tool = (tab, ic, name, sub) => h('button', { type: 'button', class: 'tool', 'data-act': 'go', 'data-tab': tab }, h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub));
-  return h('div', { class: 'stack' },
-    hero('Toolkit', 'Everything else', 'Here when you need it.'),
-    h('div', { class: 'tools' },
-      tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
-      tool('fix', 'wrench', 'Fix list', dueM ? `${dueM} ready to redo` : 'Turn mistakes into marks'),
-      tool('lists', 'check', 'Checklists', 'Topics, practicals, papers'),
-      tool('cards', 'cards', 'Flashcards', allDue() ? `${allDue()} ready to review` : 'All reviewed for today'),
-      tool('plan', 'calendar', 'Weekly plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''}`),
-      tool('me', 'user', 'Settings', 'Grades, timer, backup, install')));
 }
 
 /* Past papers */
@@ -518,7 +772,7 @@ function chartCard() {
       const p = Math.round(tr.at(dayNum(S.mock)));
       msg = !tg ? `Heading for about ${p}% by mocks. Add a target % in Settings.`
         : p >= tg ? `On pace: heading for ${p}% against a ${tg}% target.`
-        : `Heading for ${p}% against ${tg}%. The marks-lost list shows the quickest ${tg - p}% to find.`;
+        : `Heading for ${p}% against ${tg}%. The marks-to-win-back list shows the quickest ${tg - p}% to find.`;
     }
     return h('li', null, h('i', { style: `background:${SUBJ_COLOR[s]}` }), h('b', null, s), h('span', null, msg));
   });
@@ -649,27 +903,44 @@ function vCards() {
       D.note && all.length ? h('p', { class: 'muted xs' }, D.note) : null,
       field('Front (quote or prompt)', h('textarea', { rows: 2, 'data-draft': 'card.f', value: C.f, maxlength: 300 })),
       field('Back (who, when, why it matters)', h('textarea', { rows: 2, 'data-draft': 'card.b', value: C.b, maxlength: 300 })),
-      h('p', { class: 'muted xs' }, 'Put quotes inside quotation marks and they also appear in Quote recall.'),
+      h('p', { class: 'muted xs' }, 'Put quotes inside quotation marks and they also appear in quote recall.'),
       B([icon('plus'), 'Add card'], 'addCard', 'primary'),
       mine.length ? h('ul', { class: 'list' }, mine.map(c => h('li', null, h('div', { class: 'grow' }, h('b', null, c.f), h('small', null, c.b)),
         B(icon('x'), 'delCard', 'ghost icon-only', { 'data-id': c.id, 'aria-label': 'Delete card' })))) : null], { open: !all.length }));
 }
 
-/* Checklists */
+/* Checklists: confidence per topic, with a practise link */
 function vLists() {
-  const L = LISTS[LT], p = listPct(LT);
+  const L = LISTS[LT], p = listPct(LT), conf = L.type === 'conf';
+  const counts = [0, 0, 0, 0]; L.items.forEach((_, i) => counts[S.conf[LT + i] || 0]++);
   return h('div', { class: 'stack narrow' },
-    subHero('Coverage', 'Checklists', 'tools'),
+    subHero('Coverage', 'Checklists', 'tools', 'Rate how ready you are on each topic. Tap the sparkle to practise it straight away.'),
     h('div', { class: 'chips scroll' }, Object.keys(LISTS).map(k => chip([LISTS[k].name, h('span', { class: 'n' }, listPct(k) + '%')], k === LT, 'list', { 'data-k': k }))),
     card(L.name, h('b', { class: 'y' }, p + '%'), bar(p),
-      h('div', { class: 'checks' }, L.items.map((it, i) => { const on = !!S.checks[LT + i];
-        return h('label', { class: 'chk' + (on ? ' d' : '') }, h('input', { type: 'checkbox', checked: on, 'data-act': 'chk', 'data-i': i }), checkBox(), h('span', null, it)); })),
-      h('p', { class: 'muted xs' }, 'Tick a topic when you can do an exam question on it without notes.')));
+      conf && h('div', { class: 'conf-key' }, CONF.slice(1).map((c, i) => h('span', { class: 'ck lv' + (i + 1) }, h('i'), `${c} · ${counts[i + 1]}`))),
+      conf ? h('ul', { class: 'clist' }, L.items.map(([label, link], i) => {
+        const key = LT + i, v = S.conf[key] || 0, canPractise = link && LEARN.TOPIC[link] && usable(link);
+        return h('li', { class: 'ci lv' + v },
+          h('div', { class: 'ci-l' }, h('b', null, label), h('small', null, CONF[v])),
+          h('div', { class: 'conf', role: 'group', 'aria-label': `Confidence for ${label}` }, [1, 2, 3].map(lv => h('button', { type: 'button', class: 'cf' + (lv <= v ? ' on' : ''), 'data-act': 'conf', 'data-k': key, 'data-v': lv, 'aria-label': CONF[lv], 'aria-pressed': String(lv === v) }))),
+          canPractise ? B(icon('sparkle'), 'drill', 'ghost icon-only', { 'data-topic': link, 'aria-label': `Practise ${label}` }) : h('span', { class: 'ci-sp' }));
+      }))
+        : h('div', { class: 'checks' }, L.items.map(([label], i) => { const on = (S.conf[LT + i] || 0) === 3;
+          return h('label', { class: 'chk' + (on ? ' d' : '') }, h('input', { type: 'checkbox', checked: on, 'data-act': 'chk', 'data-i': i }), checkBox(), h('span', null, label)); })),
+      h('p', { class: 'muted xs' }, conf ? 'Exam-ready means you can answer an exam question on it without notes.' : 'Tick each paper once it is done and marked.')));
 }
 
 /* Fix list */
+function fixList(open) {
+  const t = dkey();
+  return h('ul', { class: 'list' }, open.map(m => { const isDue = m.redo <= t;
+    return h('li', { class: isDue ? 'due' : '' },
+      h('div', { class: 'grow' }, h('b', null, `${m.subj}: ${m.topic}`), m.note && h('small', null, m.note), h('small', { class: isDue ? 'y' : '' }, isDue ? 'Ready to redo' : 'Back on ' + fmtDate(m.redo))),
+      isDue ? h('div', { class: 'row nowrap' }, B('Fixed', 'misOk', 'primary sm', { 'data-id': m.id }), B('Again', 'misAgain', 'ghost sm', { 'data-id': m.id }))
+        : B(icon('x'), 'misDel', 'ghost icon-only', { 'data-id': m.id, 'aria-label': 'Delete mistake' })); }));
+}
 function vFix() {
-  const t = dkey(), open = S.mistakes.filter(m => !m.fixed).sort((a, b) => a.redo < b.redo ? -1 : 1), due = open.filter(m => m.redo <= t).length, M = DRAFT.mis;
+  const open = S.mistakes.filter(m => !m.fixed).sort((a, b) => a.redo < b.redo ? -1 : 1), M = DRAFT.mis;
   return h('div', { class: 'stack' },
     subHero('Redo loop', 'Fix list', 'tools', 'Every mistake you redo is a mark you take back on the day.'),
     h('div', { class: 'cols' },
@@ -678,12 +949,7 @@ function vFix() {
         field('What went wrong', h('textarea', { rows: 2, 'data-draft': 'mis.note', value: M.note, placeholder: 'e.g. Shared in the wrong order', maxlength: 300 })),
         B('Add · redo in 3 days', 'addMis', 'primary wide')),
       card('Redo list', h('span', { class: 'muted' }, `${S.fixedCount} fixed so far`),
-        open.length ? h('ul', { class: 'list' }, open.map(m => { const isDue = m.redo <= t;
-          return h('li', { class: isDue ? 'due' : '' },
-            h('div', { class: 'grow' }, h('b', null, `${m.subj}: ${m.topic}`), m.note && h('small', null, m.note), h('small', { class: isDue ? 'y' : '' }, isDue ? 'Ready to redo' : 'Back on ' + fmtDate(m.redo))),
-            isDue ? h('div', { class: 'row nowrap' }, B('Fixed', 'misOk', 'primary sm', { 'data-id': m.id }), B('Again', 'misAgain', 'ghost sm', { 'data-id': m.id }))
-              : B(icon('x'), 'misDel', 'ghost icon-only', { 'data-id': m.id, 'aria-label': 'Delete mistake' })); }))
-          : h('p', { class: 'muted' }, due ? '' : 'Nothing waiting. After a paper or a drill, add what tripped you up.'))));
+        open.length ? fixList(open) : h('p', { class: 'muted' }, 'Nothing waiting. After a paper or a drill, add what tripped you up.'))));
 }
 
 /* Plan editor */
@@ -691,7 +957,7 @@ function vPlan() {
   const w = PD, plan = S.plan[w];
   const kinds = [['train', 'Training'], ['rest', 'Rest'], ['other', 'Fixed (e.g. tutoring)']];
   return h('div', { class: 'stack narrow' },
-    subHero('Your week', 'Training plan', 'tools'),
+    subHero('Your week', 'Training plan', 'tools', 'Name sessions after a subject (e.g. "Geography", "Science: Chemistry") and Focus builds the right mission for them.'),
     card('Week', h('span', { class: 'muted' }, weekTarget() + ' sets a week'),
       h('div', { class: 'chips scroll' }, [1, 2, 3, 4, 5, 6, 0].map(d => chip([DAYN[d], h('span', { class: 'n' }, daySets(d))], d === w, 'planDay', { 'data-d': d }))),
       h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: S.deload, 'data-act': 'deload', role: 'switch' }),
@@ -723,19 +989,26 @@ function vMe() {
   return h('div', { class: 'stack' },
     subHero('Toolkit', 'Settings', 'tools'),
     h('div', { class: 'cols' },
-      card('My grades', null, h('p', { class: 'muted xs' }, 'Saved only on this device. Target % is what you aim for on past papers; it shows on your chart.'),
-        h('div', { class: 'tbl' }, h('table', { class: 'edit' }, h('tr', null, h('th', null, 'Subject'), h('th', null, 'Now'), h('th', null, 'Target'), h('th', null, 'Target %')),
-          SUBJ.map(s => h('tr', null, h('td', null, s),
-            h('td', null, h('input', { 'data-draft': `grades.${s}.cur`, value: G[s].cur, maxlength: 8, 'aria-label': s + ' current grade' })),
-            h('td', null, h('input', { 'data-draft': `grades.${s}.tgt`, value: G[s].tgt, maxlength: 8, 'aria-label': s + ' target grade' })),
-            h('td', null, h('input', { type: 'number', min: 0, max: 100, inputmode: 'numeric', 'data-draft': `grades.${s}.pct`, value: G[s].pct, 'aria-label': s + ' target percent' })))))),
-        B('Save grades', 'saveGrades', 'primary')),
+      h('div', { class: 'stack' },
+        card('My subjects and topics', null, h('p', { class: 'muted xs' }, "Hide topics you don't study, e.g. a religion or poetry cluster you're not doing. Hidden topics leave practice, gates and missions."),
+          LEARN.SUBJECTS.map(s => acc('hide-' + s.id, [h('b', null, s.name), h('span', { class: 'muted acc-r' }, `${s.topics.filter(t => !S.hidden[t]).length} of ${s.topics.length} on`)],
+            h('div', { class: 'hides' }, s.topics.map(t => h('label', { class: 'toggle sm' }, h('input', { type: 'checkbox', checked: !S.hidden[t], 'data-act': 'hide', 'data-topic': t, role: 'switch' }), h('span', null, LEARN.name(t))))), { cls: 'guide' }))),
+        card('My grades', null, h('p', { class: 'muted xs' }, 'Saved only on this device. Target % is what you aim for on past papers; it shows on your chart.'),
+          h('div', { class: 'tbl' }, h('table', { class: 'edit' }, h('tr', null, h('th', null, 'Subject'), h('th', null, 'Now'), h('th', null, 'Target'), h('th', null, 'Target %')),
+            SUBJ.map(s => h('tr', null, h('td', null, s),
+              h('td', null, h('input', { 'data-draft': `grades.${s}.cur`, value: G[s].cur, maxlength: 8, 'aria-label': s + ' current grade' })),
+              h('td', null, h('input', { 'data-draft': `grades.${s}.tgt`, value: G[s].tgt, maxlength: 8, 'aria-label': s + ' target grade' })),
+              h('td', null, h('input', { type: 'number', min: 0, max: 100, inputmode: 'numeric', 'data-draft': `grades.${s}.pct`, value: G[s].pct, 'aria-label': s + ' target percent' })))))),
+          B('Save grades', 'saveGrades', 'primary'))),
       h('div', { class: 'stack' },
         card('Focus timer', null,
           h('div', { class: 'chips' }, [[25, 5], [45, 10], [15, 3]].map(([f, b]) => chip(`${f} / ${b} min`, S.timer.focus === f && S.timer.brk === b, 'preset', { 'data-f': f, 'data-b': b }))),
           h('div', { class: 'grid2', style: 'margin-top:12px' },
             field('Focus minutes', h('input', { type: 'number', min: 1, max: 120, value: S.timer.focus, 'data-act': 'tlen', 'data-k': 'focus' })),
             field('Rest minutes', h('input', { type: 'number', min: 1, max: 60, value: S.timer.brk, 'data-act': 'tlen', 'data-k': 'brk' })))),
+        card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
+          h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
+          MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
         card('Mocks', null, field('First mock exam', h('input', { type: 'date', value: S.mock, 'data-act': 'mock' })), h('p', { class: 'muted xs' }, 'Used for the trend line on your score chart.')),
         card('Backup', null, h('p', { class: 'muted xs' }, 'Progress lives in this browser. Back up weekly, and use it to move devices.'),
           h('div', { class: 'row' }, B([icon('download'), 'Download'], 'exp', 'primary'),
@@ -745,9 +1018,10 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['path', 'lantern', 'Journey'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { today: 'home', drill: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, drill: vDrill, path: vPath, tools: vTools, today: vToday, papers: vPapers, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['voyage', 'ship', 'Voyage'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
 let shownLife = null;
@@ -756,7 +1030,7 @@ function hdr() {
   shownLife = life;
   el.replaceChildren(
     showMini ? h('button', { type: 'button', class: 'mini-t', 'data-act': 'go', 'data-tab': 'home', 'aria-label': 'Back to the running timer' }, icon(T.mode === 'focus' ? 'flame' : 'moon'), h('span', { id: 'mt' }, fmt(Math.ceil(T.left)))) : '',
-    life ? h('span', { class: 'lan-chip', title: 'Lanterns lit', 'aria-label': `${life} lanterns lit` }, icon('lantern'), digits(life, grew)) : '');
+    h('button', { type: 'button', class: 'lan-chip', 'data-act': 'go', 'data-tab': 'profile', 'aria-label': `${life} lanterns lit. Open profile` }, emblemEl(S.profile.emblem, 'emb sm'), digits(life, grew)));
 }
 /* Transitions.dev "Tabs sliding": the pill is measured onto the active tab; snaps without animation on first paint and resize */
 function movePill(animate) {
@@ -776,7 +1050,7 @@ function navPaint() {
 function focusKey(el) {
   if (!el || el === document.body || !el.closest('#view')) return null;
   if (el.id) return '#' + CSS.escape(el.id);
-  const parts = ['act', 'draft', 'sid', 'j', 'i', 'id', 'tab', 'k', 'd', 'deck', 'subj', 'field', 'ok', 'track', 'topic'].filter(a => el.dataset[a] != null).map(a => `[data-${a}="${CSS.escape(el.dataset[a])}"]`);
+  const parts = ['act', 'draft', 'sid', 'j', 'i', 'id', 'tab', 'k', 'd', 'deck', 'subj', 'field', 'ok', 'track', 'topic', 'v', 'kind'].filter(a => el.dataset[a] != null).map(a => `[data-${a}="${CSS.escape(el.dataset[a])}"]`);
   return parts.length ? el.tagName.toLowerCase() + parts.join('') : null;
 }
 function render(o = {}) {
@@ -795,22 +1069,37 @@ function render(o = {}) {
   if (o.recheck) { const e = view.querySelector(o.recheck); if (e) { const on = e.classList.contains('d'); e.classList.toggle('d', !on); void e.offsetWidth; e.classList.toggle('d', on); } }
   if (o.enter) {
     FXS.countUp(view);
-    if (!REDUCED) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; requestAnimationFrame(() => el.classList.add('is-shown')); }
+    if (!REDUCED) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; const show = () => el.classList.add('is-shown'); requestAnimationFrame(show); setTimeout(show, 120); }
   }
   const panels = view.querySelectorAll('.t-panel-slide[data-open="false"]');
-  if (panels.length) requestAnimationFrame(() => requestAnimationFrame(() => panels.forEach(p => p.setAttribute('data-open', 'true'))));
+  if (panels.length) { const open = () => panels.forEach(p => p.setAttribute('data-open', 'true')); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 150); }
 }
-function go(t) { if (!VIEWS[t]) return; TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); if (t !== 'drill') $('#view').focus({ preventScroll: true }); }
+/* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
+function go(t, focusSel) {
+  if (!VIEWS[t]) return;
+  const dir = ORDER(t) >= ORDER(TAB) ? 'fwd' : 'back';
+  const swap = () => { TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, 0); };
+  if (HAS_VT && t !== TAB) { document.documentElement.dataset.dir = dir; document.startViewTransition(swap); }
+  else swap();
+  setTimeout(() => { const f = focusSel && $(focusSel); (f || $('#view')).focus({ preventScroll: true }); }, HAS_VT ? 60 : 0);
+}
 
 function toast(m, cls = '') {
   const t = h('div', { class: 'toast t-toast ' + cls }, m);
   $('#toasts').append(t);
-  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('is-open')));
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('is-open'))); setTimeout(() => t.classList.add('is-open'), 80);
   setTimeout(() => { t.classList.remove('is-open'); setTimeout(() => t.remove(), 300); }, 2400);
 }
 
 /* ---------- actions ---------- */
 const findSess = sid => { for (let w = 0; w < 7; w++) { const i = S.plan[w].findIndex(s => s.id === sid); if (i > -1) return { w, i, s: S.plan[w][i] }; } return null; };
+function finishAnswer(res) {
+  record(DR.q.id, res.ok);
+  DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
+  if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); save(); } else DR.run = 0;
+  render({ focus: '#nextq' });
+  if (res.ok) FXS.burst($('.qcard'), DR.run >= 5 ? 60 : 36);
+}
 const ACT = {
   go: el => go(el.dataset.tab),
   acc(el) {
@@ -823,38 +1112,74 @@ const ACT = {
     const j = +el.dataset.j, n = target(s), d = ensureDay(t), a = d.s[s.id] = d.s[s.id] || [];
     a[j] = !a[j]; xp(a[j] ? 10 : -10);
     const full = a[j] && countDone(a, n) === n;
-    if (full) { xp(20); toast('Session complete', 'big'); }
+    if (full) { xp(20); S.stat.sessions++; toast('Session complete', 'big'); }
     save(); render({ pulse: `.dot[data-sid="${CSS.escape(s.id)}"][data-j="${j}"]`, burst: a[j] ? (full ? 70 : 24) : 0 });
   },
   tgl() {
     if (T.run) { T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; }
-    else { if (T.mode === 'focus' && !timerActive()) T.sid = currentSid(); T.end = Date.now() + T.left * 1000; T.run = true; }
-    saveT(); render();
+    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
+    saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { T.run = false; T.mode = 'focus'; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a lantern.')) return; T.run = false; T.mode = 'focus'; T.left = tTotal(); T.sid = null; saveT(); render(); },
   skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.left = tTotal(); saveT(); } render(); },
   choose() { CHOOSE = !CHOOSE; render(); },
+  freeTrack(el) { FREE_TRACK = el.dataset.track; DR = null; render(); },
   preset(el) { S.timer = { focus: +el.dataset.f, brk: +el.dataset.b }; save(); if (!T.run) { T.left = tTotal(); saveT(); } render(); },
-  drill(el) { if (el.dataset.topic) startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic); else startDrill(el.dataset.track || 'maths'); go('drill'); setTimeout(() => $('#ans')?.focus({ preventScroll: true }), 60); },
+  subject(el) { SUBJ_SEL = el.dataset.track; go('subject'); },
+  drill(el) {
+    if (el.dataset.topic) startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic); else startDrill(el.dataset.track || 'all');
+    go('drill', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans');
+  },
+  mcq(el) { if (!DR || DR.state !== 'ask') return; DR.picked = +el.dataset.i; finishAnswer(LEARN.check(DR.q, String(DR.picked))); },
   check() {
-    if (!DR || !DR.q || DR.state !== 'ask') return;
+    if (!DR || !DR.q || DR.state !== 'ask' || DR.q.kind === 'mcq') return;
     const res = LEARN.check(DR.q, DRAFT.dr);
     if (!res.valid) { toast(res.msg || 'Type an answer'); $('#ans')?.focus(); return; }
-    record(DR.q.id, res.ok);
-    DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
-    if (res.ok) DR.ok++;
-    render({ focus: '#nextq' });
-    if (res.ok) FXS.burst($('.qcard'), 36);
+    finishAnswer(res);
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false); DR.state = 'shown'; render({ focus: '#nextq' }); },
-  next() { DR.count++; nextQ(); render({ focus: '#ans' }); },
-  similar() { DR.count++; nextQ(DR.q.id); render({ focus: '#ans' }); },
+  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
+  next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
+  similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
-    const q = DR.q, subj = TRACKS[LEARN.trackOf(q.id)][1];
+    const q = DR.q, subj = SUBJ_BY[LEARN.trackOf(q.id)].subj;
     S.mistakes.push({ id: newId(), date: dkey(), subj, topic: LEARN.name(q.id), note: `${q.q} → ${q.show}`.slice(0, 300), redo: addDays(3), fixed: false });
     save(); toast('Added to your fix list · back in 3 days');
   },
+  pbKind(el) { PB[el.dataset.k] = el.dataset.kind; render(); },
+  pbNext(el) { const D = planDraft(el.dataset.kind); D.pi = (D.pi + 1) % PROMPTS[el.dataset.kind].length; render(); },
+  pbSave(el) {
+    const kind = el.dataset.kind, D = planDraft(kind);
+    if (!D.f.some(x => x.trim())) return toast('Write at least one part of the plan');
+    S.plans.push({ id: newId(), date: dkey(), kind, prompt: PROMPTS[kind][D.pi], f: D.f.map(x => x.trim()) });
+    S.stat.plans++; delete DRAFT.plans[kind]; save(); toast('Plan saved. Now write it up on paper.', 'big'); render();
+  },
+  pbDel(el) { if (!confirm('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
+  emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
+  motion(el) { S.motion = el.dataset.v; S.motionHint = true; save(); applyMotion(); render({ enter: true }); if (!REDUCED) toast('Full motion on', 'big'); },
+  achCat(el) { ACH_CAT = el.dataset.k; render(); },
+  sail() { startVoyage(); },
+  sailAgain() { if (GAMECTL) { GAMECTL.stop(); GAMECTL = null; } document.querySelector('.game-ov')?.remove(); document.body.classList.remove('gaming'); startVoyage(); },
+  boat(el) { S.game.boat = el.dataset.id; save(); render(); },
+  zone(el) { S.game.zone = el.dataset.id; save(); render(); },
+  gPause() {
+    if (!GAMECTL || GATE) return;
+    GAMECTL.pause();
+    gmodal(h('p', { class: 'eyebrow' }, 'Paused'), h('h2', null, 'Catch your breath'), h('div', { class: 'row center' }, B([icon('play'), 'Resume'], 'gResume', 'primary'), B('End voyage', 'gEnd', 'ghost')));
+  },
+  gResume() { gmodalClose(); GAMECTL && GAMECTL.resume(); },
+  gEnd() { gmodalClose(); GAMECTL && GAMECTL.finish(); },
+  gQuit() { if (GAME_RESULT || !GAMECTL) return closeVoyage(); ACT.gPause(); },
+  gClose() { closeVoyage(); },
+  gate(el) {
+    if (!GATE || GATE.done) return;
+    const i = +el.dataset.i, q = GATE.q, ok = i === q.a; GATE.done = true;
+    record(q.id, ok);
+    gmodal(h('p', { class: 'eyebrow' }, 'Knowledge gate'), h('p', { class: 'fb-h ' + (ok ? 'okc' : 'noc') }, ok ? [successCheck(), 'Correct · +1 life'] : 'Not this time'),
+      h('p', null, q.q, ' → ', h('b', null, q.show)), B([icon('play'), 'Sail on'], 'gateGo', 'primary wide', { 'data-ok': ok ? 1 : 0, id: 'gatego' }));
+    setTimeout(() => $('#gatego')?.focus(), 50);
+  },
+  gateGo(el) { const g = GATE; GATE = null; gmodalClose(); g && g.cb(el.dataset.ok === '1'); },
   chart(el) { const s = el.dataset.subj; CHART.has(s) ? CHART.delete(s) : CHART.add(s); render(); },
   lostAdd() { DRAFT.score.lost.push({ topic: '', type: QTYPES[0], marks: '' }); render(); const r = $('#view').querySelectorAll('.lost-row input'); if (r.length) r[r.length - 2].focus(); },
   lostDel(el) { DRAFT.score.lost.splice(+el.dataset.i, 1); render(); },
@@ -864,8 +1189,10 @@ const ACT = {
     if (!(mx > 0)) return toast('"Out of" needs to be more than 0');
     if (sc > mx) return toast('Score is higher than the total');
     const lost = D.lost.map(l => ({ topic: l.topic.trim(), type: l.type, marks: Math.max(0, +l.marks || 0) })).filter(l => l.topic && l.marks > 0);
+    const prevBest = Math.max(-1, ...subjPts(D.subj).map(pctOf)), p = Math.round(sc / mx * 100);
     S.scores.push({ id: newId(), date: isKey(D.date) ? D.date : dkey(), subj: D.subj, paper: D.paper.trim(), score: sc, max: mx, lost });
-    CHART.add(D.subj); xp(25); toast(`${Math.round(sc / mx * 100)}% logged. Every paper sharpens you.`);
+    if (prevBest >= 0 && p > prevBest) { S.stat.improve++; toast(`${p}% · a personal best in ${D.subj}!`, 'big'); } else toast(`${p}% logged. Every paper sharpens you.`);
+    CHART.add(D.subj); xp(25);
     DRAFT.score = blankScore(D.subj); render();
   },
   delScore(el) { if (!confirm('Delete this paper?')) return; S.scores = S.scores.filter(s => s.id !== +el.dataset.id); save(); render(); },
@@ -890,6 +1217,13 @@ const ACT = {
   },
   delCard(el) { if (!confirm('Delete this card?')) return; const id = el.dataset.id; S.custom[CD.deck] = (S.custom[CD.deck] || []).filter(c => c.id !== id); delete S.cards[id]; save(); render(); },
   list: el => { LT = el.dataset.k; render(); },
+  listGo: el => { LT = el.dataset.k; go('lists'); },
+  conf(el) {
+    const k = el.dataset.k, v = +el.dataset.v, cur = S.conf[k] || 0, nv = cur === v ? v - 1 : v;
+    if (nv) S.conf[k] = nv; else delete S.conf[k];
+    save(); render({ pulse: `.cf[data-k="${CSS.escape(k)}"][data-v="${Math.max(1, nv)}"]` });
+    if (nv === 3) toast('Exam-ready', 'big');
+  },
   addMis() {
     const M = DRAFT.mis, tp = M.topic.trim(); if (!tp) return toast('Add a topic');
     S.mistakes.push({ id: newId(), date: dkey(), subj: M.subj, topic: tp, note: M.note.trim(), redo: addDays(3), fixed: false });
@@ -924,8 +1258,10 @@ const ACT = {
 };
 const CHG = {
   fin(el) { const d = ensureDay(dkey()); if (el.checked) d.f[el.dataset.i] = true; else delete d.f[el.dataset.i]; xp(el.checked ? 5 : -5); render({ recheck: `label:has(> [data-act="fin"][data-i="${el.dataset.i}"])` }); },
-  chk(el) { const k = LT + el.dataset.i; if (el.checked) S.checks[k] = true; else delete S.checks[k]; xp(el.checked ? 3 : -3); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
+  chk(el) { const k = LT + el.dataset.i; if (el.checked) S.conf[k] = 3; else delete S.conf[k]; save(); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
   deload(el) { S.deload = el.checked; save(); toast(el.checked ? 'Deload on: half volume this week' : 'Deload off: full programme'); render(); },
+  hide(el) { const t = el.dataset.topic; if (el.checked) delete S.hidden[t]; else S.hidden[t] = true; save(); },
+  pname(el) { S.profile.name = str(el.value, 30).trim(); save(); },
   mock(el) { if (isKey(el.value)) { S.mock = el.value; save(); toast('Mock date updated'); } },
   tlen(el) { const k = el.dataset.k, v = clamp(Math.round(+el.value || 0), 1, k === 'focus' ? 120 : 60); S.timer[k] = v; save(); if (!T.run) { T.left = tTotal(); saveT(); } render(); },
   planEdit(el) {
@@ -940,7 +1276,7 @@ const CHG = {
       const data = JSON.parse(t);
       if (!data || typeof data !== 'object' || !('xp' in data || 'days' in data)) throw new Error('not a backup');
       if (!confirm('Replace everything on this device with this backup?')) return;
-      S = normalize(data); DRAFT.grades = null; save(); checkRelics(true); toast('Backup restored'); render();
+      S = normalize(data); DRAFT.grades = null; save(); checkAch(true); toast('Backup restored'); render();
     }).catch(() => toast('That file is not an Archeron or Nightwatch backup')).finally(() => { el.value = ''; });
   }
 };
@@ -948,22 +1284,45 @@ const CHG = {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;
-  const f = ACT[el.dataset.act]; if (f) { f(el, e); checkRelics(); }
+  const f = ACT[el.dataset.act]; if (f) { f(el, e); checkAch(); }
 });
-document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { f(el); checkRelics(); } });
+document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { f(el); checkAch(); } });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.draft) setPath(DRAFT, el.dataset.draft, el.value); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkRelics(); return; }
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
+  if (GATE && !GATE.done && /^[1-4]$/.test(e.key)) { $(`#gmodal [data-act="gate"][data-i="${+e.key - 1}"]`)?.click(); return; }
+  if (DR && (TAB === 'drill' || TAB === 'home') && DR.q && !GAMECTL) {
+    if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
+    if (DR.state !== 'ask' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
+  }
   if (TAB === 'cards') {
     if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); $('.flash')?.click(); }
     else if (CD.flip && (e.key === '1' || e.key === '2')) $(`#rate [data-ok="${e.key === '2' ? 1 : 0}"]`)?.click();
   }
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) return; timerTick(); if (dkey() !== renderedDay) render(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (GAMECTL && !GATE && !GAME_RESULT && !GAMECTL.isPaused()) ACT.gPause(); return; }
+  timerTick(); if (dkey() !== renderedDay) { grantDaily(); render(); }
+});
+/* Transitions.dev "Card hover tilt" (mouse only, so touch scrolling is never blocked) */
+let tiltEl = null;
+const untilt = el => { if (!el) return; el.classList.remove('is-hover'); const c = el.firstElementChild; if (c) { c.classList.remove('is-tilting'); } el.style.setProperty('--tilt-rx', '0deg'); el.style.setProperty('--tilt-ry', '0deg'); };
+document.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || REDUCED) return;
+  const t = e.target.closest && e.target.closest('.t-tilt');
+  if (t !== tiltEl) { untilt(tiltEl); tiltEl = t; }
+  if (!t) return;
+  const r = t.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+  t.style.setProperty('--tilt-rx', ((.5 - y) * 9).toFixed(2) + 'deg'); t.style.setProperty('--tilt-ry', ((x - .5) * 11).toFixed(2) + 'deg');
+  t.style.setProperty('--tilt-gx', (x * 100).toFixed(1) + '%'); t.style.setProperty('--tilt-gy', (y * 100).toFixed(1) + '%');
+  t.classList.add('is-hover'); t.firstElementChild && t.firstElementChild.classList.add('is-tilting');
+});
+document.addEventListener('pointerleave', () => { untilt(tiltEl); tiltEl = null; });
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { movePill(false); if (TAB === 'papers') drawChart(); }, 120); });
-setInterval(() => { timerTick(); if (dkey() !== renderedDay) render(); }, 250);
+setInterval(() => { timerTick(); if (dkey() !== renderedDay) { grantDaily(); render(); } }, 250);
 
+applyMotion();
 /* intro */
 (function intro() {
   const i = $('#intro'); if (!i) return;
@@ -972,8 +1331,10 @@ setInterval(() => { timerTick(); if (dkey() !== renderedDay) render(); }, 250);
   i.addEventListener('click', end); setTimeout(end, 2200);
 })();
 
+applyMotion();
 FXS.init();
-checkRelics(true);
+grantDaily();
+checkAch(true);
 render({ enter: true });
 if (T.run && T.end <= Date.now()) timerDone();
 if (bootNote) setTimeout(() => toast(bootNote), 600);
@@ -983,7 +1344,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloading) return;
-    const reload = () => { if (!T.run) { reloading = true; location.reload(); } else setTimeout(reload, 5000); };
+    const reload = () => { if (!T.run && !GAMECTL) { reloading = true; location.reload(); } else setTimeout(reload, 5000); };
     reload();
   });
   navigator.serviceWorker.register('sw.js').catch(() => {});

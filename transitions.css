@@ -84,9 +84,23 @@
 .t-panel-slide[data-open="true"]{transform:translateY(0);opacity:1;filter:blur(0);
   transition:transform var(--panel-open-dur) var(--panel-ease),opacity var(--panel-open-dur) var(--panel-ease),filter var(--panel-open-dur) var(--panel-ease)}
 
-@media (prefers-reduced-motion: reduce){
-  .t-tabs-pill,.t-stagger>*,.t-toast,.t-acc-panel,.t-acc-panel-inner,.t-acc-chevron,.t-check,.t-check svg path,.t-panel-slide{transition:none!important}
-  .t-stagger>*{opacity:1;transform:none;filter:none}
-  .t-success-check{animation:none!important;opacity:1}.t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
-  .t-digit-group .t-digit{animation:none!important}
-}
+/* Transitions.dev — Card hover tilt (mouse only; JS writes --tilt-rx/ry and glare position on the outer .t-tilt) */
+:root{--tilt-perspective:1000px;--tilt-return:1000ms;--tilt-return-ease:cubic-bezier(0.22,1,0.36,1);--tilt-follow:400ms;--tilt-follow-ease:cubic-bezier(0.22,1,0.36,1);--tilt-glare-opacity:.18;--tilt-glare-fade:300ms}
+.t-tilt{display:flex}
+.t-tilt>.t-tilt-card{flex:1;min-width:0}
+.t-tilt .t-tilt-card,.t-tilt .t-tilt-card:hover,.t-tilt .t-tilt-card:active{transform:perspective(var(--tilt-perspective)) rotateX(var(--tilt-rx,0deg)) rotateY(var(--tilt-ry,0deg))}
+.t-tilt-card{position:relative;overflow:hidden;transform:perspective(var(--tilt-perspective)) rotateX(var(--tilt-rx,0deg)) rotateY(var(--tilt-ry,0deg));transform-style:preserve-3d;
+  transition:transform var(--tilt-return) var(--tilt-return-ease),border-color .3s,box-shadow .3s;will-change:transform}
+.t-tilt-card.is-tilting{transition:transform var(--tilt-follow) var(--tilt-follow-ease),border-color .3s,box-shadow .3s}
+.t-tilt-glare{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;border-radius:inherit;
+  background:radial-gradient(circle 95px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,236,190,.48),rgba(255,236,190,.06) 52%,rgba(255,236,190,0) 84%),
+    radial-gradient(circle 220px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,236,190,.2),rgba(255,236,190,0) 78%);
+  transition:opacity var(--tilt-glare-fade) var(--tilt-follow-ease)}
+.t-tilt.is-hover .t-tilt-glare{opacity:var(--tilt-glare-opacity)}
+
+/* Reduced motion: applied via html.rm (device setting or the in-app Motion choice) */
+html.rm .t-tilt-card{transform:none!important;transition:none!important}
+html.rm .t-tabs-pill,html.rm .t-stagger>*,html.rm .t-toast,html.rm .t-acc-panel,html.rm .t-acc-panel-inner,html.rm .t-acc-chevron,html.rm .t-check,html.rm .t-check svg path,html.rm .t-panel-slide{transition:none!important}
+html.rm .t-stagger>*{opacity:1;transform:none;filter:none}
+html.rm .t-success-check{animation:none!important;opacity:1}html.rm .t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
+html.rm .t-digit-group .t-digit{animation:none!important}
