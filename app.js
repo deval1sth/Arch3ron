@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -99,7 +99,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
@@ -130,6 +130,8 @@ function normalize(raw) {
   const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k]));
   const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) };
   s.realm = realmNorm(r.realm || null);
+  for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
+  s.sess = sessNorm(r.sess);
   s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
   for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
     s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
@@ -511,6 +513,7 @@ function quickWins() {
     h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
+    h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'session' }, icon('book'), h('span', null, h('b', null, activeSession() ? 'Resume your revision session' : 'Plan a revision session'), h('small', null, 'Guides and practice for your weakest subjects'))),
     R0().hunt.last !== dkey() && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'realm' }, icon('crown'), h('span', null, h('b', null, 'The Hunt'), h('small', null, "Today's run is waiting")))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
 }
@@ -590,10 +593,10 @@ function drillZone(track) {
 function vDrill() {
   if (!DR) return vLearn();
   const title = DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
-  const back = DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
+  const back = DR.ctx === 'sess' ? 'session' : DR.ctx === 'guide' ? 'guide' : DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
   if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
   return h('div', { class: 'stack narrow' },
-    subHero(DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
+    subHero(DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'session' ? 'Back to your session' : back === 'guide' ? 'Back to the guide' : back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
     DR.topic && guidePanel(DR.topic),
     drillPanel(),
     h('p', { class: 'muted xs center' }, 'Keys: 1–4 pick an answer, Enter checks or moves on. Getting it wrong here is how it sticks for the exam.'));
@@ -1266,9 +1269,9 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1528,7 +1531,8 @@ const CHG = {
   }
 };
 
-Object.assign(ACT, EXACT, MPACT, REALMACT);
+Object.assign(ACT, EXACT, MPACT, REALMACT, STUDYACT);
+CHG.sessTick = STUDYACT.sessTick; /* checkbox: arrives as a change event, not a click */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;

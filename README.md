@@ -34,6 +34,7 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `exam.js`: Maths and Science practice papers with mark schemes
 - `papers.js`: English, Geography, Business and RE papers with levels-based marking, original sources and per-subject method tips
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
+- `study.js`: Study tab (49 in-depth guides) and the revision-session planner
 - `realm.js`: The Realm
 - `fx.js`: embers, sparks, reveal overlays
 - `app.js`: state, migration, views, actions
