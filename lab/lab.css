@@ -1,0 +1,47 @@
+/* Archeron Lab · styles for experimental features */
+.lab-chip{margin-left:4px;padding:3px 9px;border-radius:99px;border:1px solid rgba(var(--em-rgb),.5);background:rgba(var(--em-rgb),.14);color:var(--ember);font:800 10px/1.4 var(--font);letter-spacing:.18em;cursor:pointer}
+.logo{align-items:center}
+
+.quests{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.quests li{display:flex;gap:12px;align-items:center}
+.quests li b{display:block;font-size:14.5px;margin-bottom:6px}
+.quests li small{color:var(--m);font-size:12px}
+.quests li.done b{color:var(--g)}
+.quests .bar{height:5px;margin-bottom:4px}
+
+.snd{display:flex;flex-direction:column;gap:12px}
+.snd.compact{flex-direction:row;flex-wrap:wrap;align-items:center}
+.vol{display:flex;align-items:center;gap:10px;color:var(--y)}
+.vol input{accent-color:var(--y);padding:0;min-height:0;border:0;background:none;box-shadow:none;max-width:220px}
+
+.mk-set{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.mk-bar{position:sticky}
+.mk-bar>.i{color:var(--y);width:26px;height:26px;margin-left:6px}
+.mk-bar #mk-t{font-family:var(--font);font-variant-numeric:tabular-nums;font-size:20px}
+.mk-dots{display:flex;flex-wrap:wrap;gap:6px}
+.mk-dot{width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);background:rgba(255,255,255,.03);font:700 12px var(--font);color:var(--m);cursor:pointer;position:relative}
+.mk-dot.on{background:var(--y-soft);border-color:var(--line);color:var(--y2)}
+.mk-dot.flag::after{content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--ember)}
+.mk-dot.cur{outline:2px solid var(--y);outline-offset:1px}
+.opt.chosen{border-color:var(--y);background:var(--y-soft)}
+.opt.chosen .opt-k{background:var(--y);color:var(--y-ink)}
+.mk-review{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.mk-review li{display:flex;gap:12px;padding:12px;border-radius:var(--r-sm);border:1px solid var(--line2)}
+.mk-review li.ok{border-color:rgba(134,217,166,.3);background:var(--g-soft)}
+.mk-review li.no{border-color:rgba(var(--no-rgb),.25);background:rgba(var(--no-rgb),.08)}
+.mk-review b{display:block}
+.mk-review p{margin:6px 0 0;font-size:14px;color:var(--m)}
+.mk-review p b{display:inline;color:var(--t)}
+.mk-n{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:800 12px var(--font);background:rgba(255,255,255,.06);color:var(--y2)}
+
+/* breathing guide: in 4s, hold 4s, out 6s */
+.breathe{display:flex;flex-direction:column;align-items:center;gap:10px;margin:14px 0 4px}
+.br-orb{width:86px;height:86px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(176,164,255,.55),rgba(176,164,255,.08) 70%);box-shadow:0 0 30px rgba(176,164,255,.35);animation:brOrb 14s ease-in-out infinite}
+.br-txt{position:relative;height:20px;width:160px;text-align:center;color:var(--rest);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px}
+.br-txt span{position:absolute;inset:0;opacity:0}
+.br-txt span:nth-child(1){animation:brT1 14s infinite}.br-txt span:nth-child(2){animation:brT2 14s infinite}.br-txt span:nth-child(3){animation:brT3 14s infinite}
+@keyframes brOrb{0%{transform:scale(.6)}28.5%{transform:scale(1)}57%{transform:scale(1)}100%{transform:scale(.6)}}
+@keyframes brT1{0%,27%{opacity:1}29%,100%{opacity:0}}
+@keyframes brT2{0%,28%{opacity:0}30%,55%{opacity:1}57%,100%{opacity:0}}
+@keyframes brT3{0%,56%{opacity:0}58%,98%{opacity:1}100%{opacity:0}}
+html.rm .br-orb{animation:none;transform:scale(.8)}html.rm .br-txt span:nth-child(1){opacity:1;animation:none}
