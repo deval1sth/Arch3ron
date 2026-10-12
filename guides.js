@@ -108,6 +108,19 @@ const GUIDES = {
     ['Mean rate = quantity of product formed (or reactant used) ÷ time', 'Units: g/s or cm³/s', 'From a graph: read the values, then divide'],
     '60 cm³ of gas in 30 s: 2 cm³/s', 'A steeper line on the graph means a faster rate.'],
 
+  'ce-formula': ['Ionic formulae: the charges must cancel out to zero.',
+    ['Write the two ions with their charges', 'Find how many of each make the + and − charges equal', 'Write the number after each ion; a group ion (OH, SO₄, NO₃, CO₃) goes in brackets if you need more than one'],
+    'Magnesium hydroxide: Mg²⁺ and OH⁻ → need 2 OH⁻ → Mg(OH)₂', 'Never change a group ion: sulfate is always SO₄.'],
+  'ce-name': ['Name the metal first, unchanged, then the non-metal part.',
+    ['Non-metal alone: change the ending to -ide (chlorine → chloride, oxygen → oxide)', 'Non-metal with oxygen in a group: -ate (SO₄ sulfate, NO₃ nitrate, CO₃ carbonate)', 'OH is hydroxide'],
+    'CaCO₃ = calcium carbonate; MgCl₂ = magnesium chloride', '"Magnesium chlorine" is a classic lost mark. The element name only appears on its own, not in a compound.'],
+  'ce-word': ['Most word equations follow a handful of patterns.',
+    ['Metal + acid → salt + hydrogen', 'Metal oxide or hydroxide + acid → salt + water', 'Metal carbonate + acid → salt + water + carbon dioxide', 'The salt name: hydrochloric → chloride, sulfuric → sulfate, nitric → nitrate'],
+    'zinc + sulfuric acid → zinc sulfate + hydrogen', 'Displacement: only a MORE reactive element can push out a less reactive one; otherwise, no reaction.'],
+  'ce-balance': ['Balancing makes the number of each type of atom the same on both sides.',
+    ['Count each atom on both sides', 'Change only the big numbers in front of formulae, never the small ones', 'Balance elements found in only one formula on each side first', 'Leave elements on their own (O₂, H₂, Cl₂) until last, then recount'],
+    'CH₄ + 2 O₂ → CO₂ + 2 H₂O: C 1 = 1, H 4 = 4, O 4 = 4', 'Stuck with an odd number of O on one side? Double everything and try again.'],
+
   /* ---------------- Physics (equation topics) ---------------- */
   'p-weight': ['Weight is the force of gravity on a mass.', ['W = m × g', 'W in newtons (N), m in kg, g in N/kg (9.8 on Earth)'], '5 kg: 5 × 9.8 = 49 N', 'Mass is in kg and does not change; weight is in N and changes with gravity.'],
   'p-work': ['Work done is energy transferred by a force moving something.', ['W = F × s', 'W in joules (J), F in N, s in metres'], '20 N over 3 m: 60 J', 'Distance must be in metres: 50 cm = 0.5 m.'],

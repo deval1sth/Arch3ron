@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
+const BACKS = { exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -99,7 +99,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     game: { tokens: 1, lastFree: '', best: 0, boat: 'raft', zone: 'twilight' },
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
@@ -140,7 +140,11 @@ function normalize(raw) {
   s.scores = arr(r.scores).map(obj).filter(x => num(x.max) > 0 && Number.isFinite(+x.score)).map(x => ({
     id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 40), paper: str(x.paper, 80),
     score: Math.max(0, +x.score), max: +x.max,
-    lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0) }));
+    lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
+    tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
+  const ex = obj(r.exam), paper = EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
+  if (paper) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 3000)),
+    got: paper.qs.map((q, k) => q[2].map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]) };
   const rp = obj(r.plan);
   if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
     s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
@@ -350,7 +354,7 @@ let CD = { deck: 'mac', flip: false, i: 0 };
 let LT = 'mm', PD = new Date().getDay(), SEL = null, CHOOSE = false, DR = null, SUBJ_SEL = 'maths', ACH_CAT = 'All', PB = {}, FREE_TRACK = null;
 const CHART = new Set(S.scores.length ? S.scores.map(s => s.subj).filter(s => SUBJ.includes(s)) : ['Maths']);
 const blankScore = (subj = 'Maths') => ({ date: dkey(), subj, paper: '', score: '', max: '80', lost: [] });
-const DRAFT = { score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '', plans: {} };
+const DRAFT = { ex: '', score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '', plans: {} };
 function setPath(o, path, v) { const p = path.split('.'); for (let i = 0; i < p.length - 1; i++) { o = o[p[i]]; if (!o) return; } o[p[p.length - 1]] = v; }
 
 /* ---------- missions: what to actually do in each set ---------- */
@@ -497,6 +501,9 @@ function vLearn() {
     h('div', { class: 'lgrid' },
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'write' }, h('span', { class: 'lc-ic' }, icon('edit')), h('b', null, 'Plans and writing'),
         h('span', { class: 'lc-d' }, 'Essay plans, RE 12-markers, creative and viewpoint writing, and how to answer each English question.'), h('small', null, S.plans.length ? `${S.plans.length} plans saved` : 'Plan beats panic'))),
+      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'exam' }, h('span', { class: 'lc-ic' }, icon('scroll')), h('b', null, 'Exam practice'),
+        h('span', { class: 'lc-d' }, 'Exam-style papers for Maths and Science. Answer, mark against the mark scheme, and track scores by paper and topic.'),
+        h('small', null, S.exam ? 'A paper is in progress' : `${EXAMS.length} practice papers`))),
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
         h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
     hard.length && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
@@ -515,15 +522,16 @@ function guidePanel(id) {
 function vSubject() {
   const s = SUBJ_BY[SUBJ_SEL] || LEARN.SUBJECTS[0], ids = topicsFor(s.id);
   const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
-    h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} facts`) : null), starsEl(id)))))) : null; };
+    h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} ${LEARN.TOPIC[id].type === 'def' ? 'terms' : 'facts'}`) : null), starsEl(id)))))) : null; };
   const extras = s.id === 'englit' ? [B([icon('edit'), 'Plan an essay'], 'go', 'ghost', { 'data-tab': 'write' }), B([icon('cards'), 'Quote flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })]
     : s.id === 're' ? [B([icon('edit'), 'Plan a 12-mark answer'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'physics' || s.id === 'maths' ? [B([icon('cards'), 'Formula flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })] : [];
+  if (EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase()))) extras.push(B([icon('scroll'), 'Exam practice'], 'go', 'ghost', { 'data-tab': 'exam' }));
   return h('div', { class: 'stack narrow' },
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
-    group('recall', 'Key facts'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
+    group('def', 'Definitions'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
     !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')),
     card('Watch and read', h('span', { class: 'muted' }, 'free, opens in a new tab'), h('ul', { class: 'links' }, sitesFor(s.id).map(([n, u, d]) => ext(u, n, d)))));
 }
@@ -553,20 +561,29 @@ function vDrill() {
 function drillPanel() {
   const q = DR && DR.q;
   if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
-  const st = DR.state, mcq = q.kind === 'mcq';
-  const answerBox = mcq
+  const st = DR.state, mcq = q.kind === 'mcq', def = q.kind === 'def';
+  const answerBox = def
+    ? st !== 'ask' ? null : h('textarea', { id: 'ans', class: 'def-ans', rows: 3, 'data-draft': 'dr', value: DRAFT.dr, disabled: st !== 'ask', maxlength: 600, placeholder: 'Write the definition in your own words', 'aria-label': 'Your definition' })
+    : mcq
     ? h('div', { class: 'mcq' }, q.options.map((o, i) => h('button', { type: 'button', class: 'opt' + (st !== 'ask' ? (i === q.a ? ' correct' : i === DR.picked ? ' picked' : ' dim') : ''), 'data-act': 'mcq', 'data-i': i, disabled: st !== 'ask', id: i === 0 ? 'opt0' : null },
       h('span', { class: 'opt-k' }, 'ABCD'[i]), h('span', null, o))))
     : h('div', { class: 'answer' },
       q.pre && h('span', { class: 'adorn' }, q.pre),
-      h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer' }),
+      h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer', placeholder: q.kind === 'coef' ? q.co.map(() => '1').join(' ') : null }),
       q.suf && h('span', { class: 'adorn' }, q.suf));
   return h('section', { class: 'card qcard ' + st },
     h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
     h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
+    def && st !== 'ask' && DRAFT.dr.trim() && h('p', { class: 'yours' }, h('b', null, 'You wrote: '), DRAFT.dr.trim()),
     answerBox,
     st === 'ask' && !mcq && q.hint && h('p', { class: 'muted xs' }, q.hint),
-    st === 'ask' ? (mcq ? h('div', { class: 'row end' }, B('Show me', 'reveal', 'link')) : h('div', { class: 'row' }, B('Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost')))
+    st === 'mark' ? h('div', { class: 'fb mark' },
+        h('p', { class: 'fb-h' }, 'Mark it like an examiner'),
+        h('p', null, h('b', null, 'Model answer: '), q.show),
+        h('p', { class: 'muted xs' }, 'Tick each key point your answer clearly made. The ticks are a first guess, so fix them honestly.'),
+        q.points.map((pt, i) => h('label', { class: 'chk' + (DR.ticks[i] ? ' d' : '') }, h('input', { type: 'checkbox', checked: !!DR.ticks[i], 'data-act': 'defTick', 'data-i': i }), checkBox(), h('span', null, pt))),
+        B(`Confirm · ${DR.ticks.filter(Boolean).length} of ${q.points.length} key points`, 'defDone', 'primary wide', { id: 'nextq' }))
+    : st === 'ask' ? (mcq ? h('div', { class: 'row end' }, B('Show me', 'reveal', 'link')) : h('div', { class: 'row' }, B(def ? 'Mark it' : 'Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost')))
       : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
         h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
         !mcq && acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
@@ -735,6 +752,7 @@ function vTools() {
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     h('div', { class: 'tools' },
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
+      tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Answer, mark, score by topic'),
       tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
       tool('fix', 'wrench', 'Fix list', dueM ? `${dueM} ready to redo` : 'Turn mistakes into marks'),
       tool('cards', 'cards', 'Flashcards', allDue() ? `${allDue()} ready to review` : 'All reviewed for today'),
@@ -766,6 +784,90 @@ function sessionRow(s, day) {
     h('div', { class: 'dots' }, Array.from({ length: n }, (_, j) => h('button', { type: 'button', class: 'dot' + (done[j] ? ' on' : ''), 'data-act': 'tick', 'data-sid': s.id, 'data-j': j,
       'aria-pressed': String(!!done[j]), 'aria-label': `Set ${j + 1} of ${n}: ${s.label}` }))));
 }
+
+/* Exam practice: answer exam-style questions, mark against the mark scheme, record by paper and topic */
+let EXRES = null;
+const paperOf = id => EXAMS.find(p => p.id === id);
+const marksOf = p => p.qs.reduce((n, q) => n + q[2].length, 0);
+const qType = q => /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : q[2].length >= 3 ? 'Extended writing' : 'Recall';
+function vExam() {
+  const run = S.exam && paperOf(S.exam.pid), tops = {};
+  for (const sc of S.scores) for (const t of sc.tp) { const k = sc.subj + '|' + t.topic; const o = tops[k] = tops[k] || { subj: sc.subj, topic: t.topic, got: 0, max: 0 }; o.got += t.got; o.max += t.max; }
+  const topics = Object.values(tops).sort((a, b) => a.got / a.max - b.got / b.max);
+  const groups = [...new Set(EXAMS.map(p => p.name.split(' ')[0]))];
+  return h('div', { class: 'stack narrow' },
+    subHero('Learn', 'Exam practice', 'learn', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
+    EXRES && card('Paper marked', h('span', { class: 'pill' }, `${EXRES.got}/${EXRES.max} · ${Math.round(EXRES.got / EXRES.max * 100)}%`),
+      h('p', null, h('b', null, EXRES.name)),
+      h('ul', { class: 'hbars' }, EXRES.tp.map(t => h('li', null, h('div', { class: 'hb-l' }, h('b', null, t.topic)),
+        h('div', { class: 'hb-b' }, h('i', { style: `width:${t.got / t.max * 100}%;background:var(--y)` }), h('span', null, `${t.got}/${t.max}`))))),
+      h('p', { class: 'muted xs' }, 'Lost marks are now in Past papers → Marks to win back.'),
+      h('div', { class: 'row' }, B('See the chart', 'go', 'ghost', { 'data-tab': 'papers' }), B('Close', 'exClose', 'link'))),
+    run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
+      h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
+    groups.map(g => card(g, null, h('ul', { class: 'list' }, EXAMS.filter(p => p.name.startsWith(g)).map(p => {
+      const done = S.scores.filter(x => x.paper === p.name), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–';
+      return h('li', null, h('div', { class: 'grow' }, h('b', null, p.name.replace(/^\S+ /, '').replace(/^./, c => c.toUpperCase())), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
+        h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
+        B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }));
+    })))),
+    card('Results by topic', h('span', { class: 'muted' }, 'weakest first'), topics.length
+      ? h('ul', { class: 'hbars' }, topics.map(t => h('li', null, h('div', { class: 'hb-l' }, h('b', null, t.topic), h('small', null, t.subj)),
+        h('div', { class: 'hb-b' }, h('i', { style: `width:${t.got / t.max * 100}%;background:${SUBJ_COLOR[t.subj] || 'var(--y)'}` }), h('span', null, Math.round(t.got / t.max * 100) + '%')))))
+      : h('p', { class: 'muted' }, 'Finish a paper and every topic gets a score here, so you can see exactly where marks are slipping.')));
+}
+function vExamQ() {
+  const p = S.exam && paperOf(S.exam.pid);
+  if (!p) return vExam();
+  const E = S.exam, i = E.i, q = p.qs[i], m = q[2].length, marked = E.marked[i], got = E.got[i].filter(Boolean).length;
+  const total = E.got.reduce((n, g, k) => n + (E.marked[k] ? g.filter(Boolean).length : 0), 0), last = i === p.qs.length - 1;
+  return h('div', { class: 'stack narrow' },
+    subHero(p.subj, p.name, 'exam', null, 'Exam practice'),
+    h('div', { class: 'exdots', 'aria-label': `Question ${i + 1} of ${p.qs.length}` }, p.qs.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (E.marked[k] ? ' done' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    h('section', { class: 'card qcard' + (marked ? ' marked' : '') },
+      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `Question ${i + 1} · ${m} mark${m > 1 ? 's' : ''}`)),
+      h('p', { class: 'qtext' }, q[1]),
+      marked ? [
+        h('p', { class: 'yours' }, h('b', null, 'Your answer: '), E.ans[i] || '(left blank)'),
+        h('div', { class: 'fb mark' },
+          h('p', { class: 'fb-h' }, 'Mark scheme'),
+          h('p', { class: 'muted xs' }, 'One mark per point. Only tick a point if your answer clearly makes it; examiners do not give the benefit of the doubt.'),
+          q[2].map((pt, j) => h('label', { class: 'chk' + (E.got[i][j] ? ' d' : '') }, h('input', { type: 'checkbox', checked: E.got[i][j], 'data-act': 'exTick', 'data-j': j }), checkBox(), h('span', null, pt))),
+          h('p', { class: 'ex-score' }, `${got} / ${m}`)),
+        h('div', { class: 'row' }, last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
+      : [h('textarea', { id: 'exans', rows: Math.min(8, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', maxlength: 3000, placeholder: 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
+        h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'))]),
+    h('p', { class: 'muted xs center' }, `${E.marked.filter(Boolean).length} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave.`));
+}
+function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
+const EXACT = {
+  exStart(el) {
+    const p = paperOf(el.dataset.id);
+    if (S.exam && S.exam.pid !== p.id && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
+    if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => q[2].map(() => false)), marked: p.qs.map(() => false) };
+    EXRES = null; exOpen(S.exam.i); go('examq', '#exans');
+  },
+  exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); E.marked[E.i] = true; save(); render(); },
+  exGo(el) { if (S.exam.i !== +el.dataset.i && !S.exam.marked[S.exam.i]) S.exam.ans[S.exam.i] = (DRAFT.ex || '').trim(); exOpen(+el.dataset.i); render({ focus: '#exans' }); scrollTo({ top: 0 }); },
+  exQuit() { if (!confirm('Abandon this paper? Nothing from it will be saved.')) return; S.exam = null; save(); render(); },
+  exClose() { EXRES = null; render(); },
+  exFinish() {
+    const E = S.exam, p = paperOf(E.pid), left = E.marked.filter(m => !m).length;
+    if (left && !confirm(`${left} question${left > 1 ? 's are' : ' is'} not marked yet and will score 0. Finish anyway?`)) return;
+    const tp = {}, lost = {};
+    p.qs.forEach((q, k) => {
+      const g = E.marked[k] ? E.got[k].filter(Boolean).length : 0, m = q[2].length, t = tp[q[0]] = tp[q[0]] || { topic: q[0], got: 0, max: 0 };
+      t.got += g; t.max += m;
+      if (m > g) { const key = q[0] + '|' + qType(q); lost[key] = lost[key] || { topic: q[0], type: qType(q), marks: 0 }; lost[key].marks += m - g; }
+    });
+    const tps = Object.values(tp), got = tps.reduce((n, t) => n + t.got, 0), max = marksOf(p), pc = Math.round(got / max * 100);
+    const prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
+    S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: p.name, score: got, max, lost: Object.values(lost), tp: tps });
+    if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
+    CHART.add(p.subj); xp(25);
+    EXRES = { name: p.name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
+  }
+};
 
 /* Past papers */
 function vPapers() {
@@ -1042,7 +1144,7 @@ function vMe() {
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['voyage', 'ship', 'Voyage'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
 const PARENT = { today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1157,9 +1259,18 @@ const ACT = {
   mcq(el) { if (!DR || DR.state !== 'ask') return; DR.picked = +el.dataset.i; finishAnswer(LEARN.check(DR.q, String(DR.picked))); },
   check() {
     if (!DR || !DR.q || DR.state !== 'ask' || DR.q.kind === 'mcq') return;
+    if (DR.q.kind === 'def') {
+      if (!DRAFT.dr.trim()) { toast('Write your definition first, or tap Show me'); $('#ans')?.focus(); return; }
+      DR.ticks = LEARN.defTicks(DR.q, DRAFT.dr); DR.state = 'mark'; render({ focus: '#nextq' }); return;
+    }
     const res = LEARN.check(DR.q, DRAFT.dr);
     if (!res.valid) { toast(res.msg || 'Type an answer'); $('#ans')?.focus(); return; }
     finishAnswer(res);
+  },
+  defDone() {
+    if (!DR || DR.state !== 'mark') return;
+    const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
+    finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
   reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
@@ -1281,6 +1392,8 @@ const ACT = {
   }
 };
 const CHG = {
+  defTick(el) { if (DR && DR.state === 'mark') { DR.ticks[+el.dataset.i] = el.checked; render(); } },
+  exTick(el) { const E = S.exam; if (E) { E.got[E.i][+el.dataset.j] = el.checked; save(); render(); } },
   fin(el) { const d = ensureDay(dkey()); if (el.checked) d.f[el.dataset.i] = true; else delete d.f[el.dataset.i]; xp(el.checked ? 5 : -5); render({ recheck: `label:has(> [data-act="fin"][data-i="${el.dataset.i}"])` }); },
   chk(el) { const k = LT + el.dataset.i; if (el.checked) S.conf[k] = 3; else delete S.conf[k]; save(); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
   deload(el) { S.deload = el.checked; save(); toast(el.checked ? 'Deload on: half volume this week' : 'Deload off: full programme'); render(); },
@@ -1305,6 +1418,7 @@ const CHG = {
   }
 };
 
+Object.assign(ACT, EXACT);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;
@@ -1318,7 +1432,7 @@ document.addEventListener('keydown', e => {
   if (GATE && !GATE.done && /^[1-4]$/.test(e.key)) { $(`#gmodal [data-act="gate"][data-i="${+e.key - 1}"]`)?.click(); return; }
   if (DR && (TAB === 'drill' || TAB === 'home') && DR.q && !GAMECTL) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
-    if (DR.state !== 'ask' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
+    if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
   }
   if (TAB === 'cards') {
     if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); $('.flash')?.click(); }

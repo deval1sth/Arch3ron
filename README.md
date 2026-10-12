@@ -25,6 +25,9 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `data.js`: plan, flashcard decks, checklists, icons
 - `content.js`: recall banks, essay/answer prompts, English Language guides
 - `guides.js`: topic explainers (idea, method, example, tip), video and site links
+- `defs.js`: definitions (term, model answer, key points) for the definitions trainer
+- `chem.js`: chemistry formulae, naming, word equations and balancing (solver-checked)
+- `exam.js`: exam-style practice papers with mark schemes
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
 - `game.js`: Voyage
 - `fx.js`: embers, sparks, reveal overlays

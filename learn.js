@@ -395,6 +395,30 @@ const LEARN = (() => {
     return { kind: 'mcq', q: it.q, sub: t.name, options, a: options.indexOf(it.a), show: it.a, steps: [`${it.q} → ${it.a}`] };
   }
 
+  /* ---------- Definitions: write it (self-marked against key points) or pick it ---------- */
+  const DF = {};
+  for (const [id, [subject, title, text]] of Object.entries(typeof DEFS !== 'undefined' ? DEFS : {})) {
+    const items = text.trim().split('\n').map(l => l.split('|')).filter(p => p.length >= 3)
+      .map(([t, d, k]) => ({ t: t.trim(), d: d.trim(), k: k.split(';').map(x => x.trim()).filter(Boolean) }));
+    DF[id] = { name: title, subject, items };
+  }
+  function genDef(id) {
+    const t = DF[id], it = pick(t.items);
+    if (Math.random() < .35) {
+      const options = shuffle([it.d, ...shuffle(t.items.filter(x => x !== it)).slice(0, 3).map(x => x.d)]);
+      return { kind: 'mcq', q: `Which is the correct definition of “${it.t}”?`, sub: t.name, options, a: options.indexOf(it.d), show: it.d, steps: [`${it.t}: ${it.d}`] };
+    }
+    return { kind: 'def', q: pick([`Define “${it.t}”.`, `What is meant by “${it.t}”?`]), sub: t.name, term: it.t, points: it.k, show: it.d, steps: it.k.map(k => 'Key point: ' + k) };
+  }
+  /* First guess at which key points an answer hit; the student confirms or fixes the ticks.
+     shortcut: word-stem matching, not real marking; that is why the student has the final say. */
+  const DSTOP = new Set('the and for with from that this its are can into than more less only when where which what their them they has have had was not all any one per'.split(' '));
+  const words = x => norm(x).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 2 && !DSTOP.has(w));
+  function defTicks(q, raw) {
+    const aw = words(raw), has = w => aw.some(a => a === w || (a.length >= 4 && w.length >= 4 && a.slice(0, 4) === w.slice(0, 4)) || (Math.min(a.length, w.length) >= 3 && (a.startsWith(w) || w.startsWith(a))));
+    return q.points.map(p => { const kw = words(p.replace(/\(.*?\)/g, "")); return kw.length > 0 && kw.filter(has).length / kw.length >= .6; });
+  }
+
   /* ---------- registry ---------- */
   const QDECKS = { 'q-mac': ['mac', 'Macbeth quotes'], 'q-acc': ['acc', 'A Christmas Carol quotes'], 'q-je': ['je', "Journey's End quotes"] };
   const TOPIC = {};
@@ -403,6 +427,9 @@ const LEARN = (() => {
   for (const [id, c] of Object.entries(C)) TOPIC[id] = { name: c.name, subject: c.subject, type: 'calc' };
   for (const [id, r] of Object.entries(R)) TOPIC[id] = { name: r.name, subject: r.subject, type: 'recall', size: r.items.length };
   for (const [id, q] of Object.entries(QDECKS)) TOPIC[id] = { name: q[1], subject: 'englit', type: 'quote' };
+  for (const [id, d] of Object.entries(DF)) TOPIC[id] = { name: d.name, subject: d.subject, type: 'def', size: d.items.length };
+  const CH = typeof CHEM !== 'undefined' ? CHEM.TOPICS : {};
+  for (const [id, c] of Object.entries(CH)) TOPIC[id] = { name: c[0], subject: 'chemistry', type: 'eq' };
   const SUBJECTS = [
     ['maths', 'Maths', 'target', 'Maths'], ['biology', 'Biology', 'leaf', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'bolt', 'Science'],
     ['englit', 'English Literature', 'feather', 'English Literature'], ['englang', 'English Language', 'scroll', 'English Language'],
@@ -418,6 +445,8 @@ const LEARN = (() => {
       else if (C[id]) q = C[id].gen();
       else if (R[id]) q = genRecall(id);
       else if (QDECKS[id]) q = genQuote(QDECKS[id][0]);
+      else if (DF[id]) q = genDef(id);
+      else if (CH[id]) q = CH[id][1]();
     } catch (e) { q = null; }
     if (q) { q.id = id; if (!q.sub) q.sub = name(id); }
     return q;
@@ -490,6 +519,7 @@ const LEARN = (() => {
       if (same && (Math.abs(r.m) < 1 || Math.abs(r.m) >= 10)) return { valid: true, ok: false, msg: 'Right value, but the first number must be between 1 and 10.' };
       return { valid: true, ok: same };
     }
+    if (q.kind === 'formula' || q.kind === 'coef') return CHEM.check(q, s);
     if (q.kind === 'word') {
       const a = s.toLowerCase().replace(/[^a-z']/g, ''), b = q.w.toLowerCase();
       return { valid: true, ok: a === b || a.replace(/'/g, '') === b.replace(/'/g, '') };
@@ -498,5 +528,5 @@ const LEARN = (() => {
   }
 
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, name, trackOf, setQuoteSource: f => { quoteSource = f; } };
+  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, name, trackOf, setQuoteSource: f => { quoteSource = f; } };
 })();

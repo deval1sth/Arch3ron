@@ -572,3 +572,14 @@ html.rm *,html.rm *::before,html.rm *::after{animation-duration:.01ms!important;
 .guide p{margin:0 0 10px;line-height:1.55}.guide .g-ex{padding:10px 12px;border-radius:12px;background:rgba(var(--y-rgb),.07)}
 .guide a.btn{color:inherit;text-decoration:none}
 .links{list-style:none;margin:0;padding:0;display:grid;gap:10px}.links a{color:var(--y);font-weight:600}
+/* definitions, chemistry answers and exam practice */
+.qcard textarea{min-height:96px;resize:vertical;line-height:1.5;margin-bottom:12px}
+.qcard textarea:disabled{opacity:.85}
+.yours{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);white-space:pre-wrap;line-height:1.5}
+.fb.mark{background:rgba(var(--y-rgb),.06);border:1px solid rgba(var(--y-rgb),.2)}.fb.mark .fb-h{color:var(--y2)}
+.fb.mark .chk span{line-height:1.45}
+.chk .t-check{flex:none} /* .chk span{flex:1} was stretching the tick box */
+.ex-score{margin:6px 0 0;text-align:right;font-family:var(--serif);font-size:24px;font-weight:600;color:var(--y)}
+.exdots{display:flex;flex-wrap:wrap;gap:8px}
+.exdot{width:26px;height:26px;border-radius:50%;border:1px solid var(--line2);background:none;cursor:pointer;padding:0}
+.exdot.done{background:rgba(var(--y-rgb),.35);border-color:transparent}.exdot.on{box-shadow:0 0 0 3px var(--y-soft);border-color:var(--y)}
