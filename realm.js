@@ -450,7 +450,9 @@ function vRegion() {
         : !nb.open ? h('p', { class: 'muted' }, `The ${BOSS_TIER[nb.t - 1]} form stirs at ${BOSS_REQ[nb.t - 1]}% clear. You are at ${Math.floor(pct)}%.`)
         : [h('p', { class: 'muted xs' }, `${BOSS_TIER[nb.t - 1]} form · ${BOSS_HP[nb.t - 1]} HP · you have ${3 + (hasPerk('wind') ? 1 : 0)} lives. Right answers strike; ${hasPerk('exec') ? 2 : 3} in a row strike twice. Wrong answers and "Show me" cost a life.`),
           B([icon('bolt'), tries > 0 ? `Challenge the ${BOSS_TIER[nb.t - 1]} form` : 'It is gathering strength. Return tomorrow'], 'bossGo', 'primary wide', { 'data-id': sid, disabled: tries <= 0 })]),
-    card('Forecast', null, !fc ? h('p', { class: 'muted' }, `Do one ${SUBJ_BY[sid].subj} exam practice paper and a rough grade forecast appears here.`) : h('p', null, `Rough estimate for ${SUBJ_BY[sid].subj}: `, h('b', null, `grade ${fc.grade}`), ` (${fc.est}%)`), [h('p', { class: 'muted xs' }, `From your last ${fc.papers} exam practice paper${fc.papers > 1 ? 's' : ''} and what you have learned here. See Rank and forecast for how it works.`)]),
+    card('Forecast', null, !fc ? h('p', { class: 'muted' }, `Do one ${SUBJ_BY[sid].subj} exam practice paper and a rough grade forecast appears here.`)
+      : [h('p', null, `Rough estimate for ${SUBJ_BY[sid].subj}: `, h('b', null, `grade ${fc.grade}`), ` (${fc.est}%)`),
+        h('p', { class: 'muted xs' }, `From your last ${fc.papers} exam practice paper${fc.papers > 1 ? 's' : ''} and what you have learned here. See Rank and forecast for how it works.`)]),
     card('Creatures of this region', h('span', { class: 'muted' }, `${topics.filter(id => stars(id) === 3).length} of ${topics.length} bound`), beastGrid(topics)));
 }
 function beastGrid(ids) {
@@ -502,7 +504,7 @@ function vRank() {
   return h('div', { class: 'stack narrow realm' }, subHero('The Realm', 'Rank and forecast', 'realm'),
     card('Weekly rank', h('span', { class: 'pill' }, rk.name), h('p', { class: 'muted xs' }, 'Rated on the last 7 days: days active, questions answered, accuracy and sets. It goes down if you slack, and up when you show up.'),
       bar(rk.next ? (rk.score - WRANKS[rk.i][0]) / (rk.next[0] - WRANKS[rk.i][0]) * 100 : 100),
-      h('p', { class: 'muted xs' }, rk.next ? `${rk.toNext} more points to reach ${rk.next[1]} (score ${rk.score}).` : `The highest rank (score ${rk.score}).`),
+      h('p', { class: 'muted xs' }, rk.next ? `${rk.toNext} more point${rk.toNext === 1 ? '' : 's'} to reach ${rk.next[1]} (score ${rk.score}).` : `The highest rank (score ${rk.score}).`),
       h('ol', { class: 'ranks' }, WRANKS.map(([t, n], i) => h('li', { class: i === rk.i ? 'on' : i < rk.i ? 'past' : '' }, h('b', null, n), h('small', null, `${t}+`))))),
     card('Your flame', h('span', { class: 'pill' }, flameTier(f.heat)[1]), h('p', { class: 'muted xs' }, `Heat ${f.heat} · best ${Math.max(f.best, R0().stat.heatBest)} · ${f.streak} day streak. Each active day (a focus set, or 20 answers) adds heat. A missed day cools it by 40% rather than putting it out.${hasPerk('ward') ? ' Ember Ward shields one missed day a week.' : ''}`),
       h('ol', { class: 'ranks' }, FLAMES.map(([t, n, c]) => h('li', { class: f.heat >= t ? 'past' : '', style: `--fc:${c}` }, h('b', null, n), h('small', null, `${t}+ heat`))))),
