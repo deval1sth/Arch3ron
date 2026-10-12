@@ -512,7 +512,7 @@ function quickWins() {
 /* ---------- Learn ---------- */
 function learnSummary() {
   const BK = LEARN.bank(); let l = 0, t = 0;
-  for (const b of Object.values(BK)) for (const k of [...b.def, ...b.recall, ...b.eq]) { t++; if (learned(k)) l++; }
+  for (const b of Object.values(BK)) for (const k of [...b.def, ...b.recall, ...b.eq, ...(b.vocab || [])]) { t++; if (learned(k)) l++; }
   const calc = Object.keys(LEARN.TOPIC).filter(id => LEARN.TOPIC[id].type === 'calc'); l += masteredIn(calc); t += calc.length;
   return tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'go', 'data-tab': 'stats' }, h('span', { class: 'lc-ic' }, icon('chart')), h('b', null, 'Your progress'),
     h('span', { class: 'lc-d' }, `${l.toLocaleString('en-GB')} of ${t.toLocaleString('en-GB')} facts, definitions, equations and skills learned.`), bar(t ? l / t * 100 : 0), h('small', null, 'See every subject')));
@@ -555,7 +555,7 @@ function guidePanel(id) {
 function vSubject() {
   const s = SUBJ_BY[SUBJ_SEL] || LEARN.SUBJECTS[0], ids = topicsFor(s.id);
   const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
-    h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} ${LEARN.TOPIC[id].type === 'def' ? 'terms' : 'facts'}`) : null), starsEl(id)))))) : null; };
+    h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} ${LEARN.TOPIC[id].type === 'def' ? 'terms' : LEARN.TOPIC[id].type === 'vocab' ? 'words' : 'facts'}`) : null), starsEl(id)))))) : null; };
   const extras = s.id === 'englit' ? [B([icon('edit'), 'Plan an essay'], 'go', 'ghost', { 'data-tab': 'write' }), B([icon('cards'), 'Quote flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })]
     : s.id === 're' ? [B([icon('edit'), 'Plan a 12-mark answer'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
@@ -565,7 +565,7 @@ function vSubject() {
   return h('div', { class: 'stack narrow' },
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
-    group('def', 'Definitions'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
+    group('def', 'Definitions'), group('vocab', 'Descriptive vocabulary: spell it, know it, use it'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
     !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')),
     card('Watch and read', h('span', { class: 'muted' }, 'free, opens in a new tab'), h('ul', { class: 'links' }, sitesFor(s.id).map(([n, u, d]) => ext(u, n, d)))));
 }
@@ -1022,8 +1022,8 @@ function vStats() {
   const wk = span(0, 7), prev = span(7, 14), acts = Array.from({ length: 28 }, (_, i) => dayAt(27 - i).qa || 0), top = Math.max(1, ...acts);
   let allL = 0, allT = 0;
   const rows = LEARN.SUBJECTS.map(s => {
-    const b = BK[s.id] || { def: [], recall: [], eq: [] }, calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc');
-    const parts = [['Definitions', b.def], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
+    const b = BK[s.id] || { def: [], recall: [], eq: [], vocab: [] }, calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc');
+    const parts = [['Definitions', b.def], ['Descriptive vocabulary', b.vocab || []], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
     if (calc.length) parts.push(['Calculation skills mastered', masteredIn(calc), calc.length, calc.filter(id => skill(id).n).length]);
     const L = parts.reduce((a, p) => a + p[1], 0), T = parts.reduce((a, p) => a + p[2], 0); allL += L; allT += T;
     const papers = S.scores.filter(x => s.subj === 'Science' ? x.paper.startsWith(s.name) : x.subj === s.subj).sort((a, b) => a.date < b.date ? -1 : 1);

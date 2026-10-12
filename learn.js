@@ -440,6 +440,20 @@ const LEARN = (() => {
     return q.points.map(p => { const kw = words(p.replace(/\(.*?\)/g, "")); return kw.length > 0 && kw.filter(has).length / kw.length >= .6; });
   }
 
+  /* ---------- Descriptive vocabulary: spell it, know its meaning, use it in a sentence ---------- */
+  const VB = {};
+  for (const [id, [title, text]] of Object.entries(typeof VOCAB !== 'undefined' ? VOCAB : {}))
+    VB[id] = { name: title, items: text.trim().split('\n').map(l => l.split('|')).filter(p => p.length === 3).map(([w, m, e]) => ({ w: w.trim(), m: m.trim(), e: e.trim() })) };
+  const blankOut = it => it.e.replace(new RegExp(it.w.slice(0, Math.max(4, it.w.length - 3)) + '[a-z]*', 'i'), '_____');
+  function genVocab(id) {
+    const t = VB[id], [it, key] = choose(t.items, x => 'vocab|' + x.w), r = Math.random(), others = shuffle(t.items.filter(x => x !== it)).slice(0, 3);
+    const steps = [`${it.w}: ${it.m}`, `Example: ${it.e}`];
+    if (r < .5) return { kind: 'word', key, q: `Spell the word that means “${it.m}”.\n${blankOut(it)}`, sub: 'Spell it', w: it.w, show: it.w, hint: `Starts with “${it.w[0]}”, ${it.w.length} letters.`, steps };
+    if (r < .75) { const options = shuffle([it.m, ...others.map(x => x.m)]); return { kind: 'mcq', key, q: `What does “${it.w}” mean?`, sub: t.name, options, a: options.indexOf(it.m), show: it.m, steps }; }
+    const options = shuffle([it.w, ...others.map(x => x.w)]);
+    return { kind: 'mcq', key, q: `Which word fits best?\n${blankOut(it)}`, sub: 'Use it in a sentence', options, a: options.indexOf(it.w), show: it.w, steps };
+  }
+
   /* ---------- registry ---------- */
   const QDECKS = { 'q-mac': ['mac', 'Macbeth quotes'], 'q-acc': ['acc', 'A Christmas Carol quotes'], 'q-je': ['je', "Journey's End quotes"] };
   const TOPIC = {};
@@ -452,6 +466,7 @@ const LEARN = (() => {
   const CH = typeof CHEM !== 'undefined' ? CHEM.TOPICS : {};
   if (typeof CHEM !== 'undefined') CHEM.setChooser(choose);
   for (const [id, c] of Object.entries(CH)) TOPIC[id] = { name: c[0], subject: 'chemistry', type: 'eq' };
+  for (const [id, v] of Object.entries(VB)) TOPIC[id] = { name: v.name, subject: 'englang', type: 'vocab', size: v.items.length };
   const SUBJECTS = [
     ['maths', 'Maths', 'target', 'Maths'], ['biology', 'Biology', 'leaf', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'bolt', 'Science'],
     ['englit', 'English Literature', 'feather', 'English Literature'], ['englang', 'English Language', 'scroll', 'English Language'],
@@ -468,6 +483,7 @@ const LEARN = (() => {
       else if (R[id]) q = genRecall(id);
       else if (QDECKS[id]) q = genQuote(QDECKS[id][0]);
       else if (DF[id]) q = genDef(id);
+      else if (VB[id]) q = genVocab(id);
       else if (CH[id]) q = CH[id][1]();
     } catch (e) { q = null; }
     if (q) { q.id = id; if (!q.sub) q.sub = name(id); }
@@ -554,10 +570,11 @@ const LEARN = (() => {
   function bank() {
     if (BANK) return BANK;
     BANK = {};
-    const add = (subj, kind, k) => { const b = BANK[subj] = BANK[subj] || { def: [], recall: [], eq: [] }; b[kind].push(k); };
+    const add = (subj, kind, k) => { const b = BANK[subj] = BANK[subj] || { def: [], recall: [], eq: [], vocab: [] }; b[kind].push(k); };
     for (const [id, t] of Object.entries(R)) for (const it of t.items) add(t.subject, 'recall', hkey(id + '|' + it.q));
     for (const [id, t] of Object.entries(DF)) for (const it of t.items) add(t.subject, 'def', hkey(id + '|' + it.t));
     if (typeof CHEM !== 'undefined') for (const k of CHEM.keys()) add('chemistry', 'eq', hkey(k));
+    for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
   return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };

@@ -1,6 +1,6 @@
 /* Archeron service worker. Bump VERSION on every release so phones pick up the new files. */
-const VERSION = 'archeron-4.5.0';
-const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'data.js', 'content.js', 'defs.js', 'defs2.js', 'chem.js', 'exam.js', 'papers.js', 'fx.js', 'learn.js', 'guides.js', 'game.js', 'app.js', 'manifest.json', 'icon.svg',
+const VERSION = 'archeron-4.6.0';
+const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'vocab.js', 'data.js', 'content.js', 'defs.js', 'defs2.js', 'chem.js', 'exam.js', 'papers.js', 'fx.js', 'learn.js', 'guides.js', 'game.js', 'app.js', 'manifest.json', 'icon.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

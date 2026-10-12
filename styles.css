@@ -570,7 +570,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation-duration:.01ms!important;
 
 /* explainers and links */
 .guide p{margin:0 0 10px;line-height:1.55}.guide .g-ex{padding:10px 12px;border-radius:12px;background:rgba(var(--y-rgb),.07)}
-.guide a.btn{color:inherit;text-decoration:none}
+a.btn{color:inherit;text-decoration:none}
 .links{list-style:none;margin:0;padding:0;display:grid;gap:10px}.links a{color:var(--y);font-weight:600}
 /* definitions, chemistry answers and exam practice */
 .qcard textarea{min-height:96px;resize:vertical;line-height:1.5;margin-bottom:12px}
@@ -583,7 +583,7 @@ html.rm *,html.rm *::before,html.rm *::after{animation-duration:.01ms!important;
 .exdots{display:flex;flex-wrap:wrap;gap:8px}
 .exdot{width:26px;height:26px;border-radius:50%;border:1px solid var(--line2);background:none;cursor:pointer;padding:0}
 .exdot.done{background:rgba(var(--y-rgb),.35);border-color:transparent}.exdot.on{box-shadow:0 0 0 3px var(--y-soft);border-color:var(--y)}
-.exq .qtext{white-space:pre-line}
+.qtext{white-space:pre-line}
 .srcbox{white-space:pre-wrap;line-height:1.65;font-size:15px;max-height:60vh;overflow:auto;padding-right:6px}
 .src-h{font-size:14px;font-weight:600;color:var(--y2);text-align:left}
 .how{margin:0 0 6px;line-height:1.5}

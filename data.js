@@ -65,6 +65,7 @@ const DECKS = {
     ['Area of a circle', 'π × r²'], ['Circumference', 'π × diameter'], ['Volume of a prism', 'area of cross-section × length'],
     ['Pythagoras', 'a² + b² = c²'], ['Speed', 'distance ÷ time'], ['Angles in a triangle', 'add up to 180°'], ['Angles on a straight line', 'add up to 180°'],
     ['Angles around a point', 'add up to 360°'], ['Interior angles of a polygon', '(n − 2) × 180°'], ['Percentage change', '(change ÷ original) × 100'], ['Compound interest', 'amount × (1 + r/100)ⁿ']] },
+  vocab: { name: 'Descriptive words', cards: Object.values(typeof VOCAB !== 'undefined' ? VOCAB : {}).flatMap(([, t]) => t.trim().split('\n').map(l => l.split('|')).map(([w, m, e]) => [w, `${m}. e.g. ${e}`])), note: 'Say the meaning, then use the word in a sentence of your own before you flip.' },
   my: { name: 'My cards', cards: [], note: 'Your own deck. Add anything you keep forgetting.' }
 };
 
