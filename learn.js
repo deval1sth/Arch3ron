@@ -261,12 +261,12 @@ const LEARN = (() => {
   function genQuote(deck) {
     const qs = quoteSource(deck).filter(c => /^["“'‘]/.test(c.f.trim()));
     if (!qs.length) return null;
-    const c = pick(qs), text = c.f.trim().replace(/^["“'‘]+|["”'’!?.]+$/g, '');
+    const [c, key] = choose(qs, x => 'quote|' + x.f), text = c.f.trim().replace(/^["“'‘]+|["”'’!?.]+$/g, '');
     const words = (text.match(/[A-Za-z][A-Za-z']*[A-Za-z]|[A-Za-z]/g) || []);
     let cand = words.filter(w => w.length >= 4 && !STOP.has(w.toLowerCase()));
     if (!cand.length) cand = [...words].sort((a, b) => b.length - a.length).slice(0, 1);
     const w = pick(cand), blank = text.replace(new RegExp(`(^|[^A-Za-z'])${escRe(w)}(?![A-Za-z'])`), `$1${'_'.repeat(Math.max(4, Math.min(9, w.length)))}`);
-    return { q: `“${blank}”`, sub: 'Fill the missing word', kind: 'word', w, show: w, steps: [`“${text}”`, c.b] };
+    return { q: `“${blank}”`, key, sub: 'Fill the missing word', kind: 'word', w, show: w, steps: [`“${text}”`, c.b] };
   }
 
   /* ---------- Science, Business and Geography calculations ---------- */
@@ -378,21 +378,42 @@ const LEARN = (() => {
 
   /* ---------- Recall banks → multiple-choice questions ---------- */
   const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  /* ---------- item memory: no repeats, wrong and unseen first, known items spaced out ---------- */
+  const hkey = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = (h * 33 ^ str.charCodeAt(i)) >>> 0; return h.toString(36); };
+  let itemInfo = () => null; /* app supplies: key → { n, r, s (right streak), ago (days) } or null */
+  const RECENT = [];
+  const gap = m => m.ago - 2 ** Math.max(0, m.s - 1); /* ≥ 0 means due: 1, 2, 4, 8… days after each right answer */
+  function choose(list, keyOf) {
+    const rows = list.map(it => { const k = hkey(keyOf(it)); return { it, k, m: itemInfo(k) }; });
+    const pool = rows.length > 1 && rows.some(r => !RECENT.includes(r.k)) ? rows.filter(r => !RECENT.includes(r.k)) : rows;
+    const wrong = pool.filter(r => r.m && r.m.s === 0), fresh = pool.filter(r => !r.m), due = pool.filter(r => r.m && r.m.s > 0 && gap(r.m) >= 0);
+    const set = wrong.length && (Math.random() < .5 || !fresh.length) ? wrong : fresh.length ? fresh : due.length ? due : null;
+    const r = set ? pick(set) : pool.reduce((a, b) => gap(b.m) > gap(a.m) ? b : a); /* nothing due: the one closest to due */
+    RECENT.push(r.k); if (RECENT.length > 40) RECENT.shift();
+    return [r.it, r.k];
+  }
   const R = {};
   for (const [id, [subject, title, text]] of Object.entries(typeof BANKS !== 'undefined' ? BANKS : {})) {
     const items = text.trim().split('\n').map(l => l.split('|')).filter(p => p.length >= 2)
       .map(([q, a, d]) => ({ q: q.trim(), a: a.trim(), d: d ? d.split(';').map(s => s.trim()).filter(Boolean) : null }));
     R[id] = { name: title, subject, items };
   }
+  const termLike = it => !it.d && it.a.length <= 32 && it.q.length >= 25 && /^[A-Z]/.test(it.a) && !/\d/.test(it.a);
   function genRecall(id) {
-    const t = R[id], it = pick(t.items);
+    const t = R[id], [it, key] = choose(t.items, x => id + '|' + x.q);
+    const others = t.items.filter(x => x.a !== it.a && termLike(x));
+    if (termLike(it) && others.length >= 3 && Math.random() < .35) {
+      const options = shuffle([it.q, ...shuffle(others).slice(0, 3).map(x => x.q)]);
+      return { kind: 'mcq', key, q: `Which of these describes “${it.a}”?`, sub: t.name, options, a: options.indexOf(it.q), show: it.q, steps: [`${it.a}: ${it.q}`] };
+    }
     let ds = it.d;
     if (!ds) {
       const others = shuffle([...new Set(t.items.map(x => x.a))].filter(a => a !== it.a));
       ds = shuffle(others.sort((x, y) => Math.abs(x.length - it.a.length) - Math.abs(y.length - it.a.length)).slice(0, 5)).slice(0, 3);
     }
     const options = shuffle([it.a, ...ds.filter(x => x !== it.a).slice(0, 3)]);
-    return { kind: 'mcq', q: it.q, sub: t.name, options, a: options.indexOf(it.a), show: it.a, steps: [`${it.q} → ${it.a}`] };
+    return { kind: 'mcq', key, q: it.q, sub: t.name, options, a: options.indexOf(it.a), show: it.a, steps: [`${it.q} → ${it.a}`] };
   }
 
   /* ---------- Definitions: write it (self-marked against key points) or pick it ---------- */
@@ -403,12 +424,12 @@ const LEARN = (() => {
     DF[id] = { name: title, subject, items };
   }
   function genDef(id) {
-    const t = DF[id], it = pick(t.items);
+    const t = DF[id], [it, key] = choose(t.items, x => id + '|' + x.t);
     if (Math.random() < .35) {
       const options = shuffle([it.d, ...shuffle(t.items.filter(x => x !== it)).slice(0, 3).map(x => x.d)]);
-      return { kind: 'mcq', q: `Which is the correct definition of “${it.t}”?`, sub: t.name, options, a: options.indexOf(it.d), show: it.d, steps: [`${it.t}: ${it.d}`] };
+      return { kind: 'mcq', key, q: `Which is the correct definition of “${it.t}”?`, sub: t.name, options, a: options.indexOf(it.d), show: it.d, steps: [`${it.t}: ${it.d}`] };
     }
-    return { kind: 'def', q: pick([`Define “${it.t}”.`, `What is meant by “${it.t}”?`]), sub: t.name, term: it.t, points: it.k, show: it.d, steps: it.k.map(k => 'Key point: ' + k) };
+    return { kind: 'def', key, q: pick([`Define “${it.t}”.`, `What is meant by “${it.t}”?`]), sub: t.name, term: it.t, points: it.k, show: it.d, steps: it.k.map(k => 'Key point: ' + k) };
   }
   /* First guess at which key points an answer hit; the student confirms or fixes the ticks.
      shortcut: word-stem matching, not real marking; that is why the student has the final say. */
@@ -429,6 +450,7 @@ const LEARN = (() => {
   for (const [id, q] of Object.entries(QDECKS)) TOPIC[id] = { name: q[1], subject: 'englit', type: 'quote' };
   for (const [id, d] of Object.entries(DF)) TOPIC[id] = { name: d.name, subject: d.subject, type: 'def', size: d.items.length };
   const CH = typeof CHEM !== 'undefined' ? CHEM.TOPICS : {};
+  if (typeof CHEM !== 'undefined') CHEM.setChooser(choose);
   for (const [id, c] of Object.entries(CH)) TOPIC[id] = { name: c[0], subject: 'chemistry', type: 'eq' };
   const SUBJECTS = [
     ['maths', 'Maths', 'target', 'Maths'], ['biology', 'Biology', 'leaf', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'bolt', 'Science'],
@@ -528,5 +550,15 @@ const LEARN = (() => {
   }
 
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, name, trackOf, setQuoteSource: f => { quoteSource = f; } };
+  let BANK = null;
+  function bank() {
+    if (BANK) return BANK;
+    BANK = {};
+    const add = (subj, kind, k) => { const b = BANK[subj] = BANK[subj] || { def: [], recall: [], eq: [] }; b[kind].push(k); };
+    for (const [id, t] of Object.entries(R)) for (const it of t.items) add(t.subject, 'recall', hkey(id + '|' + it.q));
+    for (const [id, t] of Object.entries(DF)) for (const it of t.items) add(t.subject, 'def', hkey(id + '|' + it.t));
+    if (typeof CHEM !== 'undefined') for (const k of CHEM.keys()) add('chemistry', 'eq', hkey(k));
+    return BANK;
+  }
+  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();

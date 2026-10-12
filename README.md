@@ -26,6 +26,7 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `content.js`: recall banks, essay/answer prompts, English Language guides
 - `guides.js`: topic explainers (idea, method, example, tip), video and site links
 - `defs.js`: definitions (term, model answer, key points) for the definitions trainer
+- `defs2.js`: more definitions, including Maths, English and RE term sets (merged into `defs.js`)
 - `chem.js`: chemistry formulae, naming, word equations and balancing (solver-checked)
 - `exam.js`: Maths and Science practice papers with mark schemes
 - `papers.js`: English, Geography, Business and RE papers with levels-based marking, original sources and per-subject method tips

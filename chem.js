@@ -10,6 +10,8 @@ const CHEM = (() => {
   const sub = f => f.replace(/\d/g, d => SUBD[d]);
   const unsub = s => String(s).replace(/[₀-₉]/g, c => SUBD.indexOf(c));
   const ion = (sym, q, sign) => sub(sym) + (q > 1 ? SUPD[q] : '') + sign;
+  /* learn.js swaps this for its memory-aware chooser (no repeats, wrong items first) */
+  let choose = list => [pick(list), null];
 
   /* Count atoms in a formula like Ca(OH)2. Returns null if it cannot be read. */
   function atoms(f) {
@@ -50,23 +52,23 @@ const CHEM = (() => {
 
   function genFormula() {
     if (Math.random() < .25) {
-      const [name, f] = pick(MOLS);
-      return { kind: 'formula', q: `Write the formula of ${name}.`, f, molecular: true, show: sub(f), hint: 'Type numbers normally, e.g. H2O.',
+      const [[name, f], key] = choose(MOLS, m => 'mol|' + m[1]);
+      return { kind: 'formula', key, q: `Write the formula of ${name}.`, f, molecular: true, show: sub(f), hint: 'Type numbers normally, e.g. H2O.',
         steps: [`${name} is ${sub(f)}`, 'Learn these: they come up in equations on every paper.'] };
     }
-    const { c, a, name, f } = pick(PAIRS), l = c[2] * a[2] / gcd(c[2], a[2]);
-    return { kind: 'formula', q: `Write the formula of ${name}. The ions are ${ion(c[1], c[2], '⁺')} and ${ion(a[1], a[2], '⁻')}.`, f, show: sub(f), hint: 'Type numbers normally, e.g. Mg(OH)2.',
+    const [{ c, a, name, f }, key] = choose(PAIRS, p => 'f|' + p.f + p.name), l = c[2] * a[2] / gcd(c[2], a[2]);
+    return { kind: 'formula', key, q: `Write the formula of ${name}. The ions are ${ion(c[1], c[2], '⁺')} and ${ion(a[1], a[2], '⁻')}.`, f, show: sub(f), hint: 'Type numbers normally, e.g. Mg(OH)2.',
       steps: [`Charges: ${c[0]} is ${c[2]}+, ${a[0]} is ${a[2]}−`,
         c[2] === a[2] ? 'The charges already cancel, so one of each' : `Make the charges cancel: ${l / c[2]} × (${c[2]}+) = ${l}+ and ${l / a[2]} × (${a[2]}−) = ${l}−`,
         poly(a[1]) && l / a[2] > 1 ? `${sub(a[1])} is one ion, so it goes in brackets when there is more than one` : 'Write the metal first, then the non-metal part',
         `Formula: ${sub(f)}`] };
   }
   function genName() {
-    const { c, a, name, f } = pick(PAIRS);
+    const [{ c, a, name, f }, key] = choose(PAIRS, p => 'n|' + p.f + p.name);
     const pool = [`${c[0]} ${a[3]}`, ...AN.filter(x => x !== a).map(x => `${c[0]} ${x[0]}`).filter(n => PAIRS.some(p => p.name === n && p.f !== f))];
     if (c[0].startsWith('iron')) pool.unshift(`${c[0] === 'iron(II)' ? 'iron(III)' : 'iron(II)'} ${a[0]}`);
     const ds = [...new Set(pool)].filter(n => n !== name).slice(0, 6), options = shuffle([name, ...shuffle(ds.slice(0, 2)).concat(shuffle(ds.slice(2))).slice(0, 3)]);
-    return { kind: 'mcq', q: `Name the compound ${sub(f)}.`, options, a: options.indexOf(name), show: name,
+    return { kind: 'mcq', key, q: `Name the compound ${sub(f)}.`, options, a: options.indexOf(name), show: name,
       steps: [`${sub(f)} → ${name}`, 'Metal first, unchanged. Non-metal on its own ends in -ide (chloride, oxide); with oxygen in a group it ends in -ate (sulfate, nitrate, carbonate).'] };
   }
 
@@ -113,8 +115,8 @@ const CHEM = (() => {
   for (const m of ['copper', 'iron', 'lead', 'zinc'])
     add(`${m} oxide + carbon → ?`, `${m} + carbon dioxide`, [`${m} carbonate`, `${m} oxide + carbon dioxide`, `${m} + oxygen`], `carbon is more reactive than ${m}, so it takes the oxygen (reduction)`);
   function genWord() {
-    const w = pick(W), options = shuffle([w.a, ...shuffle(w.ds).slice(0, 3)]);
-    return { kind: 'mcq', q: `Complete the word equation: ${w.q}`, options, a: options.indexOf(w.a), show: w.a, steps: [w.q.replace('?', w.a), 'Rule: ' + w.why] };
+    const [w, key] = choose(W, x => 'w|' + x.q), options = shuffle([w.a, ...shuffle(w.ds).slice(0, 3)]);
+    return { kind: 'mcq', key, q: `Complete the word equation: ${w.q}`, options, a: options.indexOf(w.a), show: w.a, steps: [w.q.replace('?', w.a), 'Rule: ' + w.why] };
   }
 
   /* ---------- balancing ---------- */
@@ -163,12 +165,12 @@ const CHEM = (() => {
   const eqStr = (e, co) => side(e.l, co && co.slice(0, e.l.length)) + ' → ' + side(e.r, co && co.slice(e.l.length));
   function genBalance() {
     /* already-balanced ones (all 1s) are real exam questions too, but show them less often */
-    const e = pick(Math.random() < .85 ? EQS.filter(x => solve(x).some(c => c > 1)) : EQS), co = solve(e), sp = species(e), n = sp.length;
+    const [e, key] = choose(Math.random() < .85 ? EQS.filter(x => solve(x).some(c => c > 1)) : EQS, x => 'b|' + x.l.join('+') + '=' + x.r.join('+')), co = solve(e), sp = species(e), n = sp.length;
     const counts = Object.keys(tally(sp, co)).map(el => {
       const left = sp.reduce((s, x, j) => s + (x.side > 0 ? (x.m[el] || 0) * co[j] : 0), 0);
       return `${el}: ${left} on each side`;
     });
-    return { kind: 'coef', q: `Balance this equation: ${e.l.map(f => '__ ' + sub(f)).join(' + ')} → ${e.r.map(f => '__ ' + sub(f)).join(' + ')}`, e, n, co, show: eqStr(e, co),
+    return { kind: 'coef', key, q: `Balance this equation: ${e.l.map(f => '__ ' + sub(f)).join(' + ')} → ${e.r.map(f => '__ ' + sub(f)).join(' + ')}`, e, n, co, show: eqStr(e, co),
       hint: `Type the ${n} big numbers in order, e.g. ${co.map(() => 1).join(' ')}. Write 1 where no number is needed.`,
       steps: [e.w ? 'Word equation: ' + e.w : null, 'Balanced: ' + eqStr(e, co), ...counts, 'Tip: balance atoms that appear in only one formula on each side first. Leave elements on their own (like O₂ or H₂) until last. Never change the small numbers.'].filter(Boolean) };
   }
@@ -205,5 +207,7 @@ const CHEM = (() => {
     const badF = [...PAIRS.map(p => p.f), ...MOLS.map(m => m[1])].filter(f => !atoms(f));
     return { equations: EQS.length, formulae: PAIRS.length + MOLS.length, names: PAIRS.length, words: W.length, bad, badF };
   }
-  return { TOPICS, check, selfTest, solve, eqStr, atoms, EQS, PAIRS };
+  const keys = () => [...MOLS.map(m => 'mol|' + m[1]), ...PAIRS.map(p => 'f|' + p.f + p.name), ...PAIRS.map(p => 'n|' + p.f + p.name), ...W.map(x => 'w|' + x.q),
+    ...EQS.map(x => 'b|' + x.l.join('+') + '=' + x.r.join('+'))];
+  return { TOPICS, check, selfTest, solve, eqStr, atoms, EQS, PAIRS, keys, setChooser: f => { choose = f; } };
 })();

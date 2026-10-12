@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
+const BACKS = { stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -99,7 +99,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     game: { tokens: 1, lastFree: '', best: 0, boat: 'raft', zone: 'twilight' },
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
@@ -166,8 +166,14 @@ function normalize(raw) {
         else if (Array.isArray(v)) out.s[`d${w}-${key}`] = v.map(Boolean);
       }
     }
+    if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
     s.days[k] = out;
   }
+  for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x));
+  s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() }));
+  const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
+  if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
+    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1) };
   return s;
 }
 
@@ -207,11 +213,11 @@ const EMBLEMS = [['bat', 0], ['flame', 0], ['lantern', 5], ['feather', 10], ['mo
 
 /* ---------- subjects, topics and skills (Learn) ---------- */
 const SUBJ_BY = Object.fromEntries(LEARN.SUBJECTS.map(s => [s.id, s]));
-const TRACK_NAME = t => t === 'science' ? 'Science mix' : t === 'all' ? 'All subjects' : (SUBJ_BY[t] || { name: t }).name;
+const TRACK_NAME = t => t === 'fix' ? 'Fix queue' : t === 'science' ? 'Science mix' : t === 'all' ? 'All subjects' : (SUBJ_BY[t] || { name: t }).name;
 function quoteCards(id) { const deck = { 'q-mac': 'mac', 'q-acc': 'acc', 'q-je': 'je' }[id]; return deck ? cardsOf(deck).filter(c => /^["“'‘]/.test(c.f.trim())) : []; }
 const usable = id => !S.hidden[id] && (LEARN.TOPIC[id].type !== 'quote' || quoteCards(id).length > 0);
 function topicsFor(track) {
-  const ids = track === 'all' ? Object.keys(LEARN.TOPIC) : track === 'science' ? ['biology', 'chemistry', 'physics'].flatMap(s => SUBJ_BY[s].topics) : SUBJ_BY[track] ? SUBJ_BY[track].topics : (LEARN.TOPIC[track] ? [track] : []);
+  const ids = track === 'fix' ? S.queue.map(x => x.id) : track === 'all' ? Object.keys(LEARN.TOPIC) : track === 'science' ? ['biology', 'chemistry', 'physics'].flatMap(s => SUBJ_BY[s].topics) : SUBJ_BY[track] ? SUBJ_BY[track].topics : (LEARN.TOPIC[track] ? [track] : []);
   return ids.filter(usable);
 }
 const skill = id => S.skill[id] || { n: 0, ok: 0, best: 0, run: 0, rec: [] };
@@ -219,22 +225,36 @@ const stars = id => { const k = skill(id); return k.best >= 5 ? 3 : k.best >= 3 
 const masteredIn = ids => ids.filter(id => stars(id) === 3).length;
 const masteredAll = () => masteredIn(Object.keys(LEARN.TOPIC));
 const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.reduce((n, t) => n + skill(t).ok, 0) >= 25).length;
-function record(id, ok) {
+const today = () => dayNum(dkey());
+LEARN.setItemInfo(key => { const m = S.items[key]; return m ? { n: m[0], r: m[1], s: m[2], ago: today() - m[3] } : null; });
+const learned = key => { const m = S.items[key]; return !!m && m[2] >= 2; }; /* right twice in a row, and right last time */
+function record(id, ok, key) {
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
+  if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
+  const d = ensureDay(dkey()); d.qa = (d.qa || 0) + 1; d.qr = (d.qr || 0) + (ok ? 1 : 0);
   if (ok) {
     k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++;
     if (++S.stat.rightTowardsVoyage >= 10) { S.stat.rightTowardsVoyage = 0; S.game.tokens++; toast('10 right answers · voyage earned', 'big'); }
   } else k.run = 0;
+  const qi = S.queue.findIndex(x => x.id === id);
+  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
   save();
+}
+/* Fix queue: topics where marks were lost come back in Focus and mixed practice until you get 3 right in a row */
+function addFix(ids, why) {
+  let n = 0;
+  for (const id of new Set(ids)) if (LEARN.TOPIC[id] && !S.hidden[id] && !S.queue.some(x => x.id === id)) { S.queue.push({ id, why, date: dkey() }); n++; }
+  if (S.queue.length > 40) S.queue = S.queue.slice(-40);
+  return n;
 }
 function pickTopic(track, avoid) {
   const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
   const w = pool.map(id => {
-    const k = skill(id); if (!k.n) return 3;
+    const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 : 1; if (!k.n) return 3 * boost;
     const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
-    return k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3;
+    return (k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3) * boost;
   });
   let r = Math.random() * w.reduce((a, b) => a + b);
   for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
@@ -355,7 +375,7 @@ let CD = { deck: 'mac', flip: false, i: 0 };
 let LT = 'mm', PD = new Date().getDay(), SEL = null, CHOOSE = false, DR = null, SUBJ_SEL = 'maths', ACH_CAT = 'All', PB = {}, FREE_TRACK = null;
 const CHART = new Set(S.scores.length ? S.scores.map(s => s.subj).filter(s => SUBJ.includes(s)) : ['Maths']);
 const blankScore = (subj = 'Maths') => ({ date: dkey(), subj, paper: '', score: '', max: '80', lost: [] });
-const DRAFT = { ex: '', score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '', plans: {} };
+const DRAFT = { mp: '', ex: '', score: blankScore(), mis: { subj: 'Maths', topic: '', note: '' }, card: { f: '', b: '' }, grades: null, dr: '', plans: {} };
 function setPath(o, path, v) { const p = path.split('.'); for (let i = 0; i < p.length - 1; i++) { o = o[p[i]]; if (!o) return; } o[p[p.length - 1]] = v; }
 
 /* ---------- missions: what to actually do in each set ---------- */
@@ -490,10 +510,22 @@ function quickWins() {
 }
 
 /* ---------- Learn ---------- */
+function learnSummary() {
+  const BK = LEARN.bank(); let l = 0, t = 0;
+  for (const b of Object.values(BK)) for (const k of [...b.def, ...b.recall, ...b.eq]) { t++; if (learned(k)) l++; }
+  const calc = Object.keys(LEARN.TOPIC).filter(id => LEARN.TOPIC[id].type === 'calc'); l += masteredIn(calc); t += calc.length;
+  return tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'go', 'data-tab': 'stats' }, h('span', { class: 'lc-ic' }, icon('chart')), h('b', null, 'Your progress'),
+    h('span', { class: 'lc-d' }, `${l.toLocaleString('en-GB')} of ${t.toLocaleString('en-GB')} facts, definitions, equations and skills learned.`), bar(t ? l / t * 100 : 0), h('small', null, 'See every subject')));
+}
 function vLearn() {
   const hard = Object.keys(LEARN.TOPIC).filter(id => { const k = skill(id); return usable(id) && k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; }).slice(0, 5);
   return h('div', { class: 'stack' },
-    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Topics you find hard come back more often until they click. Every 10 right answers earns a voyage.'),
+    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Questions you get wrong come back; ones you know are spaced out so you never just repeat. Every 10 right answers earns a voyage.'),
+    learnSummary(),
+    S.queue.length > 0 && card('Fix queue', h('span', { class: 'muted' }, `${S.queue.length} topic${S.queue.length > 1 ? 's' : ''}`),
+      h('p', { class: 'muted xs' }, 'Topics where you lost marks. Get 3 right in a row on each to clear it. They also come up more in Focus sets and mixed practice.'),
+      h('ul', { class: 'fixq' }, S.queue.slice(-6).reverse().map(x => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': x.id }, h('b', null, LEARN.name(x.id)), h('small', null, x.why))))),
+      B([icon('play'), 'Work through the queue'], 'drill', 'primary', { 'data-track': 'fix' })),
     tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'drill', 'data-track': 'all' }, h('span', { class: 'lc-ic' }, icon('compass')), h('b', null, 'Mixed practice'),
       h('span', { class: 'lc-d' }, 'Questions from all your subjects, weighted towards what you find hardest.'), h('small', null, `${S.learnOk.toLocaleString('en-GB')} answered right so far`))),
     h('div', { class: 'sgrid' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id);
@@ -507,7 +539,7 @@ function vLearn() {
         h('small', null, S.exam ? 'A paper is in progress' : `${EXAMS.length} practice papers`))),
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
         h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
-    hard.length && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
+    hard.length > 0 && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
     h('p', { class: 'muted xs center' }, '★ answered right · ★★ 3 in a row · ★★★ 5 in a row (mastered). Stars are never taken away.'));
 }
 const starsEl = id => h('span', { class: 'stars', 'aria-label': `${stars(id)} of 3 stars` }, [1, 2, 3].map(i => h('i', { class: i <= stars(id) ? 'on' : '' })));
@@ -529,6 +561,7 @@ function vSubject() {
     : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'physics' || s.id === 'maths' ? [B([icon('cards'), 'Formula flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })] : [];
   if (EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase()))) extras.push(B([icon('scroll'), 'Exam practice'], 'go', 'ghost', { 'data-tab': 'exam' }));
+  if (s.id === 'maths') extras.push(B([icon('sparkle'), 'Generated paper'], S.mp ? 'mpResume' : 'mpNew', 'ghost'));
   return h('div', { class: 'stack narrow' },
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
@@ -753,6 +786,7 @@ function vTools() {
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     h('div', { class: 'tools' },
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
+      tool('stats', 'chart', 'Progress', 'What you have actually learned, by subject'),
       tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Answer, mark, score by topic'),
       tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
       tool('fix', 'wrench', 'Fix list', dueM ? `${dueM} ready to redo` : 'Turn mistakes into marks'),
@@ -814,7 +848,10 @@ function vExam() {
       h('div', { class: 'row' }, B('See the chart', 'go', 'ghost', { 'data-tab': 'papers' }), B('Close', 'exClose', 'link'))),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
-    groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]), h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
+    groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
+      g === 'Maths' && h('div', { class: 'gen' }, S.mp ? B([icon('play'), `Resume generated paper (Q${S.mp.i + 1})`], 'mpResume', 'primary') : B([icon('sparkle'), 'Generate a fresh paper'], 'mpNew', 'primary'),
+        h('small', { class: 'muted' }, 'A new 20-question paper every time, weighted to grade 4 topics and your weak spots. Marked automatically at the end.')),
+      h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', null, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
@@ -902,9 +939,118 @@ const EXACT = {
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25);
+    const g = groupOf(p), added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0);
+    if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
     EXRES = { name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
   }
 };
+
+/* Generated Maths paper: a fresh paper from the question generators, no feedback until the end, then marked automatically */
+const MUST4 = new Set(['pct-of', 'pct-incdec', 'frac-of', 'ratio-share', 'solve-1', 'expand', 'substitute', 'area', 'angles', 'averages', 'prob', 'rounding', 'negatives', 'bidmas', 'sdt', 'nth-term', 'pythag', 'circles']);
+let MPRES = null;
+function makeMathsPaper(n = 20) {
+  const ids = topicsFor('maths').filter(id => LEARN.TOPIC[id].type === 'calc'); /* auto-marked, so calculations only */
+  const pool = ids.map(id => { const k = skill(id), acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : .5;
+    return { id, w: (MUST4.has(id) ? 1.5 : 1) * (S.queue.some(x => x.id === id) ? 3 : 1) * (1.5 - acc) }; });
+  const chosen = [];
+  while (chosen.length < n && pool.length) { let r = Math.random() * pool.reduce((a, b) => a + b.w, 0); const i = pool.findIndex(x => (r -= x.w) <= 0); chosen.push(pool.splice(i < 0 ? pool.length - 1 : i, 1)[0].id); }
+  while (chosen.length < n && ids.length) chosen.push(pick(ids)); /* fewer topics than questions */
+  chosen.sort((a, b) => ids.indexOf(a) - ids.indexOf(b)); /* generator order runs roughly easy to hard */
+  return chosen.map(id => LEARN.gen(id)).filter(q => q && q.kind !== 'mcq');
+}
+function vMPaper() {
+  if (MPRES) return mpResults();
+  const M = S.mp; if (!M) return vExam();
+  const i = M.i, q = M.qs[i], last = i === M.qs.length - 1;
+  return h('div', { class: 'stack narrow' },
+    subHero('Maths', 'Generated paper', 'exam', null, 'Exam practice'),
+    h('div', { class: 'exdots' }, M.qs.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (M.ans[k] ? ' done' : ''), 'data-act': 'mpGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    i === 0 && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Exam conditions'), h('p', null, 'No feedback until the end, like the real thing. Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.'))),
+    h('section', { class: 'card qcard exq' },
+      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, LEARN.name(q.id)), h('span', null, `Question ${i + 1} of ${M.qs.length}`)),
+      h('p', { class: 'qtext' }, q.q),
+      h('div', { class: 'answer' }, q.pre && h('span', { class: 'adorn' }, q.pre),
+        h('input', { id: 'mpans', 'data-draft': 'mp', value: DRAFT.mp || '', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: last ? 'done' : 'next', 'aria-label': 'Your answer' }),
+        q.suf && h('span', { class: 'adorn' }, q.suf)),
+      q.hint && h('p', { class: 'muted xs' }, q.hint),
+      h('div', { class: 'row' }, i > 0 && B('Back', 'mpGo', 'ghost', { 'data-i': i - 1 }), last ? B('Finish and mark', 'mpFinish', 'primary grow') : B('Next', 'mpGo', 'primary grow', { 'data-i': i + 1 }))),
+    h('p', { class: 'muted xs center' }, `${M.ans.filter(Boolean).length} of ${M.qs.length} answered. Your place is saved if you leave.`),
+    h('div', { class: 'row center' }, B('Abandon paper', 'mpQuit', 'link')));
+}
+function mpResults() {
+  const R = MPRES;
+  return h('div', { class: 'stack narrow' },
+    subHero('Maths', 'Generated paper marked', 'exam', null, 'Exam practice'),
+    card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}%`)),
+      h('p', { class: 'muted' }, R.added ? `${R.added} topic${R.added > 1 ? 's' : ''} you got wrong ${R.added > 1 ? 'are' : 'is'} now in your fix queue.` : R.score === R.rows.length ? 'Full marks. Generate another; it will be different.' : 'Saved to Past papers.'),
+      h('div', { class: 'row' }, B([icon('sparkle'), 'New paper'], 'mpNew', 'primary'), B('Done', 'mpDone', 'ghost'))),
+    card('Question by question', null, h('ul', { class: 'mpres' }, R.rows.map((r, k) => h('li', { class: r.ok ? 'ok' : 'no' },
+      h('p', null, h('b', null, `${k + 1}. ${r.ok ? '✓' : '✗'} `), r.q.q),
+      h('p', { class: 'muted xs' }, `Your answer: ${r.a || '(blank)'}${r.ok ? '' : ` · Correct: ${r.q.show}`}${r.msg ? ` · ${r.msg}` : ''}`),
+      !r.ok && acc('mp' + k, h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, r.q.steps.map(x => h('li', null, x))), { cls: '' }))))));
+}
+const MPACT = {
+  mpNew() {
+    if (S.mp && !MPRES && !confirm('Start a new paper? The one in progress will be lost.')) return;
+    S.mp = null; const qs = makeMathsPaper();
+    if (!qs.length) return toast('All Maths topics are hidden in Settings');
+    S.mp = { qs, ans: qs.map(() => ''), i: 0 }; DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
+  },
+  mpResume() { MPRES = null; DRAFT.mp = S.mp.ans[S.mp.i] || ''; go('mpaper', '#mpans'); },
+  mpGo(el) { const M = S.mp; M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40); M.i = +el.dataset.i; DRAFT.mp = M.ans[M.i] || ''; save(); render({ focus: '#mpans' }); },
+  mpQuit() { if (!confirm('Abandon this paper? Nothing will be saved.')) return; S.mp = null; save(); go('exam'); },
+  mpDone() { MPRES = null; go('exam'); },
+  mpFinish() {
+    const M = S.mp; M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40);
+    const blank = M.ans.filter(a => !a).length;
+    if (blank && !confirm(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
+    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
+    const tp = {}, lost = {};
+    for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: 'Calculation', marks: 0 }; l.marks++; } }
+    const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts('Maths').map(pctOf));
+    S.scores.push({ id: newId(), date: dkey(), subj: 'Maths', paper: 'Generated Maths paper', score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
+    const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), 'Wrong on a generated Maths paper');
+    if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in Maths!`, 'big'); } else toast(`${pc}% saved.`);
+    CHART.add('Maths'); xp(25); MPRES = { rows, score, added }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
+  }
+};
+
+/* Progress: what is actually learned, by subject, from the item memory, topic stars and exam scores */
+function vStats() {
+  const BK = LEARN.bank(), dayAt = i => S.days[addDays(-i)] || {};
+  const span = (a, b) => { let n = 0, r = 0; for (let i = a; i < b; i++) { const d = dayAt(i); n += d.qa || 0; r += d.qr || 0; } return { n, r, pc: n ? Math.round(r / n * 100) : null }; };
+  const wk = span(0, 7), prev = span(7, 14), acts = Array.from({ length: 28 }, (_, i) => dayAt(27 - i).qa || 0), top = Math.max(1, ...acts);
+  let allL = 0, allT = 0;
+  const rows = LEARN.SUBJECTS.map(s => {
+    const b = BK[s.id] || { def: [], recall: [], eq: [] }, calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc');
+    const parts = [['Definitions', b.def], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
+    if (calc.length) parts.push(['Calculation skills mastered', masteredIn(calc), calc.length, calc.filter(id => skill(id).n).length]);
+    const L = parts.reduce((a, p) => a + p[1], 0), T = parts.reduce((a, p) => a + p[2], 0); allL += L; allT += T;
+    const papers = S.scores.filter(x => s.subj === 'Science' ? x.paper.startsWith(s.name) : x.subj === s.subj).sort((a, b) => a.date < b.date ? -1 : 1);
+    const tg = +(S.grades[s.subj] || {}).pct || 0;
+    return { s, parts, L, T, papers, tg };
+  });
+  const hard = Object.keys(LEARN.TOPIC).filter(id => usable(id) && skill(id).rec.length >= 3).map(id => { const k = skill(id); return [id, k.rec.filter(Boolean).length / k.rec.length]; })
+    .filter(x => x[1] < .7).sort((a, b) => a[1] - b[1]).slice(0, 6);
+  const tile = (v, l, sub) => h('div', { class: 'tile' }, h('b', null, v), h('span', null, l), sub && h('small', null, sub));
+  return h('div', { class: 'stack narrow' },
+    subHero('Learn', 'Progress', 'learn', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
+    card('Overall', h('span', { class: 'pill' }, `${allT ? Math.round(allL / allT * 100) : 0}% learned`), bar(allT ? allL / allT * 100 : 0),
+      h('p', { class: 'muted xs' }, `${allL.toLocaleString('en-GB')} of ${allT.toLocaleString('en-GB')} facts, definitions, equations and skills learned. In each subject, the faint bar shows what you have tried; the bright bar shows what you have learned.`),
+      h('div', { class: 'tiles' },
+        tile(Object.values(S.skill).reduce((a, k) => a + k.n, 0).toLocaleString('en-GB'), 'questions answered'),
+        tile(wk.pc == null ? '–' : wk.pc + '%', 'right this week', wk.pc != null && prev.pc != null ? (wk.pc >= prev.pc ? `up ${wk.pc - prev.pc} from last week` : `down ${prev.pc - wk.pc} from last week`) : `${wk.n} answered`),
+        tile(S.queue.length, 'in the fix queue'))),
+    card('Last 28 days', h('span', { class: 'muted' }, `${acts.reduce((a, b) => a + b, 0)} questions`),
+      h('div', { class: 'spark', role: 'img', 'aria-label': 'Questions answered per day for the last 28 days' }, acts.map((n, i) => h('i', { style: `height:${Math.max(n ? 6 : 2, n / top * 100)}%`, title: `${fmtDate(addDays(i - 27))}: ${n}` }))),
+      h('div', { class: 'spark-l muted xs' }, h('span', null, '4 weeks ago'), h('span', null, 'today'))),
+    hard.length > 0 && card('Weakest topics right now', null, h('div', { class: 'chips' }, hard.map(([id, a]) => chip([LEARN.name(id), h('small', null, ` ${Math.round(a * 100)}%`)], false, 'drill', { 'data-topic': id })))),
+    rows.map(r => card(r.s.name, h('span', { class: 'pill' }, `${r.T ? Math.round(r.L / r.T * 100) : 0}%`),
+      r.parts.map(([n, l, t, tried]) => h('div', { class: 'prow' }, h('div', { class: 'prow-h' }, h('span', null, n), h('small', null, `${l} learned · ${tried} tried / ${t}`)),
+        h('div', { class: 'bar two', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(t ? l / t * 100 : 0) }, h('i', { class: 'tried', style: `width:${t ? tried / t * 100 : 0}%` }), h('i', { style: `width:${t ? l / t * 100 : 0}%` })))),
+      r.papers.length ? h('p', { class: 'muted xs' }, `Exam practice: latest ${pctOf(r.papers[r.papers.length - 1])}%, best ${Math.max(...r.papers.map(pctOf))}% over ${r.papers.length} paper${r.papers.length > 1 ? 's' : ''}${r.tg ? ` · target ${r.tg}%` : ''}.`)
+        : h('p', { class: 'muted xs' }, 'No exam practice yet for this subject.'))));
+}
 
 /* Past papers */
 function vPapers() {
@@ -1181,7 +1327,7 @@ function vMe() {
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['voyage', 'ship', 'Voyage'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
 const PARENT = { today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1256,7 +1402,7 @@ function toast(m, cls = '') {
 /* ---------- actions ---------- */
 const findSess = sid => { for (let w = 0; w < 7; w++) { const i = S.plan[w].findIndex(s => s.id === sid); if (i > -1) return { w, i, s: S.plan[w][i] }; } return null; };
 function finishAnswer(res) {
-  record(DR.q.id, res.ok);
+  record(DR.q.id, res.ok, DR.q.key);
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
   if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); save(); } else DR.run = 0;
   render({ focus: '#nextq' });
@@ -1309,7 +1455,7 @@ const ACT = {
     const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
+  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
@@ -1346,7 +1492,7 @@ const ACT = {
   gate(el) {
     if (!GATE || GATE.done) return;
     const i = +el.dataset.i, q = GATE.q, ok = i === q.a; GATE.done = true;
-    record(q.id, ok);
+    record(q.id, ok, q.key);
     gmodal(h('p', { class: 'eyebrow' }, 'Knowledge gate'), h('p', { class: 'fb-h ' + (ok ? 'okc' : 'noc') }, ok ? [successCheck(), 'Correct · +1 life'] : 'Not this time'),
       h('p', null, q.q, ' → ', h('b', null, q.show)), B([icon('play'), 'Sail on'], 'gateGo', 'primary wide', { 'data-ok': ok ? 1 : 0, id: 'gatego' }));
     setTimeout(() => $('#gatego')?.focus(), 50);
@@ -1455,7 +1601,7 @@ const CHG = {
   }
 };
 
-Object.assign(ACT, EXACT);
+Object.assign(ACT, EXACT, MPACT);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;
@@ -1464,6 +1610,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { f(el); checkAch(); } });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.draft) setPath(DRAFT, el.dataset.draft, el.value); });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
   if (GATE && !GATE.done && /^[1-4]$/.test(e.key)) { $(`#gmodal [data-act="gate"][data-i="${+e.key - 1}"]`)?.click(); return; }

@@ -334,3 +334,31 @@ EXAMS.push(
       ['Explain two religious beliefs about the reformation of offenders. Refer to sacred writings or another source of religious belief and teaching in your answer.', ['Belief 1: everyone can change and be forgiven', 'Developed', 'Belief 2: believers should support prisoners, e.g. prison chaplains and Christian charities', 'Developed', 'A relevant source, e.g. "I was in prison, and ye came unto me" (Matthew 25:36)']],
       ['Prisons should focus on reforming criminals rather than punishing them.', ['Teachings: "an eye for an eye" (Exodus 21:24) against forgiveness and reform']])] }
 );
+
+/* Which practice topics fix marks lost on each exam topic. Key: "<paper group>|<question topic>". */
+const EXAM_LINK = {
+  'Maths|Rounding': ['rounding'], 'Maths|Fractions': ['frac-of', 'frac-add', 'frac-mul'], 'Maths|Percentages': ['pct-of', 'pct-incdec', 'pct-change'], 'Maths|Ratio': ['ratio-share', 'ratio-simp'],
+  'Maths|Algebra': ['solve-1', 'solve-2', 'expand', 'substitute'], 'Maths|Sequences': ['nth-term'], 'Maths|Angles': ['angles'], 'Maths|Area': ['area'], 'Maths|Probability': ['prob'],
+  'Maths|Number': ['negatives', 'bidmas'], 'Maths|Averages': ['averages'], 'Maths|Standard form': ['std-form'], 'Maths|Speed, distance, time': ['sdt'], 'Maths|Pythagoras': ['pythag'],
+  'Maths|Circles': ['circles'], 'Maths|Compound interest': ['compound'],
+  'Biology|Cell biology': ['b-cells', 'b-transport', 'd-b-cells', 'bc-mag'], 'Biology|Organisation': ['b-digestion', 'b-heart', 'b-plants', 'd-b-organisation'],
+  'Biology|Infection and response': ['b-disease', 'b-immune', 'd-b-disease'], 'Biology|Bioenergetics': ['b-energy', 'd-b-energy'], 'Biology|Homeostasis': ['b-hormones', 'b-nerves', 'd-b-homeostasis'],
+  'Biology|Inheritance and evolution': ['b-genes', 'd-b-genetics'], 'Biology|Ecology': ['b-ecology', 'd-b-ecology'],
+  'Chemistry|Atomic structure': ['c-atoms', 'c-electrons', 'c-groups', 'd-c-atoms'], 'Chemistry|Bonding': ['c-bonding', 'd-c-bonding'], 'Chemistry|Quantitative chemistry': ['cc-mr', 'cc-pct', 'cc-conc', 'ce-balance'],
+  'Chemistry|Chemical changes': ['c-reactions', 'd-c-changes', 'ce-word', 'ce-formula'], 'Chemistry|Energy changes': ['c-rates', 'd-c-energy'], 'Chemistry|Rates': ['c-rates', 'cc-rate', 'd-c-energy'],
+  'Chemistry|Organic chemistry': ['c-organic', 'd-c-organic'], 'Chemistry|Chemical analysis': ['c-tests', 'c-separation', 'cc-rf'], 'Chemistry|Atmosphere': ['c-atmos', 'd-c-organic'], 'Chemistry|Resources': ['c-atmos'],
+  'Physics|Energy': ['pr-energy', 'p-ke', 'p-gpe', 'p-power-e', 'd-p-energy'], 'Physics|Electricity': ['pr-electric', 'p-ohm', 'p-charge', 'p-power-vi', 'p-energy-pt', 'd-p-electric'],
+  'Physics|Particle model': ['pr-particles', 'p-density', 'd-p-particles'], 'Physics|Radioactivity': ['pr-particles', 'd-p-particles'],
+  'Physics|Forces': ['pr-forces-waves', 'p-weight', 'p-newton2', 'p-accel', 'p-spring', 'd-p-forces'], 'Physics|Waves': ['p-wave', 'pr-forces-waves', 'd-p-waves'], 'Physics|Magnetism': ['pr-forces-waves', 'd-p-waves'],
+  'English Language|Retrieval': ['el-papers'], 'English Language|Language analysis': ['el-devices', 'd-el-terms'], 'English Language|Structure': ['el-devices', 'd-el-terms'],
+  'English Language|Evaluation': ['el-papers'], 'English Language|Summary': ['el-papers'], 'English Language|Comparison': ['el-papers'], 'English Language|Writing: content and organisation': ['d-el-terms'],
+  'English Literature|Macbeth': ['lit-macbeth', 'q-mac'], 'English Literature|A Christmas Carol': ['lit-acc', 'q-acc'], 'English Literature|Journey\'s End': ['lit-je', 'q-je'],
+  'English Literature|Power and Conflict poetry': ['lit-poems', 'd-lit-terms'], 'English Literature|Unseen poetry': ['d-lit-terms'],
+  'Geography|Natural hazards': ['g-tectonics', 'g-weather', 'd-g-terms'], 'Geography|Weather and climate': ['g-weather'], 'Geography|The living world': ['g-living'],
+  'Geography|Coasts and rivers': ['g-coasts-rivers'], 'Geography|Urban issues': ['g-urban', 'gc-density'], 'Geography|Changing economic world': ['gc-natinc', 'd-g-terms'], 'Geography|Resource management': ['d-g-terms'],
+  'Business|Business in the real world': ['bs-enterprise', 'd-bs-terms'], 'Business|Finance': ['bs-finance', 'bz-profit', 'bz-breakeven', 'bz-margins', 'bz-cash'],
+  'Business|Human resources': ['bs-ops-people'], 'Business|Business operations': ['bs-ops-people'], 'Business|Influences on business': ['bs-external'], 'Business|Marketing': ['bs-marketing'],
+  'RE|Christianity: beliefs': ['r-chr-beliefs', 'd-r-chr'], 'RE|Christianity: practices': ['r-chr-practice', 'd-r-chr'], 'RE|Islam: beliefs': ['r-isl-beliefs', 'd-r-isl'],
+  'RE|Islam: practices': ['r-isl-practice', 'd-r-isl'], 'RE|Relationships and families': ['r-themes', 'd-r-themes'], 'RE|Religion and life': ['r-themes', 'd-r-themes'],
+  'RE|Peace and conflict': ['r-themes', 'd-r-themes'], 'RE|Crime and punishment': ['r-themes', 'd-r-themes']
+};
