@@ -1318,7 +1318,7 @@ function render(o = {}) {
   if (o.recheck) { const e = view.querySelector(o.recheck); if (e) { const on = e.classList.contains('d'); e.classList.toggle('d', !on); void e.offsetWidth; e.classList.toggle('d', on); } }
   if (o.enter) {
     FXS.countUp(view);
-    if (!REDUCED) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; const show = () => el.classList.add('is-shown'); requestAnimationFrame(show); setTimeout(show, 120); }
+    if (!REDUCED && !HAS_VT) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; const show = () => el.classList.add('is-shown'); requestAnimationFrame(show); setTimeout(show, 120); }
   }
   const panels = view.querySelectorAll('.t-panel-slide[data-open="false"]');
   if (panels.length) { const open = () => panels.forEach(p => p.setAttribute('data-open', 'true')); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 150); }

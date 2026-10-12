@@ -71,7 +71,7 @@ main{max-width:1120px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(16px,4vw,
 #view.enter .stack>.card:nth-child(4),#view.enter .lgrid>*:nth-child(3),#view.enter .tools>*:nth-child(3),#view.enter .focus .ring{animation-delay:.1s}
 #view.enter .stack>.card:nth-child(n+5),#view.enter .lgrid>*:nth-child(4),#view.enter .tools>*:nth-child(n+4),#view.enter .begin,#view.enter .strip{animation-delay:.15s}
 #view.enter .quick{animation-delay:.2s}
-@keyframes rise{from{opacity:0;transform:translateY(14px);filter:blur(3px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}} /* no filter: cards use backdrop-filter, which flickers under an animated filter */
 @keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(var(--em-rgb),0)}50%{box-shadow:0 0 18px 0 rgba(var(--em-rgb),.25)}}
 
 /* cards: frosted glass with a gilded hairline */
@@ -511,11 +511,11 @@ nav{view-transition-name:nav}
 ::view-transition-new(page){animation:pgInR .46s var(--ease) both}
 html[data-dir="back"]::view-transition-old(page){animation-name:pgOutR}
 html[data-dir="back"]::view-transition-new(page){animation-name:pgInL}
-@keyframes pgOutL{to{opacity:0;transform:translateX(-36px) scale(.985);filter:blur(6px)}}
-@keyframes pgOutR{to{opacity:0;transform:translateX(36px) scale(.985);filter:blur(6px)}}
-@keyframes pgInR{from{opacity:0;transform:translateX(44px) scale(.985);filter:blur(8px)}}
-@keyframes pgInL{from{opacity:0;transform:translateX(-44px) scale(.985);filter:blur(8px)}}
-html.vt #view.enter .card,html.vt #view.enter .lcard,html.vt #view.enter .tool,html.vt #view.enter .feat,html.vt #view.enter .quick,html.vt #view.enter .strip{animation-duration:.5s;animation-delay:.08s}
+@keyframes pgOutL{to{opacity:0;transform:translateX(-36px) scale(.985)}}
+@keyframes pgOutR{to{opacity:0;transform:translateX(36px) scale(.985)}}
+@keyframes pgInR{from{opacity:0;transform:translateX(44px) scale(.985)}}
+@keyframes pgInL{from{opacity:0;transform:translateX(-44px) scale(.985)}}
+html.vt #view.enter :is(.card,.lcard,.tool,.feat,.quick,.strip,.focus .ring,.begin){animation:none} /* the page slide is the transition; a second per-card fade made content vanish mid-slide */
 .banner.motion{background:var(--y-soft);border-color:var(--line)}.banner.motion .i{color:var(--y)}.banner.motion .row{margin-top:10px}
 /* narrow phones: keep header and the 5-tab nav inside the screen */
 nav button{min-width:0}nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
