@@ -24,9 +24,9 @@ const VOYAGE = (() => {
     let W = 0, H = 0, dpr = 1, raf = 0, last = 0, paused = false, over = false;
     const keys = {};
     const S = {
-      t: 0, dist: 0, speed: 150, score: 0, wisps: 0, gates: 0,
+      t: 0, dist: 0, speed: 150, score: 0, wispN: 0, gates: 0,
       lives: boatDef.id === 'ferry' ? 4 : 3, max: boatDef.id === 'ferry' ? 4 : 3, shield: boatDef.id === 'barge', revive: boatDef.id === 'phoenix',
-      inv: 1.2, shake: 0, nextGate: 22, spawnRock: .8, spawnWisp: .4,
+      inv: 1.2, shake: 0, nextGate: opts.firstGate || 12, spawnRock: .8, spawnWisp: .4,
       boat: { x: 0, tx: 0, y: 0 }, rocks: [], wisps: [], gatesArr: [], parts: [], streaks: []
     };
 
@@ -53,7 +53,7 @@ const VOYAGE = (() => {
         S.spawnRock = Math.max(.35, 1.1 - S.t * .012) * rnd(.7, 1.3);
       }
       if (S.spawnWisp <= 0) { S.wisps.push({ x: rnd(l + 20, r - 20), y: -30, ph: rnd(0, 6.28) }); S.spawnWisp = rnd(.5, 1.1); }
-      if (S.t >= S.nextGate) { S.gatesArr.push({ y: -30, passed: false }); S.nextGate += 26; }
+      if (S.t >= S.nextGate) { S.gatesArr.push({ y: -30, passed: false }); S.nextGate += 22; }
     }
     function burst(x, y, n, hue, spd = 3) {
       if (reduced) return;
@@ -71,7 +71,7 @@ const VOYAGE = (() => {
     function end() {
       over = true; cancelAnimationFrame(raf);
       draw();
-      opts.onEnd && opts.onEnd({ score: Math.round(S.score), wisps: S.wisps, gates: S.gates, dist: Math.round(S.dist / 10) });
+      opts.onEnd && opts.onEnd({ score: Math.round(S.score), wisps: S.wispN, gates: S.gates, dist: Math.round(S.dist / 10) });
     }
 
     function update(dt) {
@@ -95,7 +95,7 @@ const VOYAGE = (() => {
         w.y += dy; w.ph += dt * 4;
         if (boatDef.id === 'galleon') { const dx = S.boat.x - w.x, dyy = S.boat.y - w.y, d = Math.hypot(dx, dyy); if (d < 110 && d > 1) { w.x += dx / d * 260 * dt; w.y += dyy / d * 260 * dt; } }
         const dx = w.x - S.boat.x, dyy = w.y - S.boat.y;
-        if (dx * dx + dyy * dyy < 26 * 26) { w.got = true; S.wisps++; S.score += 10 * (boatDef.id === 'skiff' ? 1.5 : 1) * zone.mult; burst(w.x, w.y, 10, 45, 2); }
+        if (dx * dx + dyy * dyy < 26 * 26) { w.got = true; S.wispN++; S.score += 10 * (boatDef.id === 'skiff' ? 1.5 : 1) * zone.mult; burst(w.x, w.y, 10, 45, 2); }
       }
       S.wisps = S.wisps.filter(w => w.y < H + 40 && !w.got);
       for (const g of S.gatesArr) {
@@ -172,7 +172,7 @@ const VOYAGE = (() => {
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, 40);
       ctx.fillStyle = '#fff4dc'; ctx.font = '700 18px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillText(Math.round(S.score).toLocaleString('en-GB'), 14, 20);
-      ctx.font = '600 11px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillText(`${S.wisps} wisps`, 14 + ctx.measureText('0'.repeat(String(Math.round(S.score)).length + 2)).width + 30, 21);
+      ctx.font = '600 11px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillText(`${S.wispN} wisps`, 14 + ctx.measureText('0'.repeat(String(Math.round(S.score)).length + 2)).width + 30, 21);
       for (let i = 0; i < S.max; i++) {
         const x = W - 18 - i * 22, on = i < S.lives;
         ctx.fillStyle = on ? zone.glow : 'rgba(255,255,255,.15)'; ctx.globalAlpha = on ? 1 : .6;

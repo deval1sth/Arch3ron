@@ -2,7 +2,13 @@
    Pure canvas/DOM, no assets. Everything is skipped under prefers-reduced-motion. */
 'use strict';
 const FX = (() => {
-  let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches, inited = false;
+  let reduced = matchMedia('(prefers-reduced-motion: reduce)').matches, inited = false, H1 = 38, H2 = 18;
+  /* ember colours follow the colour scheme (--fx-h1 / --fx-h2 in styles.css) */
+  function refresh() {
+    const cs = getComputedStyle(document.documentElement);
+    H1 = +cs.getPropertyValue('--fx-h1') || 38; H2 = +cs.getPropertyValue('--fx-h2') || 18;
+    for (const e of embers) e.hue = Math.random() < .8 ? H1 : H2;
+  }
   const cv = document.getElementById('fx');
   const ctx = cv && cv.getContext('2d');
   let W = 0, H = 0, dpr = 1, embers = [], sparks = [], running = false;
@@ -15,7 +21,7 @@ const FX = (() => {
   const rnd = (a, b) => a + Math.random() * (b - a);
   function ember(init) {
     return { x: rnd(0, W), y: init ? rnd(0, H) : H + 10, r: rnd(.6, 2.2), vy: rnd(.15, .55), vx: rnd(-.15, .15),
-      ph: rnd(0, 6.28), sp: rnd(.005, .02), a: rnd(.25, .8), hue: Math.random() < .8 ? 38 : 18 };
+      ph: rnd(0, 6.28), sp: rnd(.005, .02), a: rnd(.25, .8), hue: Math.random() < .8 ? H1 : H2 };
   }
   function loop() {
     if (!running) return;
@@ -46,6 +52,7 @@ const FX = (() => {
   function init() {
     if (!cv || inited) return;
     inited = true;
+    refresh();
     size();
     const n = Math.round(Math.min(46, W * H / 26000));
     embers = Array.from({ length: n }, () => ember(true));
@@ -58,7 +65,7 @@ const FX = (() => {
     if (reduced) { running = false; sparks = []; if (ctx) ctx.clearRect(0, 0, W, H); }
     else if (inited) start();
   }
-  function burst(el, n = 26, hue = 40) {
+  function burst(el, n = 26, hue = H1) {
     if (!cv || reduced || !el) return;
     const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
     for (let i = 0; i < n; i++) {
@@ -93,7 +100,7 @@ const FX = (() => {
     let done = false;
     const close = () => { if (done) return; done = true; inner.setAttribute('data-open', 'false'); o.classList.add('out'); setTimeout(() => { o.remove(); next(); }, 450); };
     o.addEventListener('click', close); setTimeout(close, 3000);
-    if (!reduced) burst({ getBoundingClientRect: () => ({ left: innerWidth / 2, top: innerHeight / 2 - 20, width: 0, height: 0 }) }, 80, 40);
+    if (!reduced) burst({ getBoundingClientRect: () => ({ left: innerWidth / 2, top: innerHeight / 2 - 20, width: 0, height: 0 }) }, 80, H1);
   }
-  return { init, burst, countUp, reveal, setReduced };
+  return { init, burst, countUp, reveal, setReduced, refresh };
 })();

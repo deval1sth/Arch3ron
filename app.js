@@ -16,6 +16,14 @@ function applyMotion() {
   document.documentElement.classList.toggle('rm', REDUCED); document.documentElement.classList.toggle('vt', HAS_VT);
   if (FXS.setReduced) FXS.setReduced(REDUCED);
 }
+const THEMES = [['ember', 'Ember Gold', '#e8c06a', '#ff8a3d'], ['amethyst', 'Amethyst', '#c9a2ff', '#ff7ac1'], ['abyss', 'Abyss', '#5fe0d0', '#4fb3ff'], ['verdant', 'Verdant', '#86de8f', '#e8d06a'], ['frost', 'Frost', '#a9c9ff', '#d7e6ff']];
+function applyTheme() {
+  const t = (S && S.theme) || 'ember', root = document.documentElement;
+  if (t === 'ember') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#07070b');
+  if (FXS.refresh) FXS.refresh();
+}
+const daysToMocks = () => Math.ceil((new Date(S.mock + 'T09:00') - new Date()) / 864e5);
 
 /* ---------- dates ---------- */
 const DAYN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -90,8 +98,8 @@ function makePlan() {
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
   return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
-    mock: '2027-01-11', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false,
+    mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     game: { tokens: 1, lastFree: '', best: 0, boat: 'raft', zone: 'twilight' },
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
@@ -105,7 +113,8 @@ const newId = () => ++uid;
 function normalize(raw) {
   const r = obj(raw), s = freshState();
   s.xp = Math.max(0, Math.round(num(r.xp)));
-  s.mock = isKey(r.mock) ? r.mock : s.mock;
+  s.mock = isKey(r.mock) && r.mock !== '2027-01-11' ? r.mock : s.mock; /* old placeholder date → real first mock */
+  s.theme = ['ember', 'amethyst', 'abyss', 'verdant', 'frost'].includes(r.theme) ? r.theme : 'ember'; s.achV = num(r.achV);
   for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
   s.deload = !!r.deload;
   s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint;
@@ -204,7 +213,7 @@ const skill = id => S.skill[id] || { n: 0, ok: 0, best: 0, run: 0, rec: [] };
 const stars = id => { const k = skill(id); return k.best >= 5 ? 3 : k.best >= 3 ? 2 : k.ok >= 1 ? 1 : 0; };
 const masteredIn = ids => ids.filter(id => stars(id) === 3).length;
 const masteredAll = () => masteredIn(Object.keys(LEARN.TOPIC));
-const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.some(t => skill(t).ok > 0)).length;
+const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.reduce((n, t) => n + skill(t).ok, 0) >= 25).length;
 function record(id, ok) {
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
@@ -235,27 +244,27 @@ const examReady = () => Object.entries(S.conf).filter(([k, v]) => v === 3 && !k.
 /* ---------- achievements: tiered, permanent ---------- */
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Legend'];
 const ACH = [
-  ['sets', 'Focus', 'Lantern Keeper', 'lantern', 'sets finished', [1, 10, 50, 150, 300], () => lifeSets()],
-  ['hours', 'Focus', 'Hourglass', 'hourglass', 'hours focused', [1, 5, 20, 50, 100], () => S.focusMin / 60],
-  ['days', 'Focus', 'Many Fires', 'calendar', 'days studied', [3, 7, 21, 50, 100], () => daysTrained()],
-  ['sessions', 'Focus', 'Full Session', 'check', 'planned sessions completed', [1, 10, 40, 100], () => S.stat.sessions],
-  ['night', 'Focus', 'Night Owl', 'moon', 'sets finished after 8pm', [1, 10, 30, 75], () => S.stat.night],
-  ['early', 'Focus', 'First Light', 'sparkle', 'sets finished before 9am', [1, 5, 20], () => S.stat.early],
-  ['weekend', 'Focus', 'Weekend Warrior', 'shield', 'weekend sets', [5, 20, 60, 120], () => S.stat.weekend],
-  ['right', 'Learn', 'Sharp Mind', 'target', 'questions right', [10, 100, 300, 750, 1500], () => S.learnOk],
-  ['run', 'Learn', 'Unbroken', 'bolt', 'right in a row', [5, 10, 20, 40], () => S.stat.bestRun],
-  ['mastered', 'Learn', 'Master', 'crown', 'topics mastered', [1, 5, 15, 30, 60], () => masteredAll()],
-  ['polymath', 'Learn', 'Polymath', 'compass', 'subjects practised', [3, 6, 9], () => subjectsPractised()],
-  ['quotes', 'Learn', 'Silver Tongue', 'feather', 'quotes recalled', [10, 50, 150], () => S.quoteOk],
-  ['cards', 'Learn', 'Quill of Recall', 'cards', 'flashcards learned well', [10, 30, 60], () => learnedCards()],
-  ['plans', 'Learn', 'Architect', 'edit', 'plans written', [1, 5, 15, 40], () => S.stat.plans],
-  ['papers', 'Exams', "Ferryman's Coin", 'coin', 'past papers logged', [1, 5, 15, 30], () => S.scores.length],
-  ['improve', 'Exams', 'Rising Tide', 'chart', 'personal bests on papers', [1, 5, 15], () => S.stat.improve],
-  ['fixes', 'Exams', 'Mended Blade', 'wrench', 'mistakes fixed', [1, 10, 30, 75], () => S.fixedCount],
-  ['ready', 'Exams', 'Cartographer', 'map', 'topics rated exam-ready', [5, 25, 60, 120], () => examReady()],
-  ['voyages', 'Voyage', 'Ferryman', 'ship', 'voyages sailed', [1, 10, 30, 75], () => S.stat.voyages],
-  ['distance', 'Voyage', 'Far Shore', 'star', 'best voyage score', [500, 2000, 5000, 10000, 20000], () => S.game.best],
-  ['gates', 'Voyage', 'Gatekeeper', 'sparkle', 'knowledge gates passed', [1, 10, 50, 150], () => S.stat.gates]
+  ['sets', 'Focus', 'Lantern Keeper', 'lantern', 'sets finished', [5, 25, 75, 200, 400], () => lifeSets()],
+  ['hours', 'Focus', 'Hourglass', 'hourglass', 'hours focused', [3, 10, 30, 75, 150], () => S.focusMin / 60],
+  ['days', 'Focus', 'Many Fires', 'calendar', 'days studied', [5, 14, 30, 60, 100], () => daysTrained()],
+  ['sessions', 'Focus', 'Full Session', 'check', 'planned sessions completed', [3, 15, 50, 120], () => S.stat.sessions],
+  ['night', 'Focus', 'Night Owl', 'moon', 'sets finished after 8pm', [5, 25, 60, 120], () => S.stat.night],
+  ['early', 'Focus', 'First Light', 'sparkle', 'sets finished before 9am', [3, 15, 40], () => S.stat.early],
+  ['weekend', 'Focus', 'Weekend Warrior', 'shield', 'weekend sets', [10, 40, 100, 200], () => S.stat.weekend],
+  ['right', 'Learn', 'Sharp Mind', 'target', 'questions right', [50, 250, 750, 2000, 5000], () => S.learnOk],
+  ['run', 'Learn', 'Unbroken', 'bolt', 'right in a row', [10, 20, 40, 75], () => S.stat.bestRun],
+  ['mastered', 'Learn', 'Master', 'crown', 'topics mastered', [3, 10, 25, 50, 90], () => masteredAll()],
+  ['polymath', 'Learn', 'Polymath', 'compass', 'subjects with 25+ right answers', [3, 6, 9], () => subjectsPractised()],
+  ['quotes', 'Learn', 'Silver Tongue', 'feather', 'quotes recalled', [25, 100, 300], () => S.quoteOk],
+  ['cards', 'Learn', 'Quill of Recall', 'cards', 'flashcards learned well', [15, 35, 55], () => learnedCards()],
+  ['plans', 'Learn', 'Architect', 'edit', 'plans written', [3, 10, 25, 50], () => S.stat.plans],
+  ['papers', 'Exams', "Ferryman's Coin", 'coin', 'past papers logged', [3, 10, 25, 40], () => S.scores.length],
+  ['improve', 'Exams', 'Rising Tide', 'chart', 'personal bests on papers', [3, 10, 25], () => S.stat.improve],
+  ['fixes', 'Exams', 'Mended Blade', 'wrench', 'mistakes fixed', [5, 25, 60, 120], () => S.fixedCount],
+  ['ready', 'Exams', 'Cartographer', 'map', 'topics rated exam-ready', [10, 40, 90, 140], () => examReady()],
+  ['voyages', 'Voyage', 'Ferryman', 'ship', 'voyages sailed', [5, 25, 60, 120], () => S.stat.voyages],
+  ['distance', 'Voyage', 'Far Shore', 'star', 'best voyage score', [1500, 5000, 12000, 25000, 50000], () => S.game.best],
+  ['gates', 'Voyage', 'Gatekeeper', 'sparkle', 'knowledge gates passed', [5, 25, 100, 250], () => S.stat.gates]
 ].map(([id, cat, name, ic, unit, t, v]) => ({ id, cat, name, icon: ic, unit, t, v }));
 const tierOf = a => a.t.filter(x => a.v() >= x).length;
 function checkAch(silent) {
@@ -372,7 +381,7 @@ function currentSid() {
 }
 function ringEl(compact) {
   const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') + (compact ? ' compact' : '') });
-  r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc9a"/><stop offset=".55" stop-color="#e2b04f"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><circle class="halo" cx="60" cy="60" r="54"/><circle class="trk" cx="60" cy="60" r="54"/><circle id="tr" class="prg" cx="60" cy="60" r="54"/></svg>';
+  r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--y2)"/><stop offset=".55" style="stop-color:var(--y)"/><stop offset="1" style="stop-color:var(--ember)"/></linearGradient></defs><circle class="halo" cx="60" cy="60" r="54"/><circle class="trk" cx="60" cy="60" r="54"/><circle id="tr" class="prg" cx="60" cy="60" r="54"/></svg>';
   r.querySelector('#tr').style.strokeDasharray = String(RING);
   r.append(h('div', { class: 'ring-c' }, h('div', { id: 'tm', class: 'time', role: 'timer' }, fmt(Math.ceil(T.left))), !compact && h('small', null, T.mode === 'focus' ? 'focus' : 'rest')));
   return r;
@@ -1006,6 +1015,8 @@ function vMe() {
           h('div', { class: 'grid2', style: 'margin-top:12px' },
             field('Focus minutes', h('input', { type: 'number', min: 1, max: 120, value: S.timer.focus, 'data-act': 'tlen', 'data-k': 'focus' })),
             field('Rest minutes', h('input', { type: 'number', min: 1, max: 60, value: S.timer.brk, 'data-act': 'tlen', 'data-k': 'brk' })))),
+        card('Colour scheme', null, h('div', { class: 'themes' }, THEMES.map(([id, name, a, b]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a};--tb:${b}` },
+          h('span', { class: 'th-sw' }, h('i'), h('i'), h('i')), h('b', null, name))))),
         card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
@@ -1030,6 +1041,7 @@ function hdr() {
   shownLife = life;
   el.replaceChildren(
     showMini ? h('button', { type: 'button', class: 'mini-t', 'data-act': 'go', 'data-tab': 'home', 'aria-label': 'Back to the running timer' }, icon(T.mode === 'focus' ? 'flame' : 'moon'), h('span', { id: 'mt' }, fmt(Math.ceil(T.left)))) : '',
+    (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })(),
     h('button', { type: 'button', class: 'lan-chip', 'data-act': 'go', 'data-tab': 'profile', 'aria-label': `${life} lanterns lit. Open profile` }, emblemEl(S.profile.emblem, 'emb sm'), digits(life, grew)));
 }
 /* Transitions.dev "Tabs sliding": the pill is measured onto the active tab; snaps without animation on first paint and resize */
@@ -1156,6 +1168,7 @@ const ACT = {
   },
   pbDel(el) { if (!confirm('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
   emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
+  theme(el) { S.theme = el.dataset.v; save(); applyTheme(); render(); toast('Colour scheme: ' + (THEMES.find(t => t[0] === S.theme) || ['', 'Ember Gold'])[1]); },
   motion(el) { S.motion = el.dataset.v; S.motionHint = true; save(); applyMotion(); render({ enter: true }); if (!REDUCED) toast('Full motion on', 'big'); },
   achCat(el) { ACH_CAT = el.dataset.k; render(); },
   sail() { startVoyage(); },
@@ -1322,18 +1335,22 @@ document.addEventListener('pointerleave', () => { untilt(tiltEl); tiltEl = null;
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { movePill(false); if (TAB === 'papers') drawChart(); }, 120); });
 setInterval(() => { timerTick(); if (dkey() !== renderedDay) { grantDaily(); render(); } }, 250);
 
-applyMotion();
+applyMotion(); applyTheme();
 /* intro */
 (function intro() {
   const i = $('#intro'); if (!i) return;
   const end = () => { if (!i.isConnected) return; i.classList.add('out'); setTimeout(() => i.remove(), 600); };
+  const w = $('#welcome'), name = S.profile.name;
+  if (w) { w.querySelector('.w1').textContent = name ? `Welcome, Magus ${name}` : 'Welcome, Magus'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} lantern${lifeSets() === 1 ? '' : 's'} lit · ${Math.max(0, daysToMocks())} days to mocks` : 'Your journey begins'; }
   if (REDUCED) { i.remove(); return; }
-  i.addEventListener('click', end); setTimeout(end, 2200);
+  i.addEventListener('click', end); setTimeout(end, 4000);
 })();
 
 applyMotion();
+applyTheme();
 FXS.init();
 grantDaily();
+if (S.achV !== 2) { S.ach = {}; S.achV = 2; save(); } /* tiers got harder: recount once, silently */
 checkAch(true);
 render({ enter: true });
 if (T.run && T.end <= Date.now()) timerDone();
