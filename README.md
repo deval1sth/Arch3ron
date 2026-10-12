@@ -27,7 +27,8 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `guides.js`: topic explainers (idea, method, example, tip), video and site links
 - `defs.js`: definitions (term, model answer, key points) for the definitions trainer
 - `chem.js`: chemistry formulae, naming, word equations and balancing (solver-checked)
-- `exam.js`: exam-style practice papers with mark schemes
+- `exam.js`: Maths and Science practice papers with mark schemes
+- `papers.js`: English, Geography, Business and RE papers with levels-based marking, original sources and per-subject method tips
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
 - `game.js`: Voyage
 - `fx.js`: embers, sparks, reveal overlays

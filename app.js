@@ -143,8 +143,9 @@ function normalize(raw) {
     lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
     tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
   const ex = obj(r.exam), paper = EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
-  if (paper) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 3000)),
-    got: paper.qs.map((q, k) => q[2].map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]) };
+  if (paper) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
+    got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
+    lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1) };
   const rp = obj(r.plan);
   if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
     s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
@@ -502,7 +503,7 @@ function vLearn() {
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'write' }, h('span', { class: 'lc-ic' }, icon('edit')), h('b', null, 'Plans and writing'),
         h('span', { class: 'lc-d' }, 'Essay plans, RE 12-markers, creative and viewpoint writing, and how to answer each English question.'), h('small', null, S.plans.length ? `${S.plans.length} plans saved` : 'Plan beats panic'))),
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'exam' }, h('span', { class: 'lc-ic' }, icon('scroll')), h('b', null, 'Exam practice'),
-        h('span', { class: 'lc-d' }, 'Exam-style papers for Maths and Science. Answer, mark against the mark scheme, and track scores by paper and topic.'),
+        h('span', { class: 'lc-d' }, 'Exam-style papers for every subject. Answer, mark it like an examiner, and track scores by paper and topic.'),
         h('small', null, S.exam ? 'A paper is in progress' : `${EXAMS.length} practice papers`))),
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
         h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
@@ -785,16 +786,24 @@ function sessionRow(s, day) {
       'aria-pressed': String(!!done[j]), 'aria-label': `Set ${j + 1} of ${n}: ${s.label}` }))));
 }
 
-/* Exam practice: answer exam-style questions, mark against the mark scheme, record by paper and topic */
+/* Exam practice: answer exam-style questions, mark against the mark scheme, record by paper and topic.
+   Schemes (exam.js, papers.js): [points] one mark each · {any, max} capped · {lv, look} levels-based. */
 let EXRES = null;
 const paperOf = id => EXAMS.find(p => p.id === id);
-const marksOf = p => p.qs.reduce((n, q) => n + q[2].length, 0);
-const qType = q => /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : q[2].length >= 3 ? 'Extended writing' : 'Recall';
+function qMax(q) { const s = q[2]; return Array.isArray(s) ? s.length : s.lv ? s.lv[0][1] : s.max; }
+function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.look; }
+const qX = q => q[3] || {};
+const marksOf = p => p.qs.reduce((n, q) => n + qMax(q), 0);
+const groupOf = p => p.g || p.name.split(' ')[0];
+function qScore(q, ticks, lv) { const s = q[2]; if (s.lv) return Math.max(0, lv); const n = ticks.filter(Boolean).length; return s.any ? Math.min(n, s.max) : n; }
+const qDone = (E, k, q) => E.marked[k] && (!q[2].lv || E.lv[k] >= 0);
+const qType = q => q[2].lv ? 'Extended writing' : /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : qMax(q) >= 3 ? 'Extended writing' : 'Recall';
+const nums = (lo, hi) => Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
 function vExam() {
   const run = S.exam && paperOf(S.exam.pid), tops = {};
   for (const sc of S.scores) for (const t of sc.tp) { const k = sc.subj + '|' + t.topic; const o = tops[k] = tops[k] || { subj: sc.subj, topic: t.topic, got: 0, max: 0 }; o.got += t.got; o.max += t.max; }
   const topics = Object.values(tops).sort((a, b) => a.got / a.max - b.got / b.max);
-  const groups = [...new Set(EXAMS.map(p => p.name.split(' ')[0]))];
+  const groups = [...new Set(EXAMS.map(groupOf))];
   return h('div', { class: 'stack narrow' },
     subHero('Learn', 'Exam practice', 'learn', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
     EXRES && card('Paper marked', h('span', { class: 'pill' }, `${EXRES.got}/${EXRES.max} · ${Math.round(EXRES.got / EXRES.max * 100)}%`),
@@ -805,9 +814,9 @@ function vExam() {
       h('div', { class: 'row' }, B('See the chart', 'go', 'ghost', { 'data-tab': 'papers' }), B('Close', 'exClose', 'link'))),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
-    groups.map(g => card(g, null, h('ul', { class: 'list' }, EXAMS.filter(p => p.name.startsWith(g)).map(p => {
-      const done = S.scores.filter(x => x.paper === p.name), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–';
-      return h('li', null, h('div', { class: 'grow' }, h('b', null, p.name.replace(/^\S+ /, '').replace(/^./, c => c.toUpperCase())), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
+    groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]), h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
+      const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
+      return h('li', null, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
         B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }));
     })))),
@@ -816,56 +825,84 @@ function vExam() {
         h('div', { class: 'hb-b' }, h('i', { style: `width:${t.got / t.max * 100}%;background:${SUBJ_COLOR[t.subj] || 'var(--y)'}` }), h('span', null, Math.round(t.got / t.max * 100) + '%')))))
       : h('p', { class: 'muted' }, 'Finish a paper and every topic gets a score here, so you can see exactly where marks are slipping.')));
 }
+function markPanel(q, E, i) {
+  const s = q[2], m = qMax(q), list = qTicks(q).map((pt, j) => h('label', { class: 'chk' + (E.got[i][j] ? ' d' : '') },
+    h('input', { type: 'checkbox', checked: E.got[i][j], 'data-act': 'exTick', 'data-j': j }), checkBox(), h('span', null, pt)));
+  if (!s.lv) return h('div', { class: 'fb mark' }, h('p', { class: 'fb-h' }, 'Mark scheme'),
+    h('p', { class: 'muted xs' }, s.any ? `Any ${s.max === 1 ? 'one' : s.max} of these, one mark each, up to ${s.max}. Only tick what your answer clearly says.` : 'One mark per point. Only tick a point if your answer clearly makes it; examiners do not give the benefit of the doubt.'),
+    list, h('p', { class: 'ex-score' }, `${qScore(q, E.got[i], -1)} / ${m}`));
+  const L = s.lv, n = E.got[i].filter(Boolean).length, sug = n ? L.length - Math.max(1, Math.ceil(n / list.length * L.length)) : -1;
+  const cur = E.lv[i], sel = L.findIndex(([lo, hi]) => cur >= lo && cur <= hi);
+  return h('div', { class: 'fb mark' },
+    h('p', { class: 'fb-h' }, '1. What examiners look for'), h('p', { class: 'muted xs' }, 'Tick only what your answer actually does.'), list,
+    h('p', { class: 'fb-h' }, '2. Pick the level that fits best'),
+    L.map(([lo, hi, d], l) => h('button', { type: 'button', class: 'lvl' + (l === sel ? ' on' : '') + (l === sug ? ' sug' : ''), 'data-act': 'exLevel', 'data-l': l, 'aria-pressed': String(l === sel) },
+      h('span', { class: 'lvl-h' }, h('b', null, `Level ${L.length - l}`), h('small', null, lo === hi ? ` · ${lo} mark${lo > 1 ? 's' : ''}` : ` · ${lo}–${hi} marks`), l === sug && h('em', null, 'your ticks suggest this')), h('span', null, d))),
+    sel >= 0 && L[sel][0] !== L[sel][1] && [h('p', { class: 'fb-h' }, '3. Top, middle or bottom of the level?'), h('div', { class: 'chips' }, nums(L[sel][0], L[sel][1]).map(v => chip(String(v), v === cur, 'exMarkSet', { 'data-m': v })))],
+    h('div', { class: 'row end' }, B('Nothing worth credit (0)', 'exMarkSet', 'link', { 'data-m': 0 })),
+    h('p', { class: 'ex-score' }, `${cur >= 0 ? cur : '–'} / ${m}`));
+}
 function vExamQ() {
   const p = S.exam && paperOf(S.exam.pid);
   if (!p) return vExam();
-  const E = S.exam, i = E.i, q = p.qs[i], m = q[2].length, marked = E.marked[i], got = E.got[i].filter(Boolean).length;
-  const total = E.got.reduce((n, g, k) => n + (E.marked[k] ? g.filter(Boolean).length : 0), 0), last = i === p.qs.length - 1;
+  const E = S.exam, i = E.i, q = p.qs[i], x = qX(q), m = qMax(q), last = i === p.qs.length - 1, show = E.marked[i] || x.same;
+  const total = p.qs.reduce((n, qq, k) => n + (qDone(E, k, qq) ? qScore(qq, E.got[k], E.lv[k]) : 0), 0), done = p.qs.filter((qq, k) => qDone(E, k, qq)).length;
+  const srcs = [].concat(x.src || []).filter(k => p.src && p.src[k]), how = EXAM_HOW[groupOf(p)];
   return h('div', { class: 'stack narrow' },
     subHero(p.subj, p.name, 'exam', null, 'Exam practice'),
-    h('div', { class: 'exdots', 'aria-label': `Question ${i + 1} of ${p.qs.length}` }, p.qs.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (E.marked[k] ? ' done' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
-    h('section', { class: 'card qcard' + (marked ? ' marked' : '') },
-      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `Question ${i + 1} · ${m} mark${m > 1 ? 's' : ''}`)),
+    h('div', { class: 'exdots', 'aria-label': `Question ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (qDone(E, k, qq) ? ' done' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    i === 0 && how && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'How to do this paper'), h('p', null, how))),
+    srcs.map(k => acc(`src-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true })),
+    h('section', { class: 'card qcard exq' + (show ? ' marked' : '') },
+      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `Q${i + 1} · ${m} mark${m > 1 ? 's' : ''}${x.mins ? ` · about ${x.mins} min` : ''}`)),
       h('p', { class: 'qtext' }, q[1]),
-      marked ? [
-        h('p', { class: 'yours' }, h('b', null, 'Your answer: '), E.ans[i] || '(left blank)'),
-        h('div', { class: 'fb mark' },
-          h('p', { class: 'fb-h' }, 'Mark scheme'),
-          h('p', { class: 'muted xs' }, 'One mark per point. Only tick a point if your answer clearly makes it; examiners do not give the benefit of the doubt.'),
-          q[2].map((pt, j) => h('label', { class: 'chk' + (E.got[i][j] ? ' d' : '') }, h('input', { type: 'checkbox', checked: E.got[i][j], 'data-act': 'exTick', 'data-j': j }), checkBox(), h('span', null, pt))),
-          h('p', { class: 'ex-score' }, `${got} / ${m}`)),
+      show ? [
+        h('p', { class: 'yours' }, h('b', null, x.same ? `Your answer to question ${i}: ` : 'Your answer: '), (x.same ? E.ans[i - 1] : E.ans[i]) || '(left blank)'),
+        markPanel(q, E, i),
         h('div', { class: 'row' }, last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
-      : [h('textarea', { id: 'exans', rows: Math.min(8, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', maxlength: 3000, placeholder: 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
-        h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'))]),
-    h('p', { class: 'muted xs center' }, `${E.marked.filter(Boolean).length} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave.`));
+      : [h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
+        h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'), !last && B('Skip', 'exGo', 'ghost', { 'data-i': i + 1 }))]),
+    done > 0 && !(show && last) && h('div', { class: 'row center' }, B('Finish and save score', 'exFinish', 'link')),
+    h('p', { class: 'muted xs center' }, `${done} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave, and you can save a score for just part of a paper.`));
 }
 function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
 const EXACT = {
   exStart(el) {
     const p = paperOf(el.dataset.id);
     if (S.exam && S.exam.pid !== p.id && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
-    if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => q[2].map(() => false)), marked: p.qs.map(() => false) };
+    if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false) };
     EXRES = null; exOpen(S.exam.i); go('examq', '#exans');
   },
   exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); E.marked[E.i] = true; save(); render(); },
+  exLevel(el) {
+    const E = S.exam, [lo, hi] = paperOf(E.pid).qs[E.i][2].lv[+el.dataset.l];
+    if (!(E.lv[E.i] >= lo && E.lv[E.i] <= hi)) E.lv[E.i] = Math.floor((lo + hi) / 2);
+    E.marked[E.i] = true; save(); render();
+  },
+  exMarkSet(el) { const E = S.exam; E.lv[E.i] = +el.dataset.m; E.marked[E.i] = true; save(); render(); },
   exGo(el) { if (S.exam.i !== +el.dataset.i && !S.exam.marked[S.exam.i]) S.exam.ans[S.exam.i] = (DRAFT.ex || '').trim(); exOpen(+el.dataset.i); render({ focus: '#exans' }); scrollTo({ top: 0 }); },
   exQuit() { if (!confirm('Abandon this paper? Nothing from it will be saved.')) return; S.exam = null; save(); render(); },
   exClose() { EXRES = null; render(); },
   exFinish() {
-    const E = S.exam, p = paperOf(E.pid), left = E.marked.filter(m => !m).length;
-    if (left && !confirm(`${left} question${left > 1 ? 's are' : ' is'} not marked yet and will score 0. Finish anyway?`)) return;
+    const E = S.exam, p = paperOf(E.pid);
+    const pend = p.qs.findIndex((q, k) => E.marked[k] && q[2].lv && E.lv[k] < 0);
+    if (pend >= 0) { toast(`Pick a level for question ${pend + 1} first`); exOpen(pend); render(); return; }
+    const done = p.qs.map((q, k) => qDone(E, k, q)), n = done.filter(Boolean).length;
+    if (!n) return toast('Mark at least one question first');
+    if (n < p.qs.length && !confirm(`${p.qs.length - n} question${p.qs.length - n > 1 ? 's are' : ' is'} not marked. Save a score for just the ${n} you marked?`)) return;
     const tp = {}, lost = {};
     p.qs.forEach((q, k) => {
-      const g = E.marked[k] ? E.got[k].filter(Boolean).length : 0, m = q[2].length, t = tp[q[0]] = tp[q[0]] || { topic: q[0], got: 0, max: 0 };
+      if (!done[k]) return;
+      const g = qScore(q, E.got[k], E.lv[k]), m = qMax(q), t = tp[q[0]] = tp[q[0]] || { topic: q[0], got: 0, max: 0 };
       t.got += g; t.max += m;
       if (m > g) { const key = q[0] + '|' + qType(q); lost[key] = lost[key] || { topic: q[0], type: qType(q), marks: 0 }; lost[key].marks += m - g; }
     });
-    const tps = Object.values(tp), got = tps.reduce((n, t) => n + t.got, 0), max = marksOf(p), pc = Math.round(got / max * 100);
-    const prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: p.name, score: got, max, lost: Object.values(lost), tp: tps });
+    const tps = Object.values(tp), got = tps.reduce((a, t) => a + t.got, 0), max = tps.reduce((a, t) => a + t.max, 0), pc = Math.round(got / max * 100);
+    const name = p.name + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
+    S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25);
-    EXRES = { name: p.name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
+    EXRES = { name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
   }
 };
 
@@ -1393,7 +1430,7 @@ const ACT = {
 };
 const CHG = {
   defTick(el) { if (DR && DR.state === 'mark') { DR.ticks[+el.dataset.i] = el.checked; render(); } },
-  exTick(el) { const E = S.exam; if (E) { E.got[E.i][+el.dataset.j] = el.checked; save(); render(); } },
+  exTick(el) { const E = S.exam; if (E) { E.got[E.i][+el.dataset.j] = el.checked; E.marked[E.i] = true; save(); render(); } },
   fin(el) { const d = ensureDay(dkey()); if (el.checked) d.f[el.dataset.i] = true; else delete d.f[el.dataset.i]; xp(el.checked ? 5 : -5); render({ recheck: `label:has(> [data-act="fin"][data-i="${el.dataset.i}"])` }); },
   chk(el) { const k = LT + el.dataset.i; if (el.checked) S.conf[k] = 3; else delete S.conf[k]; save(); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
   deload(el) { S.deload = el.checked; save(); toast(el.checked ? 'Deload on: half volume this week' : 'Deload off: full programme'); render(); },
