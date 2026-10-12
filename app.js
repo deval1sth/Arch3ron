@@ -503,6 +503,15 @@ function vLearn() {
     h('p', { class: 'muted xs center' }, '★ answered right · ★★ 3 in a row · ★★★ 5 in a row (mastered). Stars are never taken away.'));
 }
 const starsEl = id => h('span', { class: 'stars', 'aria-label': `${stars(id)} of 3 stars` }, [1, 2, 3].map(i => h('i', { class: i <= stars(id) ? 'on' : '' })));
+const ext = (href, label, sub) => h('li', null, h('a', { href, target: '_blank', rel: 'noopener' }, label), sub && h('small', { class: 'muted' }, ' · ' + sub));
+/* Explainer above a topic's questions: big idea, method, worked example, tip, and a video. */
+function guidePanel(id) {
+  const g = GUIDES[id], subj = LEARN.trackOf(id), vid = h('a', { class: 'btn ghost', href: videoFor(subj, LEARN.name(id)), target: '_blank', rel: 'noopener' }, icon('play'), 'Watch it explained');
+  if (!g) return card(null, null, h('div', { class: 'row' }, vid));
+  return acc('guide-' + id, h('h2', null, 'How it works'), h('div', { class: 'guide' },
+    h('p', null, g[0]), h('ol', { class: 'steps' }, g[1].map(x => h('li', null, x))),
+    h('p', { class: 'g-ex' }, h('b', null, 'Example: '), g[2]), h('p', { class: 'muted' }, h('b', null, 'Exam tip: '), g[3]), h('div', { class: 'row' }, vid)), { open: !stars(id) });
+}
 function vSubject() {
   const s = SUBJ_BY[SUBJ_SEL] || LEARN.SUBJECTS[0], ids = topicsFor(s.id);
   const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
@@ -515,7 +524,8 @@ function vSubject() {
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
     group('recall', 'Key facts'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
-    !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')));
+    !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')),
+    card('Watch and read', h('span', { class: 'muted' }, 'free, opens in a new tab'), h('ul', { class: 'links' }, sitesFor(s.id).map(([n, u, d]) => ext(u, n, d)))));
 }
 function startDrill(track, topic, ctx = 'learn') {
   DR = { track, topic: topic || null, ctx, q: null, state: 'ask', count: 0, ok: 0, run: 0, last: null, picked: null };
@@ -536,6 +546,7 @@ function vDrill() {
   if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
   return h('div', { class: 'stack narrow' },
     subHero(DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
+    DR.topic && guidePanel(DR.topic),
     drillPanel(),
     h('p', { class: 'muted xs center' }, 'Keys: 1–4 pick an answer, Enter checks or moves on. Getting it wrong here is how it sticks for the exam.'));
 }

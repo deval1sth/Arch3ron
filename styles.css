@@ -567,3 +567,8 @@ nav button{min-width:0}nav button span{max-width:100%;overflow:hidden;text-overf
 
 /* reduced motion is applied via html.rm (device setting or the in-app Motion choice) */
 html.rm *,html.rm *::before,html.rm *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+
+/* explainers and links */
+.guide p{margin:0 0 10px;line-height:1.55}.guide .g-ex{padding:10px 12px;border-radius:12px;background:rgba(var(--y-rgb),.07)}
+.guide a.btn{color:inherit;text-decoration:none}
+.links{list-style:none;margin:0;padding:0;display:grid;gap:10px}.links a{color:var(--y);font-weight:600}

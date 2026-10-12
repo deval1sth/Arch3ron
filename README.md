@@ -24,6 +24,7 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `styles.css`: look and layout; `transitions.css`: motion (see credits)
 - `data.js`: plan, flashcard decks, checklists, icons
 - `content.js`: recall banks, essay/answer prompts, English Language guides
+- `guides.js`: topic explainers (idea, method, example, tip), video and site links
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
 - `game.js`: Voyage
 - `fx.js`: embers, sparks, reveal overlays
