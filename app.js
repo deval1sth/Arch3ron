@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', voyage: 'Voyage', subject: 'Subject' };
+const BACKS = { stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -100,7 +100,7 @@ function freshState() {
   return { v: 3, xp: 0, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
-    game: { tokens: 1, lastFree: '', best: 0, boat: 'raft', zone: 'twilight' },
+    realm: realmNorm(null),
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
 const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -129,7 +129,7 @@ function normalize(raw) {
   for (const [k, v] of Object.entries(obj(r.hidden))) if (v) s.hidden[k] = true;
   const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k]));
   const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) };
-  const g = obj(r.game); s.game = { tokens: Math.max(0, Math.round(num(g.tokens, 1))), lastFree: isKey(g.lastFree) ? g.lastFree : '', best: Math.max(0, num(g.best)), boat: str(g.boat || 'raft', 20), zone: str(g.zone || 'twilight', 20) };
+  s.realm = realmNorm(r.realm || null);
   s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
   for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
     s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
@@ -167,6 +167,7 @@ function normalize(raw) {
       }
     }
     if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
+    const e = Object.entries(obj(src.ev)).filter(([k, v]) => /^[a-z0-9:]{1,24}$/.test(k) && Number.isFinite(+v)); if (e.length) out.ev = Object.fromEntries(e.map(([k, v]) => [k, Math.max(0, Math.round(+v))]));
     s.days[k] = out;
   }
   for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x));
@@ -235,10 +236,10 @@ function record(id, ok, key) {
   const d = ensureDay(dkey()); d.qa = (d.qa || 0) + 1; d.qr = (d.qr || 0) + (ok ? 1 : 0);
   if (ok) {
     k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++;
-    if (++S.stat.rightTowardsVoyage >= 10) { S.stat.rightTowardsVoyage = 0; S.game.tokens++; toast('10 right answers · voyage earned', 'big'); }
+    const t = LEARN.TOPIC[id]; if (t) { realmEv(t.type); realmEv('s:' + t.subject); }
   } else k.run = 0;
   const qi = S.queue.findIndex(x => x.id === id);
-  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
+  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); realmEv('fix'); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
   save();
 }
 /* Fix queue: topics where marks were lost come back in Focus and mixed practice until you get 3 right in a row */
@@ -287,12 +288,17 @@ const ACH = [
   ['improve', 'Exams', 'Rising Tide', 'chart', 'personal bests on papers', [3, 10, 25], () => S.stat.improve],
   ['fixes', 'Exams', 'Mended Blade', 'wrench', 'mistakes fixed', [5, 25, 60, 120], () => S.fixedCount],
   ['ready', 'Exams', 'Cartographer', 'map', 'topics rated exam-ready', [10, 40, 90, 140], () => examReady()],
-  ['voyages', 'Voyage', 'Ferryman', 'ship', 'voyages sailed', [5, 25, 60, 120], () => S.stat.voyages],
-  ['distance', 'Voyage', 'Far Shore', 'star', 'best voyage score', [1500, 5000, 12000, 25000, 50000], () => S.game.best],
-  ['gates', 'Voyage', 'Gatekeeper', 'sparkle', 'knowledge gates passed', [5, 25, 100, 250], () => S.stat.gates]
+  ['heralds', 'Realm', 'Demonbane', 'bolt', 'Herald forms slain', [1, 5, 12, 20, 27], () => Object.values(S.realm.bosses).reduce((a, b) => a + b, 0)],
+  ['hunts', 'Realm', 'Nightstalker', 'crown', 'Hunts completed', [5, 20, 50, 100], () => S.realm.stat.hunts],
+  ['huntbest', 'Realm', 'Apex', 'star', 'best Hunt score', [1500, 3000, 4500, 6000], () => S.realm.hunt.best],
+  ['bestiary', 'Realm', 'Beastbinder', 'leaf', 'creatures bound', [5, 20, 50, 100, 150], () => Object.keys(S.realm.bound).length],
+  ['contracts', 'Realm', 'Contract Keeper', 'check', 'daily contracts claimed', [10, 50, 150, 300], () => S.realm.stat.quests],
+  ['heat', 'Realm', 'Undying Flame', 'flame', 'peak flame heat', [7, 14, 30, 60], () => S.realm.stat.heatBest],
+  ['fog', 'Realm', 'Fogbreaker', 'map', '% of the Reach cleared', [10, 25, 50, 75, 100], () => Object.keys(REGIONS).reduce((a, sid) => a + regionPct(sid), 0) / 9]
 ].map(([id, cat, name, ic, unit, t, v]) => ({ id, cat, name, icon: ic, unit, t, v }));
 const tierOf = a => a.t.filter(x => a.v() >= x).length;
 function checkAch(silent) {
+  realmSync(silent);
   const fresh = [];
   for (const a of ACH) {
     const tier = tierOf(a), had = S.ach[a.id] ? S.ach[a.id].tier : 0;
@@ -340,12 +346,12 @@ function timerTick() {
 function timerDone() {
   T.run = false; beep();
   if (T.mode === 'focus') {
-    S.focusSets++; S.focusMin += S.timer.focus; S.game.tokens++;
+    S.focusSets++; S.focusMin += S.timer.focus; realmOnSet();
     const now = new Date(), hr = now.getHours(), wd = now.getDay();
     if (hr >= 20 || hr < 4) S.stat.night++; else if (hr < 9) S.stat.early++;
     if (wd === 0 || wd === 6) S.stat.weekend++;
     const d = ensureDay(dkey()), s = T.sid && S.plan[wd].find(x => x.id === T.sid && x.kind === 'train');
-    let sub = `Rest ${S.timer.brk} minutes · a voyage is waiting if you want one`;
+    let sub = `Rest ${S.timer.brk} minutes. Check your daily contracts in The Realm.`;
     if (s) {
       const n = target(s), a = d.s[s.id] = d.s[s.id] || [];
       const j = Array.from({ length: n }, (_, i) => i).find(i => !a[i]);
@@ -424,8 +430,8 @@ function vHome() {
       h('p', { class: 'eyebrow' }, 'Recovery'), h('h1', { class: 'focus-title' }, 'Rest'),
       h('p', { class: 'focus-meta' }, 'Stand up, drink water, look at something far away.'), ringEl(),
       h('div', { class: 'row center' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'begin sm'), B([icon('skip'), 'Skip rest'], 'skip', 'ghost')),
-      S.game.tokens > 0 && h('button', { type: 'button', class: 'practise', 'data-act': 'go', 'data-tab': 'voyage' }, icon('ship'),
-        h('span', null, h('b', null, 'Take a voyage while you rest'), h('small', null, `${S.game.tokens} voyage${S.game.tokens === 1 ? '' : 's'} ready`)))));
+      R0().chests.length > 0 && h('button', { type: 'button', class: 'practise', 'data-act': 'go', 'data-tab': 'realm' }, icon('gem'),
+        h('span', null, h('b', null, 'Open a chest while you rest'), h('small', null, `${R0().chests.length} waiting in The Realm`)))));
 
   if (restState) return h('div', { class: 'stack home' },
     h('section', { class: 'focus calm' },
@@ -433,7 +439,7 @@ function vHome() {
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
       h('p', { class: 'focus-meta' }, list.length ? "Today's sets are done. Recovery is part of the programme." : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
       h('div', { class: 'moon' }, icon('moon')),
-      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('ship'), 'Voyage'], 'go', 'ghost', { 'data-tab': 'voyage' }))),
+      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))),
     todayStrip(todayN));
 
   const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
@@ -505,7 +511,7 @@ function quickWins() {
     h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
-    S.game.tokens > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'voyage' }, icon('ship'), h('span', null, h('b', null, 'Voyage'), h('small', null, `${S.game.tokens} ready to sail`)))];
+    R0().hunt.last !== dkey() && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'realm' }, icon('crown'), h('span', null, h('b', null, 'The Hunt'), h('small', null, "Today's run is waiting")))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
 }
 
@@ -520,7 +526,7 @@ function learnSummary() {
 function vLearn() {
   const hard = Object.keys(LEARN.TOPIC).filter(id => { const k = skill(id); return usable(id) && k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; }).slice(0, 5);
   return h('div', { class: 'stack' },
-    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Questions you get wrong come back; ones you know are spaced out so you never just repeat. Every 10 right answers earns a voyage.'),
+    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Questions you get wrong come back; ones you know are spaced out so you never just repeat. Wrong answers come back until they stick.'),
     learnSummary(),
     S.queue.length > 0 && card('Fix queue', h('span', { class: 'muted' }, `${S.queue.length} topic${S.queue.length > 1 ? 's' : ''}`),
       h('p', { class: 'muted xs' }, 'Topics where you lost marks. Get 3 right in a row on each to clear it. They also come up more in Focus sets and mixed practice.'),
@@ -670,24 +676,24 @@ function emblemEl(id, cls = 'emb') {
 function vProfile() {
   const life = lifeSets(), nt = nextTitle(life), CH = 20, chapter = Math.floor(life / CH) + 1, inCh = life % CH;
   const stats = [['lantern', life, 'lanterns lit'], ['hourglass', fmtHours(S.focusMin), 'focused'], ['target', S.learnOk, 'questions right'], ['crown', masteredAll(), 'topics mastered'],
-    ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed'], ['ship', S.game.best, 'best voyage']];
-  const cats = ['All', 'Focus', 'Learn', 'Exams', 'Voyage'];
+    ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed'], ['crown', R0().hunt.best, 'best Hunt']];
+  const cats = ['All', 'Focus', 'Learn', 'Exams', 'Realm'];
   const shown = ACH.filter(a => ACH_CAT === 'All' || a.cat === ACH_CAT);
   return h('div', { class: 'stack' },
     h('section', { class: 'card idcard' },
       h('div', { class: 'id-emb' }, emblemEl(S.profile.emblem, 'emb big')),
       h('div', { class: 'id-txt' },
         h('input', { class: 'id-name', value: S.profile.name, placeholder: 'Your name', maxlength: 30, 'data-act': 'pname', 'aria-label': 'Your name' }),
-        h('p', { class: 'id-title' }, titleFor(life)),
+        h('p', { class: 'id-title' }, R0().title ? COSMETICS[R0().title].name : titleFor(life)),
         h('p', { class: 'muted xs' }, nt ? `${nt[0] - life} more lantern${nt[0] - life === 1 ? '' : 's'} to become ${nt[1]}` : 'The highest title on the river.'),
-        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('lantern'), life), h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('ship'), `${S.game.tokens} voyages`)))),
+        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('lantern'), life), h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('gem'), `${R0().shards} shards`), h('span', { class: 'lan-chip' }, icon('crown'), rank().name)))),
     acc('emblems', [h('h2', null, 'Emblem'), h('span', { class: 'muted acc-r' }, 'unlocked by lanterns')],
       h('div', { class: 'emblems' }, EMBLEMS.map(([id, need]) => { const ok = life >= need;
         return h('button', { type: 'button', class: 'emb-pick' + (S.profile.emblem === id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'emblem', 'data-id': id, disabled: !ok, 'aria-label': ok ? `Use ${id} emblem` : `Locked: light ${need} lanterns` },
           emblemEl(id), !ok && h('small', null, need)); }))),
     h('div', { class: 'feats' }, stats.map(([ic, v, l]) => h('div', { class: 'feat' }, icon(ic), h('b', null, typeof v === 'number' ? h('span', { 'data-count': v }, v.toLocaleString('en-GB')) : v), h('span', null, l)))),
     card(`The river · chapter ${chapter}`, h('span', { class: 'muted' }, `${inCh} of ${CH}`), riverSvg(inCh, CH),
-      h('p', { class: 'muted xs' }, 'Every set you finish lights a lantern. They never go out, and they unlock boats and river zones in Voyage.')),
+      h('p', { class: 'muted xs' }, 'Every set you finish lights a lantern. They never go out, and they unlock emblems.')),
     card('Achievements', h('span', { class: 'muted' }, `${badgeCount()} of ${badgeTotal} badges`),
       h('div', { class: 'chips scroll' }, cats.map(c => chip(c, c === ACH_CAT, 'achCat', { 'data-k': c }))),
       h('ul', { class: 'achs' }, shown.map(a => {
@@ -711,71 +717,6 @@ function riverSvg(lit, N) {
   const wrap = h('div', { class: 'river', role: 'img', 'aria-label': `${lit} of ${N} lanterns lit in this chapter` });
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><path d="${d}" class="water"/><path d="${d}" class="water2"/>${dots}</svg>`;
   return wrap;
-}
-
-/* ---------- Voyage ---------- */
-let GAMECTL = null, GATE = null, GAME_RESULT = null;
-function boatSvg(b, big) {
-  const wrap = h('span', { class: 'boat-ic' + (big ? ' big' : '') });
-  wrap.innerHTML = `<svg viewBox="0 0 40 60" aria-hidden="true"><ellipse cx="20" cy="30" rx="18" ry="26" fill="${b.trim}" opacity=".12"/><path d="M20 6 Q34 24 31 52 L9 52 Q6 24 20 6Z" fill="${b.hull}" stroke="${b.trim}" stroke-width="2"/><line x1="12" y1="38" x2="28" y2="38" stroke="rgba(0,0,0,.35)"/><circle cx="20" cy="27" r="4" fill="#fff3c4"/></svg>`;
-  return wrap;
-}
-function grantDaily() { if (S.game.lastFree !== dkey()) { S.game.lastFree = dkey(); S.game.tokens++; save(); } }
-function vVoyage() {
-  const life = lifeSets(), boat = VOYAGE.BOATS.find(b => b.id === S.game.boat) || VOYAGE.BOATS[0], zone = VOYAGE.ZONES.find(z => z.id === S.game.zone) || VOYAGE.ZONES[0];
-  return h('div', { class: 'stack' },
-    hero('Voyage', 'The river Acheron', 'Steer your ferry, dodge the rocks and gather wisps. Knowledge gates ask a question: get it right for an extra life.'),
-    h('section', { class: 'card sail' },
-      h('div', { class: 'sail-art' }, boatSvg(boat, true)),
-      h('div', { class: 'sail-txt' },
-        h('p', { class: 'eyebrow' }, `${zone.name} · ${boat.name}`),
-        h('h2', null, S.game.tokens ? `${S.game.tokens} voyage${S.game.tokens === 1 ? '' : 's'} ready` : 'No voyages ready'),
-        h('p', { class: 'muted xs' }, S.game.tokens ? `Best score: ${S.game.best.toLocaleString('en-GB')}` : 'Finish a focus set, or get 10 Learn answers right, to earn one. You also get a free one every day.'),
-        B([icon('ship'), 'Set sail'], 'sail', 'begin sm', { disabled: !S.game.tokens }))),
-    card('Boats', h('span', { class: 'muted' }, 'unlocked by lanterns'), h('div', { class: 'boats' }, VOYAGE.BOATS.map(b => { const ok = life >= b.need;
-      return tilt(h('button', { type: 'button', class: 'boat' + (b.id === boat.id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'boat', 'data-id': b.id, disabled: !ok },
-        boatSvg(b), h('b', null, b.name), h('small', null, ok ? b.perk : `Light ${b.need} lanterns (${b.need - life} to go)`))); }))),
-    card('River zones', h('span', { class: 'muted' }, 'harder zones score more'), h('div', { class: 'zones' }, VOYAGE.ZONES.map(z => { const ok = life >= z.need;
-      return h('button', { type: 'button', class: 'zone' + (z.id === zone.id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'zone', 'data-id': z.id, disabled: !ok, style: `--zc:${z.glow};--zw:${z.water[1]}` },
-        h('b', null, z.name), h('small', null, ok ? `Score ×${z.mult}` : `Light ${z.need} lanterns`)); }))),
-    card('How to play', null, h('ul', { class: 'howto' },
-      h('li', null, 'Drag left and right, or use the arrow keys'), h('li', null, 'Rocks cost a life. Wisps add to your score'),
-      h('li', null, 'Knowledge gates ask a question. Right answer: +1 life and bonus points'), h('li', null, 'Earn voyages: finish focus sets, get 10 answers right, or come back tomorrow'))));
-}
-function startVoyage() {
-  if (GAMECTL || S.game.tokens <= 0) return;
-  S.game.tokens--; save(); GAME_RESULT = null;
-  const zone = VOYAGE.ZONES.find(z => z.id === S.game.zone) || VOYAGE.ZONES[0];
-  const ov = h('div', { class: 'game-ov', role: 'dialog', 'aria-label': 'Voyage', 'aria-modal': 'true' },
-    h('div', { class: 'game-top' }, h('b', null, zone.name), h('div', { class: 'row nowrap' }, B([icon('pause'), 'Pause'], 'gPause', 'ghost sm', { id: 'gpause' }), B(icon('x'), 'gQuit', 'ghost icon-only', { 'aria-label': 'End voyage' }))),
-    h('div', { class: 'game-stage' }, h('canvas', { id: 'gcv', 'aria-label': 'Voyage game. Drag or use arrow keys to steer.' })),
-    h('div', { id: 'gmodal', class: 'gmodal', hidden: true }));
-  document.body.append(ov); document.body.classList.add('gaming');
-  GAMECTL = VOYAGE.start($('#gcv'), { boat: S.game.boat, zone: S.game.zone, onGate: gateAsk, onEnd: voyageEnd, reduced: REDUCED });
-}
-function gmodal(...kids) { const m = $('#gmodal'); if (!m) return; m.replaceChildren(h('div', { class: 'gm-card t-panel-slide', 'data-open': 'false' }, kids)); m.hidden = false; const open = () => m.firstChild && m.firstChild.setAttribute('data-open', 'true'); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 100); }
-function gmodalClose() { const m = $('#gmodal'); if (m) { m.hidden = true; m.replaceChildren(); } }
-function gateAsk(cb) {
-  const ids = Object.keys(LEARN.TOPIC).filter(id => usable(id) && (LEARN.TOPIC[id].type === 'recall'));
-  const q = ids.length && LEARN.gen(pick(ids));
-  if (!q) { cb(true); return; }
-  GATE = { q, cb, done: false };
-  gmodal(h('p', { class: 'eyebrow' }, 'Knowledge gate · ' + (q.sub || '')), h('p', { class: 'qtext' }, q.q),
-    h('div', { class: 'mcq' }, q.options.map((o, i) => h('button', { type: 'button', class: 'opt', 'data-act': 'gate', 'data-i': i }, h('span', { class: 'opt-k' }, 'ABCD'[i]), h('span', null, o)))));
-}
-function voyageEnd(r) {
-  const best = r.score > S.game.best;
-  S.stat.voyages++; S.stat.gates += r.gates; if (best) S.game.best = r.score; save(); GAME_RESULT = r;
-  gmodal(h('p', { class: 'eyebrow' }, 'Voyage over'), h('h2', { class: 'gm-score' }, r.score.toLocaleString('en-GB')),
-    h('p', { class: 'muted' }, best ? 'New best score!' : `Best: ${S.game.best.toLocaleString('en-GB')}`),
-    h('div', { class: 'gm-stats' }, h('span', null, h('b', null, r.wisps), ' wisps'), h('span', null, h('b', null, r.gates), ' gates'), h('span', null, h('b', null, r.dist), ' distance')),
-    h('div', { class: 'row center' }, S.game.tokens > 0 && B([icon('ship'), `Sail again (${S.game.tokens} left)`], 'sailAgain', 'primary'), B('Back to the shore', 'gClose', 'ghost')));
-  checkAch();
-}
-function closeVoyage() {
-  if (GAMECTL) { GAMECTL.stop(); GAMECTL = null; }
-  GATE = null; document.querySelector('.game-ov')?.remove(); document.body.classList.remove('gaming');
-  render(); checkAch();
 }
 
 /* ---------- Toolkit ---------- */
@@ -938,7 +879,7 @@ const EXACT = {
     const name = p.name + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
-    CHART.add(p.subj); xp(25);
+    CHART.add(p.subj); xp(25); realmEv('paper');
     const g = groupOf(p), added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
     EXRES = { name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
@@ -1011,7 +952,7 @@ const MPACT = {
     S.scores.push({ id: newId(), date: dkey(), subj: 'Maths', paper: 'Generated Maths paper', score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), 'Wrong on a generated Maths paper');
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in Maths!`, 'big'); } else toast(`${pc}% saved.`);
-    CHART.add('Maths'); xp(25); MPRES = { rows, score, added }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
+    CHART.add('Maths'); xp(25); realmEv('paper'); MPRES = { rows, score, added }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
   }
 };
 
@@ -1325,9 +1266,9 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['voyage', 'ship', 'Voyage'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, voyage: vVoyage, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, realm: vRealm, region: vRegion, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1404,7 +1345,10 @@ const findSess = sid => { for (let w = 0; w < 7; w++) { const i = S.plan[w].find
 function finishAnswer(res) {
   record(DR.q.id, res.ok, DR.q.key);
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
-  if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); save(); } else DR.run = 0;
+  if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); } else DR.run = 0;
+  realmEv('run', DR.run, true);
+  if (DR.ctx === 'boss' || DR.ctx === 'hunt') realmOnAnswer(res.ok);
+  save();
   render({ focus: '#nextq' });
   if (res.ok) FXS.burst($('.qcard'), DR.run >= 5 ? 60 : 36);
 }
@@ -1455,7 +1399,7 @@ const ACT = {
     const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
+  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; if (DR.ctx === 'boss' || DR.ctx === 'hunt') realmOnAnswer(false); DR.state = 'shown'; render({ focus: '#nextq' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
@@ -1476,28 +1420,6 @@ const ACT = {
   theme(el) { S.theme = el.dataset.v; save(); applyTheme(); render(); toast('Colour scheme: ' + (THEMES.find(t => t[0] === S.theme) || ['', 'Ember Gold'])[1]); },
   motion(el) { S.motion = el.dataset.v; S.motionHint = true; save(); applyMotion(); render({ enter: true }); if (!REDUCED) toast('Full motion on', 'big'); },
   achCat(el) { ACH_CAT = el.dataset.k; render(); },
-  sail() { startVoyage(); },
-  sailAgain() { if (GAMECTL) { GAMECTL.stop(); GAMECTL = null; } document.querySelector('.game-ov')?.remove(); document.body.classList.remove('gaming'); startVoyage(); },
-  boat(el) { S.game.boat = el.dataset.id; save(); render(); },
-  zone(el) { S.game.zone = el.dataset.id; save(); render(); },
-  gPause() {
-    if (!GAMECTL || GATE) return;
-    GAMECTL.pause();
-    gmodal(h('p', { class: 'eyebrow' }, 'Paused'), h('h2', null, 'Catch your breath'), h('div', { class: 'row center' }, B([icon('play'), 'Resume'], 'gResume', 'primary'), B('End voyage', 'gEnd', 'ghost')));
-  },
-  gResume() { gmodalClose(); GAMECTL && GAMECTL.resume(); },
-  gEnd() { gmodalClose(); GAMECTL && GAMECTL.finish(); },
-  gQuit() { if (GAME_RESULT || !GAMECTL) return closeVoyage(); ACT.gPause(); },
-  gClose() { closeVoyage(); },
-  gate(el) {
-    if (!GATE || GATE.done) return;
-    const i = +el.dataset.i, q = GATE.q, ok = i === q.a; GATE.done = true;
-    record(q.id, ok, q.key);
-    gmodal(h('p', { class: 'eyebrow' }, 'Knowledge gate'), h('p', { class: 'fb-h ' + (ok ? 'okc' : 'noc') }, ok ? [successCheck(), 'Correct · +1 life'] : 'Not this time'),
-      h('p', null, q.q, ' → ', h('b', null, q.show)), B([icon('play'), 'Sail on'], 'gateGo', 'primary wide', { 'data-ok': ok ? 1 : 0, id: 'gatego' }));
-    setTimeout(() => $('#gatego')?.focus(), 50);
-  },
-  gateGo(el) { const g = GATE; GATE = null; gmodalClose(); g && g.cb(el.dataset.ok === '1'); },
   chart(el) { const s = el.dataset.subj; CHART.has(s) ? CHART.delete(s) : CHART.add(s); render(); },
   lostAdd() { DRAFT.score.lost.push({ topic: '', type: QTYPES[0], marks: '' }); render(); const r = $('#view').querySelectorAll('.lost-row input'); if (r.length) r[r.length - 2].focus(); },
   lostDel(el) { DRAFT.score.lost.splice(+el.dataset.i, 1); render(); },
@@ -1601,7 +1523,7 @@ const CHG = {
   }
 };
 
-Object.assign(ACT, EXACT, MPACT);
+Object.assign(ACT, EXACT, MPACT, REALMACT);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;
@@ -1613,8 +1535,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
-  if (GATE && !GATE.done && /^[1-4]$/.test(e.key)) { $(`#gmodal [data-act="gate"][data-i="${+e.key - 1}"]`)?.click(); return; }
-  if (DR && (TAB === 'drill' || TAB === 'home') && DR.q && !GAMECTL) {
+  if (DR && ['drill', 'home', 'boss', 'hunt'].includes(TAB) && DR.q) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
     if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
   }
@@ -1624,8 +1545,8 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { if (GAMECTL && !GATE && !GAME_RESULT && !GAMECTL.isPaused()) ACT.gPause(); return; }
-  timerTick(); if (dkey() !== renderedDay) { grantDaily(); render(); }
+  if (document.hidden) return;
+  timerTick(); if (dkey() !== renderedDay) render();
 });
 /* Transitions.dev "Card hover tilt" (mouse only, so touch scrolling is never blocked) */
 let tiltEl = null;
@@ -1642,7 +1563,7 @@ document.addEventListener('pointermove', e => {
 });
 document.addEventListener('pointerleave', () => { untilt(tiltEl); tiltEl = null; });
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { movePill(false); if (TAB === 'papers') drawChart(); }, 120); });
-setInterval(() => { timerTick(); if (dkey() !== renderedDay) { grantDaily(); render(); } }, 250);
+setInterval(() => { timerTick(); if (dkey() !== renderedDay) render(); }, 250);
 
 applyMotion(); applyTheme();
 /* intro */
@@ -1658,7 +1579,6 @@ applyMotion(); applyTheme();
 applyMotion();
 applyTheme();
 FXS.init();
-grantDaily();
 if (S.achV !== 2) { S.ach = {}; S.achV = 2; save(); } /* tiers got harder: recount once, silently */
 checkAch(true);
 render({ enter: true });
@@ -1670,7 +1590,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloading) return;
-    const reload = () => { if (!T.run && !GAMECTL) { reloading = true; location.reload(); } else setTimeout(reload, 5000); };
+    const reload = () => { if (!T.run && !RF) { reloading = true; location.reload(); } else setTimeout(reload, 5000); };
     reload();
   });
   navigator.serviceWorker.register('sw.js').catch(() => {});

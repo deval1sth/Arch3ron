@@ -611,3 +611,59 @@ a.btn{color:inherit;text-decoration:none}
 .mpres li.ok{border-color:rgba(134,217,166,.3)}.mpres li.no{border-color:rgba(var(--no-rgb),.3)}.mpres p{margin:0 0 4px}
 @media (max-width:420px){.tiles{grid-template-columns:1fr 1fr}}
 .bar.two{position:relative}.bar.two i{position:absolute;left:0;top:0;bottom:0}.bar.two i.tried{opacity:.3}
+
+/* ---------- The Realm ---------- */
+.realm svg{display:block;width:100%;height:auto}
+.rhead{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px}
+.rh-flame,.rh-stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);text-align:left;color:inherit;font:inherit}
+button.rh-stat{cursor:pointer}
+.rh-flame{position:relative;padding-left:52px;border-color:color-mix(in srgb,var(--fc) 45%,transparent);box-shadow:0 0 30px -14px var(--fc)}
+.rh-flame .fl{position:absolute;left:12px;top:50%;width:30px;height:30px;transform:translateY(-50%) scale(var(--fs));color:var(--fc);filter:drop-shadow(0 0 8px var(--fc));animation:flick 1.6s ease-in-out infinite}
+.rh-flame .fl svg{width:100%;height:100%}
+.rh-flame b,.rh-stat b{font-family:var(--serif);font-size:19px;color:var(--y2)}.rh-flame small,.rh-stat small{font-size:11.5px;color:var(--m)}
+@keyframes flick{0%,100%{transform:translateY(-50%) scale(var(--fs)) rotate(-2deg)}50%{transform:translateY(-52%) scale(calc(var(--fs) * 1.06)) rotate(2deg)}}
+.rmap-card{padding:10px}.rmap{border-radius:14px;overflow:hidden;border:1px solid var(--line2)}
+.mreg{cursor:pointer;transition:opacity .2s}.mreg:hover{opacity:.85}
+.fog{transition:opacity 1.2s}
+.quests{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.quests li{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--line2)}
+.quests li .bar{margin:6px 0 4px}.quests li.done{border-color:rgba(var(--y-rgb),.5);box-shadow:0 0 18px -10px var(--y)}.quests li.claimed{opacity:.55}
+.chests{display:flex;flex-wrap:wrap;gap:10px}
+.chest{display:flex;flex-direction:column;align-items:center;gap:2px;width:96px;padding:8px;border-radius:12px;border:1px solid var(--line2);background:none;cursor:pointer;color:inherit;animation:chestbob 2.4s ease-in-out infinite}
+.chest:hover{border-color:rgba(var(--y-rgb),.5)}.chest small{font-size:11px;color:var(--m)}.chest-art{width:72px}
+@keyframes chestbob{50%{transform:translateY(-3px)}}
+.how{padding-left:18px;margin:10px 0 0;line-height:1.6}
+.castle-card .castle{border-radius:14px;overflow:hidden;border:1px solid var(--line2);margin-bottom:12px}
+.crack-note{color:#ff8a6b;font-size:13.5px;margin:8px 0}
+.boss-card{text-align:center;background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--bc) 14%,transparent),transparent 70%),var(--card);border-color:color-mix(in srgb,var(--bc) 35%,var(--line))}
+.boss-art{width:min(260px,80%);margin:0 auto}.boss-art.small{width:min(190px,60%)}
+.boss-name{font-family:var(--serif);font-size:26px;margin:2px 0;color:var(--bc);text-shadow:0 0 18px color-mix(in srgb,var(--bc) 50%,transparent)}
+.rune{animation:spin 60s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.boss-eye{animation:eyes 3.2s ease-in-out infinite}@keyframes eyes{0%,92%,100%{opacity:1}95%{opacity:.15}}
+.ember-p{animation:rise2 4s ease-in infinite;animation-delay:var(--d);opacity:0}
+@keyframes rise2{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-70px)}}
+.boss-dead,.slain svg{filter:grayscale(.85) brightness(.7)}
+.tiers{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:10px 0}.pill.won{background:rgba(255,90,60,.18);color:#ffb199}
+.hp{position:relative;height:16px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:10px 0 6px;border:1px solid color-mix(in srgb,var(--bc) 40%,transparent)}
+.hp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#7a1020,#e0383a,var(--bc));transition:width .5s var(--ease)}
+.hp span{position:relative;font-size:11px;font-weight:700;line-height:16px}
+.hud{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.hearts{display:flex;gap:4px;font-size:20px;line-height:1}.hearts i{font-style:normal;color:#3a2f3d}.hearts i::before{content:'\2665'}.hearts i.on{color:#e0383a;text-shadow:0 0 8px #e0383a}
+.hud-log{font-size:13px;color:var(--y2)}
+.beasts{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.beast{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:12px;border:1px solid color-mix(in srgb,var(--rc) 35%,var(--line2));background:radial-gradient(80% 60% at 50% 30%,color-mix(in srgb,var(--rc) 12%,transparent),transparent);cursor:pointer;color:inherit;font:inherit;text-align:center}
+.beast b{font-size:12.5px;line-height:1.25}.beast small{font-size:11px;color:var(--rc);text-transform:capitalize}
+.beast.locked{background:none;border-color:var(--line2)}.beast.locked small{color:var(--m);text-transform:none}
+.sigil{width:64px}.beast:not(.locked) .sigil{filter:drop-shadow(0 0 6px var(--rc))}
+.perks{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:p}
+.perks li{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--line2)}
+.perks li.own{border-color:rgba(255,90,60,.4);background:rgba(255,90,60,.06)}.perks li.can{border-color:rgba(var(--y-rgb),.5)}.perks li.locked{opacity:.6}
+.perks p{margin:2px 0}
+.ranks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.ranks li{display:flex;justify-content:space-between;padding:6px 10px;border-radius:8px;font-size:13.5px;color:var(--m)}
+.ranks li.past{color:var(--t)}.ranks li.on{background:rgba(var(--y-rgb),.12);color:var(--y2);font-weight:650}.ranks li[style] b{color:var(--fc)}
+.story{line-height:1.75;font-size:15.5px;margin:0}
+.locked-ch{opacity:.6}.locked-ch p{margin:4px 0 0}
+.bsw{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--bc);color:#0b0a10}.bsw svg{width:13px;height:13px}
+html.rm .rune,html.rm .boss-eye,html.rm .ember-p,html.rm .chest,html.rm .rh-flame .fl{animation:none}html.rm .ember-p{opacity:0}
+@media (max-width:420px){.rhead{grid-template-columns:1fr 1fr}.rh-flame{grid-column:1/-1}}

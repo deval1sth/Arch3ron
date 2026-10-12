@@ -7,8 +7,10 @@ A GCSE mocks training app that opens on one thing: your next focus set, and exac
 - **Learn**: 9 subjects, ~110 topics. Generated calculation drills (Maths, Physics, Chemistry, Biology,
   Business, Geography) with worked methods, ~400 recall facts as quick-tap questions, quote recall, and
   plan builders. Hard topics come back more often. Hide topics you don't study in Settings.
-- **Voyage**: a river game unlocked by lanterns (finished sets). Boats and zones unlock as you study;
-  knowledge gates ask questions for extra lives. Voyages are earned by sets, 10 right answers, or daily.
+- **The Realm**: nine fog-covered regions (one per subject). Learning clears the fog and raises a castle in each;
+  each region has a three-form boss fought with real questions. Daily contracts, a daily Hunt raced against your
+  own ghost, a streak flame, chests, a bestiary, a skill tree, a story that unlocks weekly, a Vault of real-life
+  rewards, a weekly rank and a rough grade forecast.
 - **Profile**: name, emblem, title, stats, the lantern river, 21 tiered achievements, subject mastery.
 - **Toolkit**: checklists with confidence ratings for every subject, past papers and trend chart,
   fix list, flashcards, weekly plan, settings.
@@ -32,7 +34,7 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `exam.js`: Maths and Science practice papers with mark schemes
 - `papers.js`: English, Geography, Business and RE papers with levels-based marking, original sources and per-subject method tips
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
-- `game.js`: Voyage
+- `realm.js`: The Realm
 - `fx.js`: embers, sparks, reveal overlays
 - `app.js`: state, migration, views, actions
 - `sw.js`: offline cache. **Bump `VERSION` on every release.**
