@@ -521,7 +521,7 @@ const LEARN = (() => {
   const UNSUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9, '⁻': '-' };
   function parseSF(s) {
     s = norm(s).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g, c => '^' + UNSUP[c]).replace(/\^(?=\^)/g, '').replace(/\s/g, '').replace(/\^-\^/g, '^-');
-    let m = s.match(/^(-?\d+(?:\.\d+)?)[x×*]10\^?\(?(-?\d+)\)?$/i) || s.match(/^(-?\d+(?:\.\d+)?)e(-?\d+)$/i);
+    let m = s.match(/^(-?\d+(?:\.\d+)?)[x×*]10\^?\(?(-?\d+)\)?$/i) || s.match(/^(-?\d+(?:\.\d+)?)e\+?(-?\d+)$/i);
     return m ? { m: +m[1], p: +m[2] } : null;
   }
   function check(q, raw) {

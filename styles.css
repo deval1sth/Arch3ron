@@ -644,9 +644,9 @@ button.rh-stat{cursor:pointer}
 @keyframes rise2{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-70px)}}
 .boss-dead,.slain svg{filter:grayscale(.85) brightness(.7)}
 .tiers{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:10px 0}.pill.won{background:rgba(255,90,60,.18);color:#ffb199}
-.hp{position:relative;height:16px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:10px 0 6px;border:1px solid color-mix(in srgb,var(--bc) 40%,transparent)}
+.hp{position:relative;display:flex;align-items:center;justify-content:center;height:20px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:10px 0 6px;border:1px solid color-mix(in srgb,var(--bc) 40%,transparent)}
 .hp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#7a1020,#e0383a,var(--bc));transition:width .5s var(--ease)}
-.hp span{position:relative;font-size:11px;font-weight:700;line-height:16px}
+.hp span{position:relative;font-size:12px;font-weight:700;line-height:1;text-shadow:0 1px 2px #000}
 .hud{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:10px}
 .hearts{display:flex;gap:4px;font-size:20px;line-height:1}.hearts i{font-style:normal;color:#3a2f3d}.hearts i::before{content:'\2665'}.hearts i.on{color:#e0383a;text-shadow:0 0 8px #e0383a}
 .hud-log{font-size:13px;color:var(--y2)}
@@ -667,3 +667,12 @@ button.rh-stat{cursor:pointer}
 .bsw{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--bc);color:#0b0a10}.bsw svg{width:13px;height:13px}
 html.rm .rune,html.rm .boss-eye,html.rm .ember-p,html.rm .chest,html.rm .rh-flame .fl{animation:none}html.rm .ember-p{opacity:0}
 @media (max-width:420px){.rhead{grid-template-columns:1fr 1fr}.rh-flame{grid-column:1/-1}}
+
+.fog-card{border-color:color-mix(in srgb,var(--bc) 35%,var(--line));transition:box-shadow .4s,border-color .4s}
+.fog-card.hot{border-color:var(--bc);box-shadow:0 0 36px -10px var(--bc)}
+.fog-top{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+.castle.mini{width:120px;flex:none;border-radius:10px;overflow:hidden;border:1px solid var(--line2)}
+.fog-pct{display:block;font-family:var(--serif);font-size:26px;color:var(--bc)}
+.fog-msg{margin:12px 0 6px;font-weight:600;line-height:1.45}.fog-card.hot .fog-msg{color:var(--bc)}
+.fog-stats{display:flex;gap:14px;flex-wrap:wrap}
+.crack-note .chips{margin-top:6px}

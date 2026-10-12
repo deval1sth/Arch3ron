@@ -1267,8 +1267,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, realm: vRealm, region: vRegion, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const PARENT = { fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1313,7 +1313,7 @@ function render(o = {}) {
   if (TAB === 'papers') drawChart();
   paintTimer();
   if (fk) { const e = view.querySelector(fk); if (e && !e.disabled) e.focus({ preventScroll: true }); }
-  if (o.focus) { const e = view.querySelector(o.focus); if (e) e.focus({ preventScroll: true }); }
+  if (o.focus) { const e = view.querySelector(o.focus); if (e) { e.focus({ preventScroll: true }); revealAboveNav(e); } }
   if (o.pulse) { const e = view.querySelector(o.pulse); if (e) { e.classList.add('pop'); if (o.burst) FXS.burst(e, o.burst); } }
   if (o.recheck) { const e = view.querySelector(o.recheck); if (e) { const on = e.classList.contains('d'); e.classList.toggle('d', !on); void e.offsetWidth; e.classList.toggle('d', on); } }
   if (o.enter) {
@@ -1322,6 +1322,11 @@ function render(o = {}) {
   }
   const panels = view.querySelectorAll('.t-panel-slide[data-open="false"]');
   if (panels.length) { const open = () => panels.forEach(p => p.setAttribute('data-open', 'true')); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 150); }
+}
+/* After answering, the feedback and Next button render below the fold, often under the fixed nav, where a tap lands on the nav instead. Bring them into clear view. */
+function revealAboveNav(e) {
+  const nav = $('#nav').getBoundingClientRect().top, r = e.getBoundingClientRect(), fb = e.closest('.fb') || e, top = fb.getBoundingClientRect().top;
+  if (r.bottom > nav - 12 || r.top < 70) scrollBy({ top: Math.min(r.bottom - nav + 24, top - 80), behavior: REDUCED ? 'auto' : 'smooth' });
 }
 /* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
 function go(t, focusSel) {
@@ -1347,7 +1352,7 @@ function finishAnswer(res) {
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
   if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); } else DR.run = 0;
   realmEv('run', DR.run, true);
-  if (DR.ctx === 'boss' || DR.ctx === 'hunt') realmOnAnswer(res.ok);
+  if (['boss', 'hunt', 'fog'].includes(DR.ctx)) realmOnAnswer(res.ok);
   save();
   render({ focus: '#nextq' });
   if (res.ok) FXS.burst($('.qcard'), DR.run >= 5 ? 60 : 36);
@@ -1399,7 +1404,7 @@ const ACT = {
     const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; if (DR.ctx === 'boss' || DR.ctx === 'hunt') realmOnAnswer(false); DR.state = 'shown'; render({ focus: '#nextq' }); },
+  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; if (['boss', 'hunt', 'fog'].includes(DR.ctx)) realmOnAnswer(false); DR.state = 'shown'; render({ focus: '#nextq' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
@@ -1535,7 +1540,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
-  if (DR && ['drill', 'home', 'boss', 'hunt'].includes(TAB) && DR.q) {
+  if (DR && ['drill', 'home', 'boss', 'hunt', 'fog'].includes(TAB) && DR.q) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
     if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
   }

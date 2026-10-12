@@ -118,12 +118,19 @@ function realmNorm(raw) {
 
 /* ---------- measures ---------- */
 function regionTopics(sid) { return ((SUBJ_BY[sid] || {}).topics || []).filter(usable); }
+/* Fog cleared in a region. Every right answer counts straight away, so the fog visibly moves:
+   a fact is worth half once you get it right and all of it once right twice in a row;
+   a calculation topic earns a fifth per right answer in a row, up to 5 (mastered). */
 function regionPct(sid) {
   const b = (LEARN.bank() || {})[sid] || {}, keys = [...(b.def || []), ...(b.recall || []), ...(b.eq || []), ...(b.vocab || [])];
   const calc = regionTopics(sid).filter(id => LEARN.TOPIC[id].type === 'calc');
   const T = keys.length + calc.length; if (!T) return 0;
-  return (keys.filter(learned).length + masteredIn(calc)) / T * 100;
+  let got = 0;
+  for (const k of keys) { const m = S.items[k]; if (m) got += m[2] >= 2 ? 1 : m[2] === 1 ? .5 : 0; }
+  for (const id of calc) got += Math.min(5, skill(id).best) / 5;
+  return got / T * 100;
 }
+const pctTxt = p => p < 10 ? p.toFixed(1) : String(Math.floor(p));
 const stageOf = pct => STAGES.reduce((s, [t], i) => pct >= t ? i : s, 0);
 function flame() {
   const keys = Object.keys(S.days).filter(isKey).sort();
@@ -240,8 +247,9 @@ function realmOnSet() {
 }
 
 /* ---------- fights: bosses and the Hunt reuse the Learn drill (DR) ---------- */
-let RF = null;
+let RF = null, FOG = null;
 function realmOnAnswer(ok) {
+  if (DR && DR.ctx === 'fog') return fogAnswer(ok);
   if (!RF || RF.over) return;
   RF.n++;
   if (RF.kind === 'boss') {
@@ -254,6 +262,15 @@ function realmOnAnswer(ok) {
     RF.trail.push(RF.score);
     if (RF.lives <= 0 || RF.n >= 12) huntEnd();
   }
+}
+/* Burning the fog: ordinary practice, but inside the Realm, so every answer visibly moves your region. */
+function fogAnswer(ok) {
+  if (!FOG) return;
+  const pct = regionPct(FOG.sid), gain = pct - FOG.pct;
+  FOG.n++; if (ok) FOG.right++;
+  if (gain > 0.0001) { FOG.burned += gain; FOG.msg = `Fog burned! +${gain.toFixed(2)}%`; FOG.hot = true; }
+  else { FOG.hot = false; FOG.msg = ok ? 'Right, but this one was already clear. Keep going.' : 'Wrong. The fog holds here, and this one will come back until you get it.'; }
+  FOG.pct = pct;
 }
 function bossWin() {
   const R = R0(); RF.over = 'win'; R.bosses[RF.sid] = RF.tier; R.stat.bossWins++;
@@ -372,7 +389,7 @@ function mapSvg() {
       <path d="M${g.x - 8} ${g.y + 7}V${g.y - 1}h3v-3h2v3h6v-${3 + st}h2v-2h2v2h2v${3 + st}h6v-3h2v3h3v8Z" transform="translate(-6 0)" fill="${st >= 5 ? g.color : '#8a8296'}" opacity="${(.5 + st * .08).toFixed(2)}"/>
       ${beaten ? `<circle cx="${g.x + 12}" cy="${g.y - 12}" r="5" fill="#ff5a3c"/><text x="${g.x + 12}" y="${g.y - 9.5}" text-anchor="middle" font-size="7" font-weight="700" fill="#fff">${beaten}</text>` : ''}
       <text x="${g.x}" y="${g.y + 28}" text-anchor="middle" font-size="8.5" fill="#d8cfe0" opacity=".85">${g.name.replace('The ', '')}</text>
-      <text x="${g.x}" y="${g.y + 38}" text-anchor="middle" font-size="7.5" fill="${g.color}">${Math.floor(pct)}% clear</text></g>`;
+      <text x="${g.x}" y="${g.y + 38}" text-anchor="middle" font-size="7.5" fill="${g.color}">${pctTxt(pct)}% clear</text></g>`;
   }
   for (const [sid, g] of Object.entries(REGIONS)) { const fog = 1 - Math.min(1, regionPct(sid) / 100);
     s += `<g class="fog" opacity="${(fog * .95).toFixed(2)}" pointer-events="none"><circle cx="${g.x - 10}" cy="${g.y - 4}" r="44" fill="url(#${u}fog)" filter="url(#${u}b)"/><circle cx="${g.x + 14}" cy="${g.y + 8}" r="34" fill="url(#${u}fog)" filter="url(#${u}b)"/></g>`; }
@@ -402,9 +419,15 @@ function vRealm() {
   return h('div', { class: 'stack realm' },
     hero('The Realm', 'The Hollow Reach', 'Nine regions lost to the Veil. Every truth you learn burns the fog away, raises your castles and arms you against the Heralds.'),
     realmHead(),
+    acc('realm-how', h('h2', null, 'How to play'), h('ol', { class: 'steps' },
+      h('li', null, 'Tap a region on the map (or a name below it). Each region is one subject.'),
+      h('li', null, 'Press "Burn back the fog" and answer questions. Every question you learn clears fog, and your castle there grows from ruins to a citadel.'),
+      h('li', null, 'At 3%, 20% and 45% clear, the region\'s Herald (boss) wakes. Beat it with right answers for a Gold chest and a perk point.'),
+      h('li', null, 'Every day: three contracts for shards, and one Hunt to beat your best score.'),
+      h('li', null, 'Focus sets fill your chests and your weekly target unlocks the next story chapter.')), { open: !Object.keys(R.bound).length && !Object.keys(R.bosses).length }),
     h('section', { class: 'card rmap-card' }, svgWrap('rmap', 'Map of the nine regions. Fog covers what you have not learned yet.', mapSvg(), '0 0 360 300'),
       h('p', { class: 'muted xs' }, 'Tap a region to see its castle, its Herald and its creatures. The fog over each region is exactly what you have not learned there yet.'),
-      h('div', { class: 'chips' }, Object.entries(REGIONS).map(([sid, g]) => chip([h('i', { class: 'sw', style: `background:${g.color}` }), g.name.replace('The ', ''), h('small', null, ` ${Math.floor(regionPct(sid))}%`)], false, 'region', { 'data-id': sid })))),
+      h('div', { class: 'chips' }, Object.entries(REGIONS).map(([sid, g]) => chip([h('i', { class: 'sw', style: `background:${g.color}` }), g.name.replace('The ', ''), h('small', null, ` ${pctTxt(regionPct(sid))}%`)], false, 'region', { 'data-id': sid })))),
     card('Daily contracts', h('span', { class: 'muted' }, allDone ? 'All claimed' : `${qs.filter(q => q.claimed).length} of 3 claimed`),
       h('ul', { class: 'quests' }, qs.map(q => h('li', { class: q.claimed ? 'claimed' : q.done ? 'done' : '' },
         h('div', { class: 'grow' }, h('b', null, q.text), bar(q.v / q.need * 100), h('small', { class: 'muted' }, `${q.v} / ${q.need} · +${questReward()} shards`)),
@@ -438,16 +461,17 @@ function vRegion() {
   return h('div', { class: 'stack narrow realm' },
     subHero(SUBJ_BY[sid].name, g.name, 'realm', null, 'The Realm'),
     h('section', { class: 'card castle-card' }, svgWrap('castle', `Your castle: ${STAGES[st][1]}`, castleSvg(st, { color: g.color, banner: COSMETICS[R.banner].color, cracks: fixes.length }), '0 0 320 220'),
-      h('div', { class: 'card-h' }, h('h2', null, STAGES[st][1]), h('span', { class: 'pill' }, `${Math.floor(pct)}% clear`)), bar(pct),
-      h('p', { class: 'muted xs' }, next ? `${Math.ceil(next[0] - pct)}% more of ${SUBJ_BY[sid].name} learned to raise the ${next[1]}.` : 'A citadel. The fog cannot touch it.'),
-      fixes.length > 0 && h('p', { class: 'crack-note' }, `${fixes.length} crack${fixes.length > 1 ? 's' : ''} in the walls: ${fixes.map(x => LEARN.name(x.id)).join(', ')}. Clear them from the fix queue.`),
-      h('div', { class: 'row' }, B([icon('play'), 'Burn back the fog'], 'drill', 'primary', { 'data-track': sid }), fixes.length > 0 && B([icon('wrench'), 'Repair the cracks'], 'drill', 'ghost', { 'data-track': 'fix' }))),
+      h('div', { class: 'card-h' }, h('h2', null, STAGES[st][1]), h('span', { class: 'pill' }, `${pctTxt(pct)}% clear`)), bar(pct),
+      h('p', { class: 'muted xs' }, next ? `${(next[0] - pct).toFixed(1)}% more fog to clear to raise the ${next[1]}. Every right answer here burns some away.` : 'A citadel. The fog cannot touch it.'),
+      fixes.length > 0 && h('div', { class: 'crack-note' }, h('p', null, `${fixes.length} crack${fixes.length > 1 ? 's' : ''} in the walls. Get 3 right in a row on each to repair it:`),
+        h('div', { class: 'chips' }, fixes.map(x => chip([icon('wrench'), LEARN.name(x.id)], false, 'fog', { 'data-id': sid, 'data-topic': x.id })))),
+      h('div', { class: 'row' }, B([icon('flame'), 'Burn back the fog'], 'fog', 'primary', { 'data-id': sid }))),
     h('section', { class: 'card boss-card', style: `--bc:${g.color}` },
       svgWrap('boss-art' + (nb ? '' : ' slain'), cfg[0], bossSvg(cfg, g.color, { dead: !nb, tier: nb ? nb.t : 3 }), '0 0 240 240'),
       h('p', { class: 'eyebrow' }, 'Herald of the Unwritten King'), h('h2', { class: 'boss-name' }, cfg[0]), h('p', { class: 'muted' }, cfg[1]),
       h('div', { class: 'tiers' }, BOSS_TIER.map((n, i) => h('span', { class: 'pill' + (i < beaten ? ' won' : '') }, `${i < beaten ? '✓ ' : ''}${n}`))),
       !nb ? h('p', null, 'All three forms slain. The region is free.')
-        : !nb.open ? h('p', { class: 'muted' }, `The ${BOSS_TIER[nb.t - 1]} form stirs at ${BOSS_REQ[nb.t - 1]}% clear. You are at ${Math.floor(pct)}%.`)
+        : !nb.open ? h('p', { class: 'muted' }, `The ${BOSS_TIER[nb.t - 1]} form stirs at ${BOSS_REQ[nb.t - 1]}% clear. You are at ${pctTxt(pct)}%. Burn back the fog to wake it.`)
         : [h('p', { class: 'muted xs' }, `${BOSS_TIER[nb.t - 1]} form · ${BOSS_HP[nb.t - 1]} HP · you have ${3 + (hasPerk('wind') ? 1 : 0)} lives. Right answers strike; ${hasPerk('exec') ? 2 : 3} in a row strike twice. Wrong answers and "Show me" cost a life.`),
           B([icon('bolt'), tries > 0 ? `Challenge the ${BOSS_TIER[nb.t - 1]} form` : 'It is gathering strength. Return tomorrow'], 'bossGo', 'primary wide', { 'data-id': sid, disabled: tries <= 0 })]),
     card('Forecast', null, !fc ? h('p', { class: 'muted' }, `Do one ${SUBJ_BY[sid].subj} exam practice paper and a rough grade forecast appears here.`)
@@ -458,7 +482,7 @@ function vRegion() {
 function beastGrid(ids) {
   return h('div', { class: 'beasts' }, ids.map(id => {
     const c = creature(id), got = stars(id) === 3, col = RARITY[c.rarity];
-    return h('button', { type: 'button', class: 'beast' + (got ? '' : ' locked'), 'data-act': 'drill', 'data-topic': id, style: `--rc:${col}`, 'aria-label': got ? `${c.name}, ${c.rarity}, bound by mastering ${c.topic}` : `Unknown creature. Master ${c.topic} to bind it` },
+    return h('button', { type: 'button', class: 'beast' + (got ? '' : ' locked'), 'data-act': 'fog', 'data-id': c.sid, 'data-topic': id, style: `--rc:${col}`, 'aria-label': got ? `${c.name}, ${c.rarity}, bound by mastering ${c.topic}` : `Unknown creature. Master ${c.topic} to bind it` },
       svgWrap('sigil', '', sigilSvg(id, got ? col : '#4a4458'), '0 0 100 100'), h('b', null, got ? c.name : '???'), h('small', null, got ? c.rarity : `Master: ${c.topic}`));
   }));
 }
@@ -512,6 +536,21 @@ function vRank() {
       h('div', { class: 'tbl' }, h('table', null, h('tr', null, h('th', null, 'Subject'), h('th', null, 'Report'), h('th', null, 'Forecast'), h('th', null, 'Target')),
         sub.map(([s, f, g]) => h('tr', null, h('td', null, h('i', { class: 'sw', style: `background:${SUBJ_COLOR[s]}` }), s), h('td', null, g.cur || '–'), h('td', { class: 'y' }, f ? `${f.grade} (${f.est}%)` : 'needs a paper'), h('td', null, g.tgt || '–')))))));
 }
+function vFog() {
+  if (!FOG || !DR) return vRegion();
+  const sid = FOG.sid, g = REGIONS[sid], pct = regionPct(sid), st = stageOf(pct), next = STAGES[st + 1], prevT = STAGES[st][0];
+  return h('div', { class: 'stack narrow realm' },
+    subHero(SUBJ_BY[sid].name, 'Burning the fog', 'region', null, g.name.replace('The ', '')),
+    h('section', { class: 'card fog-card' + (FOG.hot ? ' hot' : ''), style: `--bc:${g.color}` },
+      h('div', { class: 'fog-top' }, svgWrap('castle mini', STAGES[st][1], castleSvg(st, { color: g.color, banner: COSMETICS[R0().banner].color, cracks: S.queue.filter(x => LEARN.trackOf(x.id) === sid).length }), '0 0 320 220'),
+        h('div', { class: 'grow' }, h('p', { class: 'eyebrow' }, STAGES[st][1]), h('b', { class: 'fog-pct' }, `${pct.toFixed(1)}% clear`),
+          h('small', { class: 'muted' }, next ? `${(next[0] - pct).toFixed(1)}% more to raise the ${next[1]}` : 'Citadel complete'))),
+      bar(next ? (pct - prevT) / (next[0] - prevT) * 100 : 100),
+      h('p', { class: 'fog-msg' }, FOG.msg || (FOG.topic ? `Hunting one topic: ${LEARN.name(FOG.topic)}.` : 'Answer questions from this region. Every one you learn burns away a little fog.')),
+      h('div', { class: 'fog-stats muted xs' }, h('span', null, `${FOG.n} answered`), h('span', null, `${FOG.right} right`), h('span', null, `+${FOG.burned.toFixed(2)}% burned this session`)),
+      FOG.topic && B('Whole region instead', 'fog', 'link', { 'data-id': sid })),
+    drillPanel());
+}
 function fightHud() {
   const hearts = h('div', { class: 'hearts', 'aria-label': `${RF.lives} lives left` }, Array.from({ length: RF.maxLives }, (_, i) => h('i', { class: i < RF.lives ? 'on' : '' })));
   return h('div', { class: 'hud' }, hearts, RF.log && h('span', { class: 'hud-log' }, RF.log));
@@ -556,6 +595,12 @@ function startFight(kind, sid) {
 }
 const REALMACT = {
   region(el) { REGION_SEL = el.dataset.id; go('region'); },
+  fog(el) {
+    const topic = el.dataset.topic || null, sid = el.dataset.id || (topic && LEARN.trackOf(topic));
+    if (!REGIONS[sid]) return;
+    REGION_SEL = sid; RF = null; FOG = { sid, topic, pct: regionPct(sid), burned: 0, n: 0, right: 0, msg: '', hot: false };
+    startDrill(sid, topic, 'fog'); go('fog', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans');
+  },
   qClaim(el) {
     const R = R0(), i = +el.dataset.i, q = todaysQuests()[i]; if (!q || !q.done || q.claimed) return;
     R.q.claimed[i] = true; R.shards += questReward(); R.stat.quests++;
