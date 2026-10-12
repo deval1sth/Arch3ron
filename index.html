@@ -33,6 +33,22 @@
 <div id="toasts" aria-live="polite" aria-atomic="false"></div>
 <noscript><p style="padding:24px">Archeron needs JavaScript turned on.</p></noscript>
 <canvas id="fx" aria-hidden="true"></canvas>
+<script>
+/* If the app fails to start (e.g. a half-updated cache), offer a repair instead of a dead screen. Progress lives in localStorage and is never touched. */
+setTimeout(function () {
+  if (window.ARCHERON_OK) return;
+  var d = document.createElement('div');
+  d.setAttribute('style', 'position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:24px;background:#0a0b10;color:#eee;font:16px system-ui,sans-serif;text-align:center');
+  d.innerHTML = '<div><p style="font-size:20px;margin:0 0 8px">Archeron did not start properly</p><p style="opacity:.7;margin:0 0 18px">Usually a half-finished update. Your progress is safe.</p><button style="font:inherit;font-weight:600;padding:12px 22px;border-radius:99px;border:0;background:#e8c06a;color:#111">Repair the app</button></div>';
+  d.querySelector('button').onclick = function () {
+    var jobs = [];
+    if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); }));
+    if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister(); })); }));
+    Promise.all(jobs).then(function () { location.reload(); }, function () { location.reload(); });
+  };
+  document.body.appendChild(d);
+}, 7000);
+</script>
 <script src="vocab.js"></script>
 <script src="data.js"></script>
 <script src="content.js"></script>

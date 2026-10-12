@@ -1595,3 +1595,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+window.ARCHERON_OK = true;
