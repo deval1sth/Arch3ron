@@ -210,10 +210,10 @@ const weekTarget = () => [0, 1, 2, 3, 4, 5, 6].reduce((n, w) => n + daySets(w), 
 const learnedCards = () => Object.values(S.cards).filter(c => c.box >= 3).length;
 const xp = n => { S.xp = Math.max(0, S.xp + n); save(); };
 function fmtHours(min) { if (min < 60) return Math.round(min) + 'm'; const hh = Math.floor(min / 60), mm = Math.round(min % 60); return hh + 'h' + (mm ? ' ' + mm + 'm' : ''); }
-const TITLES = [[0, 'Wanderer'], [5, 'Lamplighter'], [15, 'Lantern Bearer'], [30, 'Night Scholar'], [60, 'Ferryman'], [100, 'Keeper of the Crossing'], [200, 'Legend of Acheron']];
+const TITLES = [[0, 'Wanderer'], [5, 'Initiate'], [15, 'Ashwalker'], [30, 'Night Scholar'], [60, 'Ferryman'], [100, 'Keeper of the Crossing'], [200, 'Legend of Acheron']];
 const titleFor = n => TITLES.filter(t => n >= t[0]).pop()[1];
 const nextTitle = n => TITLES.find(t => t[0] > n);
-const EMBLEMS = [['bat', 0], ['flame', 0], ['lantern', 5], ['feather', 10], ['moon', 15], ['gem', 30], ['shield', 45], ['crown', 60], ['star', 100]];
+const EMBLEMS = [['bat', 0], ['flame', 0], ['feather', 10], ['moon', 15], ['gem', 30], ['shield', 45], ['crown', 60], ['star', 100]];
 
 /* ---------- subjects, topics and skills (Learn) ---------- */
 const SUBJ_BY = Object.fromEntries(LEARN.SUBJECTS.map(s => [s.id, s]));
@@ -273,7 +273,7 @@ const examReady = () => Object.entries(S.conf).filter(([k, v]) => v === 3 && !k.
 /* ---------- achievements: tiered, permanent ---------- */
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Legend'];
 const ACH = [
-  ['sets', 'Focus', 'Lantern Keeper', 'lantern', 'sets finished', [5, 25, 75, 200, 400], () => lifeSets()],
+  ['sets', 'Focus', 'Iron Discipline', 'flame', 'sets finished', [5, 25, 75, 200, 400], () => lifeSets()],
   ['hours', 'Focus', 'Hourglass', 'hourglass', 'hours focused', [3, 10, 30, 75, 150], () => S.focusMin / 60],
   ['days', 'Focus', 'Many Fires', 'calendar', 'days studied', [5, 14, 30, 60, 100], () => daysTrained()],
   ['sessions', 'Focus', 'Full Session', 'check', 'planned sessions completed', [3, 15, 50, 120], () => S.stat.sessions],
@@ -365,7 +365,7 @@ function timerDone() {
     const ended = T.end || Date.now();
     T.mode = 'break'; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
     saveT(); save();
-    FXS.reveal('Set complete', `Lantern ${lifeSets()} lit`, sub);
+    FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub);
   } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); }
   render(); checkAch();
 }
@@ -442,8 +442,7 @@ function vHome() {
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
       h('p', { class: 'focus-meta' }, list.length ? "Today's sets are done. Recovery is part of the programme." : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
       h('div', { class: 'moon' }, icon('moon')),
-      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))),
-    todayStrip(todayN));
+      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))));
 
   const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
   const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
@@ -470,7 +469,6 @@ function vHome() {
     doNow(),
     motionHint(),
     missionCard(M, false),
-    todayStrip(todayN),
     quickWins());
 }
 function missionCard(M, live) {
@@ -502,12 +500,6 @@ function motionHint() {
   return h('div', { class: 'banner motion' }, icon('sparkle'), h('div', { class: 'grow' }, h('b', null, 'Animations are switched off on this device'),
     h('p', null, 'Your device asked apps to reduce motion, so Archeron is keeping still. Want the full animated version?'),
     h('div', { class: 'row' }, B([icon('sparkle'), 'Turn on animations'], 'motion', 'primary sm', { 'data-v': 'full' }), B('Keep it still', 'motion', 'ghost sm', { 'data-v': 'reduced' }))));
-}
-function todayStrip(n) {
-  const shown = Math.min(n, 12);
-  return h('div', { class: 'strip' },
-    h('div', { class: 'embers', 'aria-hidden': 'true' }, Array.from({ length: Math.max(shown, 1) }, (_, i) => h('i', { class: i < n ? 'lit' : '' }))),
-    h('span', null, n ? `${n} ${n === 1 ? 'set' : 'sets'} today` : 'Your first set today lights a lantern.'));
 }
 function quickWins() {
   const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
@@ -680,8 +672,8 @@ function emblemEl(id, cls = 'emb') {
   return e;
 }
 function vProfile() {
-  const life = lifeSets(), nt = nextTitle(life), CH = 20, chapter = Math.floor(life / CH) + 1, inCh = life % CH;
-  const stats = [['lantern', life, 'lanterns lit'], ['hourglass', fmtHours(S.focusMin), 'focused'], ['target', S.learnOk, 'questions right'], ['crown', masteredAll(), 'topics mastered'],
+  const life = lifeSets(), nt = nextTitle(life);
+  const stats = [['flame', life, 'sets finished'], ['hourglass', fmtHours(S.focusMin), 'focused'], ['target', S.learnOk, 'questions right'], ['crown', masteredAll(), 'topics mastered'],
     ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed'], ['crown', R0().hunt.best, 'best Hunt']];
   const cats = ['All', 'Focus', 'Learn', 'Exams', 'Realm'];
   const shown = ACH.filter(a => ACH_CAT === 'All' || a.cat === ACH_CAT);
@@ -691,15 +683,13 @@ function vProfile() {
       h('div', { class: 'id-txt' },
         h('input', { class: 'id-name', value: S.profile.name, placeholder: 'Your name', maxlength: 30, 'data-act': 'pname', 'aria-label': 'Your name' }),
         h('p', { class: 'id-title' }, R0().title ? COSMETICS[R0().title].name : titleFor(life)),
-        h('p', { class: 'muted xs' }, nt ? `${nt[0] - life} more lantern${nt[0] - life === 1 ? '' : 's'} to become ${nt[1]}` : 'The highest title on the river.'),
-        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('lantern'), life), h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('gem'), `${R0().shards} shards`), h('span', { class: 'lan-chip' }, icon('crown'), rank().name)))),
-    acc('emblems', [h('h2', null, 'Emblem'), h('span', { class: 'muted acc-r' }, 'unlocked by lanterns')],
+        h('p', { class: 'muted xs' }, nt ? `${nt[0] - life} more set${nt[0] - life === 1 ? '' : 's'} to become ${nt[1]}` : 'The highest title there is.'),
+        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('gem'), `${R0().shards} shards`), h('span', { class: 'lan-chip' }, icon('crown'), rank().name)))),
+    acc('emblems', [h('h2', null, 'Emblem'), h('span', { class: 'muted acc-r' }, 'unlocked by sets')],
       h('div', { class: 'emblems' }, EMBLEMS.map(([id, need]) => { const ok = life >= need;
-        return h('button', { type: 'button', class: 'emb-pick' + (S.profile.emblem === id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'emblem', 'data-id': id, disabled: !ok, 'aria-label': ok ? `Use ${id} emblem` : `Locked: light ${need} lanterns` },
+        return h('button', { type: 'button', class: 'emb-pick' + (S.profile.emblem === id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'emblem', 'data-id': id, disabled: !ok, 'aria-label': ok ? `Use ${id} emblem` : `Locked: finish ${need} sets` },
           emblemEl(id), !ok && h('small', null, need)); }))),
     h('div', { class: 'feats' }, stats.map(([ic, v, l]) => h('div', { class: 'feat' }, icon(ic), h('b', null, typeof v === 'number' ? h('span', { 'data-count': v }, v.toLocaleString('en-GB')) : v), h('span', null, l)))),
-    card(`The river · chapter ${chapter}`, h('span', { class: 'muted' }, `${inCh} of ${CH}`), riverSvg(inCh, CH),
-      h('p', { class: 'muted xs' }, 'Every set you finish lights a lantern. They never go out, and they unlock emblems.')),
     card('Achievements', h('span', { class: 'muted' }, `${badgeCount()} of ${badgeTotal} badges`),
       h('div', { class: 'chips scroll' }, cats.map(c => chip(c, c === ACH_CAT, 'achCat', { 'data-k': c }))),
       h('ul', { class: 'achs' }, shown.map(a => {
@@ -712,19 +702,6 @@ function vProfile() {
       return h('li', null, h('button', { type: 'button', 'data-act': 'subject', 'data-track': s.id }, icon(s.icon), h('span', null, s.name), h('small', null, `${m}/${ids.length}`)), bar(ids.length ? m / ids.length * 100 : 0)); }))),
     h('div', { class: 'row center' }, B([icon('user'), 'Settings and backup'], 'go', 'ghost', { 'data-tab': 'me' })));
 }
-function riverSvg(lit, N) {
-  const W = 400, H = 150, xs = i => 24 + i * ((W - 48) / (N - 1)), ys = i => 75 + 42 * Math.sin(i * .62);
-  let d = ''; for (let x = 0; x <= W; x += 4) { const i = (x - 24) / ((W - 48) / (N - 1)); d += (x ? ' L' : 'M') + x + ' ' + (75 + 42 * Math.sin(i * .62)).toFixed(1); }
-  let dots = '';
-  for (let i = 0; i < N; i++) {
-    const cls = i < lit ? 'lit' : i === lit ? 'next' : '';
-    dots += `<g class="lan ${cls}" style="--i:${i}"><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="11" class="glow"/><circle cx="${xs(i).toFixed(1)}" cy="${ys(i).toFixed(1)}" r="5" class="core"/></g>`;
-  }
-  const wrap = h('div', { class: 'river', role: 'img', 'aria-label': `${lit} of ${N} lanterns lit in this chapter` });
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><path d="${d}" class="water"/><path d="${d}" class="water2"/>${dots}</svg>`;
-  return wrap;
-}
-
 /* ---------- Toolkit ---------- */
 function vTools() {
   const dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
@@ -1276,14 +1253,11 @@ const VIEWS = { mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, 
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
-let shownLife = null;
 function hdr() {
-  const life = lifeSets(), el = $('#cd'), showMini = T.run && TAB !== 'home', grew = shownLife != null && life > shownLife;
-  shownLife = life;
+  const el = $('#cd'), showMini = T.run && TAB !== 'home';
   el.replaceChildren(
     showMini ? h('button', { type: 'button', class: 'mini-t', 'data-act': 'go', 'data-tab': 'home', 'aria-label': 'Back to the running timer' }, icon(T.mode === 'focus' ? 'flame' : 'moon'), h('span', { id: 'mt' }, fmt(Math.ceil(T.left)))) : '',
-    (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })(),
-    h('button', { type: 'button', class: 'lan-chip', 'data-act': 'go', 'data-tab': 'profile', 'aria-label': `${life} lanterns lit. Open profile` }, emblemEl(S.profile.emblem, 'emb sm'), digits(life, grew)));
+    (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })());
 }
 /* Transitions.dev "Tabs sliding": the pill is measured onto the active tab; snaps without animation on first paint and resize */
 function movePill(animate) {
@@ -1381,7 +1355,7 @@ const ACT = {
     else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a lantern.')) return; T.run = false; T.mode = 'focus'; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.left = tTotal(); T.sid = null; saveT(); render(); },
   skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.left = tTotal(); saveT(); } render(); },
   choose() { CHOOSE = !CHOOSE; render(); },
@@ -1581,7 +1555,7 @@ applyMotion(); applyTheme();
   const i = $('#intro'); if (!i) return;
   const end = () => { if (!i.isConnected) return; i.classList.add('out'); setTimeout(() => i.remove(), 600); };
   const w = $('#welcome'), name = S.profile.name;
-  if (w) { w.querySelector('.w1').textContent = name ? `Welcome, Magus ${name}` : 'Welcome, Magus'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} lantern${lifeSets() === 1 ? '' : 's'} lit · ${Math.max(0, daysToMocks())} days to mocks` : 'Your journey begins'; }
+  if (w) { w.querySelector('.w1').textContent = name ? `Welcome, Magus ${name}` : 'Welcome, Magus'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} set${lifeSets() === 1 ? '' : 's'} done · ${Math.max(0, daysToMocks())} days to mocks` : 'Your journey begins'; }
   if (REDUCED) { i.remove(); return; }
   i.addEventListener('click', end); setTimeout(end, 4000);
 })();

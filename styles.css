@@ -36,8 +36,6 @@ header{position:sticky;top:0;z-index:10;display:flex;justify-content:space-betwe
 .logo{display:flex;gap:10px;align-items:center;font-family:var(--serif);font-weight:700;letter-spacing:.28em;font-size:16px;color:var(--y2)}
 .logo svg{width:36px;fill:var(--y);filter:drop-shadow(0 0 12px rgba(var(--y-rgb),.45))}
 .cd{display:flex;align-items:center;gap:8px}
-.lan-chip,.mini-t{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--y-soft);color:var(--y2);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
-.lan-chip .i,.mini-t .i{width:16px;height:16px}
 .mini-t{cursor:pointer;background:rgba(var(--em-rgb),.12);animation:breathe 2.4s ease-in-out infinite}
 
 /* nav: bottom bar on phones, rail on desktop. Sliding pill: Transitions.dev "Tabs sliding" (see transitions.css) */
@@ -159,11 +157,6 @@ main{max-width:1120px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(16px,4vw,
 .focus.calm .moon{width:120px;height:120px;margin:28px auto;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 35%,rgba(176,164,255,.25),transparent 70%);color:var(--rest);animation:float 6s ease-in-out infinite}
 .focus.calm .moon .i{width:54px;height:54px;stroke-width:1.2}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.strip{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--m);font-size:14px;padding:4px 0}
-.embers{display:flex;gap:5px}
-.embers i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.08)}
-.embers i.lit{background:radial-gradient(circle,var(--hi),var(--y) 50%,var(--ember));box-shadow:0 0 10px rgba(var(--em-rgb),.7);animation:flicker 2.6s ease-in-out infinite}
-.embers i.lit:nth-child(2n){animation-delay:.7s}.embers i.lit:nth-child(3n){animation-delay:1.3s}
 @keyframes flicker{0%,100%{opacity:1}45%{opacity:.75}55%{opacity:.95}}
 .quick{display:flex;flex-direction:column;gap:10px;margin-top:6px}
 .quick .eyebrow{text-align:center;color:var(--m)}
@@ -244,16 +237,7 @@ main{max-width:1120px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(16px,4vw,
 .fb .row{margin-top:4px}
 
 /* ---------- Journey ---------- */
-.river svg{width:100%;height:auto;display:block;overflow:visible}
-.river .water{fill:none;stroke:rgba(var(--mist-rgb),.28);stroke-width:14;stroke-linecap:round}
-.river .water2{fill:none;stroke:rgba(var(--y2-rgb),.18);stroke-width:1.5;stroke-dasharray:3 9;animation:flow 6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-120}}
-.lan .core{fill:#1d1b25;stroke:rgba(255,255,255,.14);stroke-width:1.2}
-.lan .glow{fill:var(--y);opacity:0}
-.lan.lit .core{fill:var(--hi);stroke:var(--hi)}
-.lan.lit .glow{opacity:.28;animation:lanFlicker 3s ease-in-out infinite;animation-delay:calc(var(--i) * -.37s)}
-.lan.next .core{stroke:var(--y);stroke-dasharray:3 3;animation:spin 6s linear infinite;transform-box:fill-box;transform-origin:center}
-@keyframes lanFlicker{0%,100%{opacity:.22}50%{opacity:.4}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .feats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
 .feat{display:flex;flex-direction:column;gap:2px;padding:16px;border-radius:var(--r-sm);border:1px solid var(--line2);background:var(--card);backdrop-filter:blur(12px)}
@@ -427,7 +411,6 @@ dl.pl{margin:0 0 8px;display:grid;gap:4px}dl.pl dt{color:var(--y);font-size:12px
 .emb-pick.on{border-color:var(--y);box-shadow:0 0 18px rgba(var(--y-rgb),.4)}
 .emb-pick.locked{opacity:.4;cursor:default}
 .emb-pick small{position:absolute;bottom:-6px;right:-4px;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;background:var(--solid);border:1px solid var(--line2);color:var(--m)}
-.lan-chip{cursor:pointer;border:1px solid var(--line)}
 button.lan-chip{font:inherit;font-weight:700;font-size:14px}
 
 .achs{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
