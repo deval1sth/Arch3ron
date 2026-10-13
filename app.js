@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -97,7 +97,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, readyLog: {}, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
@@ -132,6 +132,7 @@ function normalize(raw) {
   s.realm = realmNorm(r.realm || null);
   for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
   s.sess = sessNorm(r.sess);
+  for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
   for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
   s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
   for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
@@ -442,7 +443,8 @@ function vHome() {
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
       h('p', { class: 'focus-meta' }, list.length ? "Today's sets are done. Recovery is part of the programme." : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
       h('div', { class: 'moon' }, icon('moon')),
-      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))));
+      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))),
+    todayBar());
 
   const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
   const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
@@ -466,6 +468,7 @@ function vHome() {
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
+    todayBar(),
     doNow(),
     motionHint(),
     missionCard(M, false),
@@ -1248,8 +1251,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const PARENT = { ready: 'home', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { ready: vReady, mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1257,7 +1260,8 @@ function hdr() {
   const el = $('#cd'), showMini = T.run && TAB !== 'home';
   el.replaceChildren(
     showMini ? h('button', { type: 'button', class: 'mini-t', 'data-act': 'go', 'data-tab': 'home', 'aria-label': 'Back to the running timer' }, icon(T.mode === 'focus' ? 'flame' : 'moon'), h('span', { id: 'mt' }, fmt(Math.ceil(T.left)))) : '',
-    (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })());
+    (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })(),
+    readyChip());
 }
 /* Transitions.dev "Tabs sliding": the pill is measured onto the active tab; snaps without animation on first paint and resize */
 function movePill(animate) {

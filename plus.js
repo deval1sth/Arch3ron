@@ -202,3 +202,77 @@ const PLUSACT = {
   weekFix() { const n = addFix(weekSlips().map(x => x[0]), 'Weekly review: kept slipping'); toast(n ? `${n} topic${n > 1 ? 's' : ''} added to next week` : 'Already in your fix queue'); render(); },
   weekNote() { S.notes[weekStart()] = str(DRAFT.wk || '', 2000).trim(); save(); toast('Reflection saved'); render(); }
 };
+
+/* ---------- Mock readiness: one number for "how ready am I for January", built from things you control ---------- */
+/* Per subject: grade on papers vs your aim (50), what you have learned (30), timed mocks sat (20). Maths counts double: it is the top priority. */
+const READY_W = { grade: 50, know: 30, mocks: 20 }, READY_MOCKS = 3;
+const subjWeight = s => s === 'Maths' ? 2 : 1;
+let READY_C = null;
+function readiness() {
+  const sig = `${S.scores.length}|${Object.keys(S.items).length}|${Object.values(S.items).reduce((a, m) => a + m[0] + m[2], 0)}|${Object.values(S.skill).reduce((a, k) => a + k.n, 0)}|${JSON.stringify(S.grades)}|${JSON.stringify(S.hidden)}`;
+  if (READY_C && READY_C.sig === sig && READY_C.day === dkey()) return READY_C;
+  const BK = LEARN.bank(), rows = SUBJ.map(subj => {
+    let L = 0, T = 0;
+    for (const s of LEARN.SUBJECTS.filter(x => x.subj === subj)) {
+      const b = BK[s.id] || {}, keys = [...(b.def || []), ...(b.recall || []), ...(b.eq || []), ...(b.vocab || [])], calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc' && !S.hidden[id]);
+      L += keys.filter(learned).length + masteredIn(calc); T += keys.length + calc.length;
+    }
+    const p = predict(subj), aim = aimOf(subj), need = boundFor(subj, aim), timed = S.scores.filter(x => x.subj === subj && /\(timed\)/.test(x.paper)).length;
+    const parts = { grade: p ? Math.min(1, p.pc / need) : 0, know: T ? L / T : 0, mocks: Math.min(1, timed / READY_MOCKS) };
+    const pct = Object.keys(READY_W).reduce((a, k) => a + parts[k] * READY_W[k], 0);
+    return { subj, p, aim, need, timed, L, T, parts, pct, w: subjWeight(subj) };
+  });
+  const W = rows.reduce((a, r) => a + r.w, 0), pct = Math.round(rows.reduce((a, r) => a + r.pct * r.w, 0) / W);
+  /* every gap, as overall points you would gain by closing it */
+  const wins = [];
+  for (const r of rows) for (const k of Object.keys(READY_W)) { const gain = (1 - r.parts[k]) * READY_W[k] * r.w / W; if (gain >= .5) wins.push({ r, k, gain }); }
+  wins.sort((a, b) => b.gain - a.gain);
+  if (S.readyLog[dkey()] !== pct) S.readyLog[dkey()] = pct; /* one snapshot a day, saved with the next save */
+  return READY_C = { sig, day: dkey(), pct, rows, wins };
+}
+const readyTier = p => p >= 90 ? 'Mock ready' : p >= 75 ? 'Nearly there' : p >= 50 ? 'Getting there' : p >= 25 ? 'Building' : 'Just starting';
+const readyAgo = days => { const keys = Object.keys(S.readyLog).filter(k => k <= addDays(-days)).sort(); return keys.length ? S.readyLog[keys[keys.length - 1]] : null; };
+function readyChip() {
+  const R = readiness();
+  return h('button', { type: 'button', class: 'rd-chip', 'data-act': 'go', 'data-tab': 'ready', 'aria-label': `Mock readiness ${R.pct}%. ${readyTier(R.pct)}. Open the breakdown` },
+    h('span', { class: 'rd-mini', style: `--p:${R.pct}` }), h('b', null, R.pct + '%'), h('span', { class: 'rd-l' }, 'ready'));
+}
+function winRow(w) {
+  const { r, k } = w, s = r.subj, sid = LEARN.SUBJECTS.find(x => x.subj === s).id;
+  const t = k === 'grade' ? (r.p ? `Lift ${s} from ${r.p.pc}% to ${r.need}% on papers` : `Sit your first ${s} mock`)
+    : k === 'know' ? `Learn more ${s}: ${r.L} of ${r.T} done` : `Sit ${READY_MOCKS - r.timed} more timed ${s} mock${READY_MOCKS - r.timed > 1 ? 's' : ''}`;
+  const why = k === 'grade' ? (r.p ? `That is grade ${r.aim}, your aim.` : 'Until you sit one, this part counts as zero.') : k === 'know' ? 'Questions in Learn and revision sessions move this.' : 'Practising under time pressure is what mocks test.';
+  const btn = k === 'know' ? B([icon('play'), 'Practise'], 'readyDrill', 'ghost sm', { 'data-track': sid }) : B([icon('flame'), 'Mock'], 'mockGo', 'ghost sm', { 'data-subj': s });
+  return h('li', null, h('span', { class: 'rw-gain' }, `+${Math.round(w.gain)}`), h('div', { class: 'grow' }, h('b', null, t), h('small', null, why)), btn);
+}
+function vReady() {
+  const R = readiness(), wk = readyAgo(7), d = wk == null ? null : R.pct - wk, days = daysToMocks();
+  const log = Array.from({ length: 28 }, (_, i) => S.readyLog[addDays(i - 27)]), have = log.filter(v => v != null);
+  return h('div', { class: 'stack narrow' },
+    subHero('Focus', 'Mock readiness', 'home', null, 'Focus'),
+    h('section', { class: 'card rd-hero' },
+      h('div', { class: 'rd-ring', style: `--p:${R.pct}`, role: 'img', 'aria-label': `${R.pct}% ready` }, h('div', null, h('b', null, R.pct + '%'), h('small', null, 'ready'))),
+      h('h2', null, readyTier(R.pct)),
+      h('p', { class: 'muted' }, d == null ? 'Your score is tracked daily from today, so you can watch it climb.' : d > 0 ? `Up ${d} points in the last week.` : d < 0 ? `Down ${-d} points in the last week. Old weak spots creep back; a few fixes win them back.` : 'Level with last week.',
+        days > 0 ? ` ${days} days to your mocks.` : ''),
+      have.length > 1 && h('div', { class: 'rd-spark', 'aria-hidden': 'true' }, log.map(v => h('i', { style: v == null ? 'opacity:0' : `height:${Math.max(6, v / Math.max(...have) * 100)}%`, title: `${v}%` })))),
+    card('Biggest wins', h('span', { class: 'muted' }, 'points you would gain'), R.wins.length
+      ? h('ul', { class: 'rwins' }, R.wins.slice(0, 4).map(winRow)) : h('p', { class: 'muted' }, 'Nothing left to win. You are ready.')),
+    card('By subject', h('span', { class: 'muted' }, 'Maths counts double'), h('ul', { class: 'rsubs' }, R.rows.slice().sort((a, b) => a.pct - b.pct).map(r => h('li', null,
+      h('div', { class: 'rs-h' }, h('b', null, r.subj), h('span', { class: 'rs-p' }, Math.round(r.pct) + '%')),
+      h('div', { class: 'rs-bars' }, [['grade', 'Grade', r.p ? `${r.p.pc}% of ${r.need}%` : 'no mock'], ['know', 'Learned', `${Math.round(r.parts.know * 100)}%`], ['mocks', 'Mocks', `${Math.min(r.timed, READY_MOCKS)} of ${READY_MOCKS}`]].map(([k, l, v]) =>
+        h('div', { class: 'rs-b' }, h('div', { class: 'rs-bl' }, h('span', null, l), h('small', null, v)), h('div', { class: 'bar' }, h('i', { style: `width:${r.parts[k] * 100}%` }))))))))),
+    acc('ready-how', h('b', null, 'How the score works'), h('div', { class: 'muted xs' },
+      h('p', null, 'Each subject scores out of 100: 50 for how close your recent paper scores are to the grade you are aiming for, 30 for how much of the subject you have learned in Learn, and 20 for sitting 3 timed mocks.'),
+      h('p', null, 'Maths counts double because a grade 4 means no resit. Aims come from your target grades in Settings. Every set of practice moves it; 100% means your papers already hit every aim.'))));
+}
+/* Today's sets: one segment per planned set, bonus sets after them */
+function todayBar() {
+  const plan = todayTrain().reduce((a, x) => a + x.n, 0), done = setsOn(dkey()), n = Math.min(16, Math.max(plan, done, 1));
+  const msg = !plan ? (done ? `${done} bonus set${done > 1 ? 's' : ''} on a rest day` : 'Rest day. A bonus set still counts.')
+    : done >= plan ? (done > plan ? `Plan done, plus ${done - plan} bonus` : 'Plan complete for today') : `${plan - done} to go`;
+  return h('button', { type: 'button', class: 'tbar', 'data-act': 'go', 'data-tab': 'today', 'aria-label': `Today: ${done} of ${plan} sets. ${msg}. Open today's plan` },
+    h('div', { class: 'tb-h' }, h('span', null, 'Today'), h('b', null, `${done} / ${plan} sets`), h('small', null, msg)),
+    h('div', { class: 'tb-segs' }, Array.from({ length: n }, (_, i) => h('i', { class: i < Math.min(done, plan) ? 'on' : i < done ? 'bonus' : '' }))));
+}
+PLUSACT.readyDrill = el => { startDrill(el.dataset.track, null, 'learn'); go('drill', '#ans'); };
