@@ -20,6 +20,7 @@ const THEMES = [['ember', 'Ember Gold', '#e8c06a', '#ff8a3d'], ['amethyst', 'Ame
 function applyTheme() {
   const t = (S && S.theme) || 'ember', root = document.documentElement;
   if (t === 'ember') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+  root.dataset.text = (S && S.text) || 'normal';
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#07070b');
   if (FXS.refresh) FXS.refresh();
 }
@@ -83,7 +84,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -97,7 +98,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, readyLog: {}, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, readyLog: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
@@ -132,6 +133,9 @@ function normalize(raw) {
   s.realm = realmNorm(r.realm || null);
   for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
   s.sess = sessNorm(r.sess);
+  s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : '';
+  s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal';
+  { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; }
   for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
   for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
   s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
@@ -438,6 +442,7 @@ function vHome() {
         h('span', null, h('b', null, 'Open a chest while you rest'), h('small', null, `${R0().chests.length} waiting in The Realm`)))));
 
   if (restState) return h('div', { class: 'stack home' },
+    resumeCard(), backupNag(),
     h('section', { class: 'focus calm' },
       h('p', { class: 'eyebrow' }, part),
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
@@ -457,6 +462,7 @@ function vHome() {
     missionCard(M, true));
 
   return h('div', { class: 'stack home' },
+    resumeCard(),
     h('section', { class: 'focus' },
       h('p', { class: 'eyebrow' }, `${part} · next up`),
       h('h1', { class: 'focus-title' }, title),
@@ -469,6 +475,7 @@ function vHome() {
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
     todayBar(),
+    backupNag(),
     doNow(),
     motionHint(),
     missionCard(M, false),
@@ -1122,7 +1129,7 @@ function vCards() {
       h('div', { class: 'row center rate', id: 'rate', hidden: !CD.flip },
         B('Again soon', 'rate', 'ghost', { 'data-ok': 0 }), B('Got it', 'rate', 'primary', { 'data-ok': 1 })),
       h('div', { class: 'boxes', 'aria-label': `Box ${box} of 5` }, [0, 1, 2, 3, 4, 5].map(b => h('i', { class: b <= box ? 'on' : '' }))),
-      h('p', { class: 'muted center xs' }, `${list.length} to review · keys: space flips, 1 again, 2 got it`)];
+      h('p', { class: 'muted center xs' }, `${list.length} to review · after flipping, swipe right if you got it, left for again`)];
   }
   const C = DRAFT.card, mine = S.custom[CD.deck] || [];
   return h('div', { class: 'stack narrow' },
@@ -1242,7 +1249,9 @@ function vMe() {
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
         card('Mocks', null, field('First mock exam', h('input', { type: 'date', value: S.mock, 'data-act': 'mock' })), h('p', { class: 'muted xs' }, 'Used for the trend line on your score chart.')),
-        card('Backup', null, h('p', { class: 'muted xs' }, 'Progress lives in this browser. Back up weekly, and use it to move devices.'),
+        card('Text size', null, h('p', { class: 'muted xs' }, 'Makes guides, questions and sources bigger. The top bar and tabs stay the same.'),
+          h('div', { class: 'chips' }, TEXT_SIZES.map(([v, l]) => chip(l, (S.text || 'normal') === v, 'textSize', { 'data-v': v })))),
+        card('Backup', h('span', { class: 'muted' }, backupLine()), h('p', { class: 'muted xs' }, 'Progress lives only on this device. Back up weekly: on a phone, choose Save to Files or Google Drive. Restore it on any device.'),
           h('div', { class: 'row' }, B([icon('download'), 'Download'], 'exp', 'primary'),
             h('label', { class: 'btn ghost' }, icon('upload'), 'Restore', h('input', { type: 'file', accept: '.json,application/json', 'data-act': 'imp', class: 'sr' })))),
         card('Install', null, h('p', { class: 'muted xs' }, h('b', null, 'iPhone: '), 'Safari → Share → Add to Home Screen.', h('br'), h('b', null, 'Android: '), 'Chrome menu ⋮ → Install app.')),
@@ -1252,13 +1261,14 @@ function vMe() {
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
 const PARENT = { ready: 'home', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { ready: vReady, mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const VIEWS = { search: vSearch, ready: vReady, mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
 function hdr() {
   const el = $('#cd'), showMini = T.run && TAB !== 'home';
   el.replaceChildren(
+    searchBtn(),
     showMini ? h('button', { type: 'button', class: 'mini-t', 'data-act': 'go', 'data-tab': 'home', 'aria-label': 'Back to the running timer' }, icon(T.mode === 'focus' ? 'flame' : 'moon'), h('span', { id: 'mt' }, fmt(Math.ceil(T.left)))) : '',
     (() => { const dl = daysToMocks(); return dl > 0 ? h('button', { type: 'button', class: 'cd-chip', 'data-act': 'go', 'data-tab': 'me', 'aria-label': `${dl} days until your mocks. Change the date in Settings` }, icon('hourglass'), h('b', null, dl), h('span', { class: 'cd-l' }, dl === 1 ? 'day to mocks' : 'days to mocks')) : dl > -21 ? h('span', { class: 'cd-chip' }, icon('hourglass'), h('b', null, 'Mocks')) : ''; })(),
     readyChip());
@@ -1473,10 +1483,8 @@ const ACT = {
     for (const s of SUBJ) { const g = DRAFT.grades[s]; S.grades[s] = { cur: str(g.cur, 8).trim(), tgt: str(g.tgt, 8).trim(), pct: g.pct === '' ? '' : String(clamp(Math.round(+g.pct || 0), 0, 100)) }; }
     DRAFT.grades = null; save(); toast('Grades saved on this device'); render();
   },
-  exp() {
-    const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }), a = h('a', { href: URL.createObjectURL(b), download: 'archeron-backup-' + dkey() + '.json' });
-    document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  },
+  /* exp (backup) lives in plus.js: share sheet on phones, download elsewhere */
+
   reset() {
     if (!confirm('Wipe ALL progress on this device? Download a backup first.')) return;
     try { [K, OLD, TK, TABK].forEach(k => localStorage.removeItem(k)); } catch (e) {}
@@ -1515,9 +1523,9 @@ CHG.sessTick = STUDYACT.sessTick; /* checkbox: arrives as a change event, not a 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.matches('input, select, textarea') || el.disabled) return;
-  const f = ACT[el.dataset.act]; if (f) { f(el, e); checkAch(); }
+  if (ACT[el.dataset.act]) runAct(el.dataset.act, el, e);
 });
-document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { f(el); checkAch(); } });
+document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { withUndo(el.dataset.act, () => f(el)); checkAch(); } });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.draft) setPath(DRAFT, el.dataset.draft, el.value); });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
@@ -1578,9 +1586,14 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloading) return;
-    const reload = () => { if (!T.run && !RF) { reloading = true; location.reload(); } else setTimeout(reload, 5000); };
-    reload();
+    if (performance.now() < 6000 && !T.run && !RF) { reloading = true; try { sessionStorage.setItem('archeron-updated', '1'); } catch (e) {} location.reload(); } /* just opened: update straight away */
+    else showUpdate(); /* in the middle of something: ask instead */
   });
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    const check = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    setInterval(check, 30 * 60e3);
+  }).catch(() => {});
+  try { if (sessionStorage.getItem('archeron-updated')) { sessionStorage.removeItem('archeron-updated'); setTimeout(() => toast('Archeron updated to the latest version'), 1200); } } catch (e) {}
 }
 window.ARCHERON_OK = true;

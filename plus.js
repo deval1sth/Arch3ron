@@ -276,3 +276,183 @@ function todayBar() {
     h('div', { class: 'tb-segs' }, Array.from({ length: n }, (_, i) => h('i', { class: i < Math.min(done, plan) ? 'on' : i < done ? 'bonus' : '' }))));
 }
 PLUSACT.readyDrill = el => { startDrill(el.dataset.track, null, 'learn'); go('drill', '#ans'); };
+
+/* ---------- Undo: snapshot before quick, easy-to-mis-tap actions; one tap puts everything back ---------- */
+const UNDO_MSG = { tick: 'Set ticked', fin: 'Finisher updated', chk: 'Checklist updated', conf: 'Confidence updated', rate: 'Card rated', delCard: 'Card deleted', lostDel: 'Removed',
+  delScore: 'Score deleted', misOk: 'Marked as fixed', misAgain: 'Sent back to redo', misDel: 'Mistake deleted', planDel: 'Session removed', planSets: 'Sets changed', planMove: 'Session moved',
+  pbDel: 'Plan deleted', sessTick: 'Step updated', hide: 'Topic setting changed' };
+let UNDO_SNAP = null;
+function withUndo(name, fn) {
+  if (!UNDO_MSG[name]) return fn();
+  const snap = JSON.stringify(S); fn();
+  if (JSON.stringify(S) !== snap) undoToast(UNDO_MSG[name], snap);
+}
+function runAct(name, el, e) { withUndo(name, () => ACT[name](el, e)); checkAch(); }
+function undoToast(msg, snap) {
+  document.querySelectorAll('#toasts .undo').forEach(t => t.remove());
+  UNDO_SNAP = snap;
+  const t = h('div', { class: 'toast t-toast undo' }, h('span', null, msg), h('button', { type: 'button', class: 'undo-b', 'data-act': 'undo' }, icon('back'), 'Undo'));
+  $('#toasts').append(t); requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('is-open')));
+  setTimeout(() => { t.classList.remove('is-open'); setTimeout(() => t.remove(), 300); }, 5000);
+}
+PLUSACT.undo = () => {
+  if (!UNDO_SNAP) return;
+  S = normalize(JSON.parse(UNDO_SNAP)); UNDO_SNAP = null; READY_C = null; save();
+  document.querySelectorAll('#toasts .undo').forEach(t => t.remove()); toast('Undone'); render();
+};
+
+/* ---------- Backup reminder ---------- */
+const daysSince = k => isKey(k) ? Math.round((parseKey(dkey()) - parseKey(k)) / 864e5) : null;
+function backupNag() {
+  const since = daysSince(S.lastBackup), worth = lifeSets() + S.scores.length + Object.keys(S.items).length >= 5;
+  if (!worth || (since != null && since < 7) || (daysSince(S.backupSnooze) ?? 99) < 3) return null;
+  return h('section', { class: 'card nag' }, h('span', { class: 'nag-ic' }, icon('shield')),
+    h('div', { class: 'grow' }, h('b', null, since == null ? 'You have never backed up' : `Last backup ${since} days ago`),
+      h('p', { class: 'muted xs' }, 'Your progress lives only on this phone. One tap saves a copy you can restore anywhere.'),
+      h('div', { class: 'row' }, B([icon('download'), 'Back up now'], 'exp', 'primary sm'), B('Later', 'backupLater', 'link'))));
+}
+const backupLine = () => { const d = daysSince(S.lastBackup); return d == null ? 'Never backed up on this device.' : d === 0 ? 'Last backup: today.' : `Last backup: ${d} day${d > 1 ? 's' : ''} ago.`; };
+async function backupNow() {
+  const name = 'archeron-backup-' + dkey() + '.json', json = JSON.stringify(S, null, 1);
+  try { /* phones: the share sheet offers Save to Files / Drive, which survives losing the browser */
+    const f = new File([json], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [f] }) && matchMedia('(pointer:coarse)').matches) { await navigator.share({ files: [f], title: 'Archeron backup' }); return true; }
+  } catch (e) { if (e && e.name === 'AbortError') return false; }
+  const a = h('a', { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); return true;
+}
+PLUSACT.backupLater = () => { S.backupSnooze = dkey(); save(); render(); };
+
+/* ---------- Search everything ---------- */
+let SIDX = null;
+function searchIndex() {
+  if (!SIDX) {
+    SIDX = []; const lines = t => String(t).split('\n').map(l => l.trim()).filter(l => l && l.includes('|'));
+    for (const g of STUDY) SIDX.push({ k: 'Guide', t: g.title, d: g.lead, s: (SUBJ_BY[g.subj] || {}).name || '', body: g.body, gid: g.id });
+    for (const src of [DEFS, typeof DEFS_MORE !== 'undefined' ? DEFS_MORE : {}]) for (const [id, [, title, txt]] of Object.entries(src)) for (const l of lines(txt)) { const [t, d] = l.split('|'); SIDX.push({ k: 'Definition', t, d, s: title, topic: id }); }
+    for (const [id, [, title, txt]] of Object.entries(BANKS)) for (const l of lines(txt)) { const [t, d] = l.split('|'); SIDX.push({ k: 'Fact', t, d, s: title, topic: id }); }
+    for (const [id, [title, txt]] of Object.entries(VOCAB)) for (const l of lines(txt)) { const [t, m, ex] = l.split('|'); SIDX.push({ k: 'Word', t, d: `${m}. "${ex}"`, s: title, topic: id }); }
+  }
+  const decks = [];
+  for (const k of ['mac', 'acc', 'je', 'phy', 'mat', 'my']) if (DECKS[k]) for (const c of cardsOf(k)) decks.push({ k: k === 'phy' || k === 'mat' ? 'Formula' : k === 'my' ? 'My card' : 'Quote', t: c.f, d: c.b, s: DECKS[k].name, deck: k });
+  return SIDX.concat(decks); /* decks rebuilt each time: your own cards change */
+}
+function searchFind(q) {
+  const terms = q.toLowerCase().split(/\s+/).filter(w => w.length > 1); if (!terms.length) return [];
+  const out = [];
+  for (const it of searchIndex()) {
+    const T = it.t.toLowerCase(), D = (it.d + ' ' + it.s).toLowerCase(), B = it.body ? it.body.toLowerCase() : '';
+    if (!terms.every(w => T.includes(w) || D.includes(w) || B.includes(w))) continue;
+    let sc = terms.reduce((a, w) => a + (T.startsWith(w) ? 60 : T.includes(w) ? 30 : D.includes(w) ? 8 : 2), 0);
+    if (T === q.toLowerCase()) sc += 100;
+    if (it.k === 'Guide') sc += 5;
+    out.push([sc, it]);
+  }
+  return out.sort((a, b) => b[0] - a[0]).slice(0, 40).map(x => x[1]);
+}
+function mark(text, q) { /* highlight matches without innerHTML */
+  const terms = q.toLowerCase().split(/\s+/).filter(w => w.length > 1).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return text;
+  return String(text).split(new RegExp(`(${terms.join('|')})`, 'gi')).map((p, i) => i % 2 ? h('mark', null, p) : p);
+}
+function snippet(body, q) {
+  const w = q.toLowerCase().split(/\s+/).find(x => x.length > 1 && body.toLowerCase().includes(x)); if (!w) return null;
+  const i = body.toLowerCase().indexOf(w), a = Math.max(0, i - 60), b = Math.min(body.length, i + 90);
+  return (a ? '…' : '') + body.slice(a, b).replace(/^[#>!*?-]+\s*/gm, '').replace(/\s+/g, ' ').trim() + (b < body.length ? '…' : '');
+}
+function searchResults(q) {
+  const res = searchFind(q);
+  if (!q.trim()) return h('div', { id: 'sres', class: 'sres' }, h('p', { class: 'muted' }, 'Search every guide, definition, key fact, formula, quote and descriptive word.'),
+    h('div', { class: 'chips' }, ['osmosis', 'Lady Macbeth', 'percentage', 'tectonic', 'speed', 'Stanhope'].map(s => chip(s, false, 'searchTry', { 'data-q': s }))));
+  if (!res.length) return h('div', { id: 'sres', class: 'sres' }, h('p', { class: 'muted' }, `Nothing matches "${q}". Try a shorter word or a different spelling.`));
+  return h('div', { id: 'sres', class: 'sres' }, h('p', { class: 'muted xs' }, `${res.length === 40 ? '40+' : res.length} result${res.length > 1 ? 's' : ''}`),
+    h('ul', { class: 'slist' }, res.map(it => {
+      const extra = it.k === 'Guide' && !it.t.toLowerCase().includes(q.toLowerCase()) && !it.d.toLowerCase().includes(q.toLowerCase()) ? snippet(it.body, q) : null;
+      const btn = it.gid ? B([icon('book'), 'Open guide'], 'guide', 'ghost sm', { 'data-id': it.gid }) : it.topic && LEARN.TOPIC[it.topic] ? B([icon('play'), 'Practise'], 'searchDrill', 'ghost sm', { 'data-topic': it.topic })
+        : it.deck ? B([icon('cards'), 'Flashcards'], 'searchDeck', 'ghost sm', { 'data-deck': it.deck }) : null;
+      return h('li', null, h('div', { class: 'sl-h' }, h('span', { class: 'pill' }, it.k), h('small', { class: 'muted' }, it.s)),
+        h('b', null, mark(it.t, q)), h('p', null, mark(it.d, q)), extra && h('p', { class: 'muted xs' }, mark(extra, q)), btn);
+    })));
+}
+function vSearch() {
+  return h('div', { class: 'stack narrow' },
+    h('div', { class: 'sbox' }, icon('search'), h('input', { id: 'q', type: 'search', value: DRAFT.q || '', placeholder: 'Search guides, definitions, quotes…', autocomplete: 'off', enterkeyhint: 'search', 'aria-label': 'Search' }),
+      DRAFT.q ? B(icon('x'), 'searchClear', 'ghost icon-only', { 'aria-label': 'Clear search' }) : null),
+    searchResults(DRAFT.q || ''));
+}
+document.addEventListener('input', e => { if (e.target.id === 'q') { DRAFT.q = e.target.value; const r = $('#sres'); if (r) r.replaceWith(searchResults(DRAFT.q)); } });
+document.addEventListener('keydown', e => { if (e.key === '/' && !e.target.matches('input, textarea, select')) { e.preventDefault(); go('search', '#q'); } });
+Object.assign(PLUSACT, {
+  searchOpen() { go('search', '#q'); setTimeout(() => { const q = $('#q'); if (q && document.activeElement !== q) q.focus({ preventScroll: true }); }, 350); }, /* view transitions can finish after go() tries to focus */
+  searchTry(el) { DRAFT.q = el.dataset.q; render({ focus: '#q' }); },
+  searchClear() { DRAFT.q = ''; render({ focus: '#q' }); },
+  searchDrill(el) { startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic, 'learn'); go('drill', '#ans'); },
+  searchDeck(el) { CD.deck = el.dataset.deck; CD.i = 0; CD.flip = false; go('cards'); },
+  exp() { backupNow().then(ok => { if (ok) { S.lastBackup = dkey(); save(); toast('Backup saved'); render(); } }); }
+});
+ICONS.search = ['M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z', 'M20 20l-4.2-4.2'];
+const searchBtn = () => h('button', { type: 'button', class: 'srch-b', 'data-act': 'searchOpen', 'aria-label': 'Search everything' }, icon('search'));
+
+/* ---------- Pick up where you left off ---------- */
+let RESUME_HIDE = false;
+function resumeCard() {
+  if (RESUME_HIDE) return null;
+  let t, sub, btn;
+  const ex = S.exam && paperOf(S.exam.pid);
+  if (ex) {
+    const left = S.exam.end ? mockLeftS(S.exam) : null;
+    t = `${S.exam.end ? 'Mock' : 'Paper'} in progress: ${ex.name}`; sub = `Question ${S.exam.i + 1} of ${ex.qs.length}${left != null ? (left > 0 ? ` · ${Math.ceil(left / 60)} min left on the clock` : ' · time is up, mark what you wrote') : ''}`;
+    btn = B([icon('play'), 'Carry on'], 'exStart', 'primary sm', { 'data-id': ex.id });
+  } else if (S.mp) { t = 'Generated Maths paper in progress'; sub = `Question ${S.mp.i + 1} of ${S.mp.qs.length}`; btn = B([icon('play'), 'Carry on'], 'mpResume', 'primary sm'); }
+  else if (S.resume && STUDY_BY[S.resume.g] && !S.read[S.resume.g] && daysSince(S.resume.at) <= 2) {
+    t = `Carry on reading: ${STUDY_BY[S.resume.g].title}`; sub = 'You opened this guide but have not marked it read.'; btn = B([icon('book'), 'Open'], 'guide', 'primary sm', { 'data-id': S.resume.g });
+  } else return null;
+  return h('section', { class: 'card resume' }, h('span', { class: 'nag-ic' }, icon('play')),
+    h('div', { class: 'grow' }, h('p', { class: 'eyebrow' }, 'Pick up where you left off'), h('b', null, t), h('small', { class: 'muted' }, sub), h('div', { class: 'row' }, btn)),
+    B(icon('x'), 'resumeHide', 'ghost icon-only', { 'aria-label': 'Hide' }));
+}
+PLUSACT.resumeHide = () => { RESUME_HIDE = true; render(); };
+{ const g0 = STUDYACT.guide; STUDYACT.guide = el => { S.resume = { g: el.dataset.id, at: dkey() }; save(); g0(el); }; }
+
+/* ---------- Swipe flashcards: right = got it, left = again ---------- */
+let SW = null, SWIPED = false;
+document.addEventListener('pointerdown', e => { const c = e.target.closest('.flash'); if (c && c.classList.contains('flipped')) SW = { c, x: e.clientX, y: e.clientY, dx: 0 }; });
+document.addEventListener('pointermove', e => {
+  if (!SW) return; SW.dx = e.clientX - SW.x;
+  if (Math.abs(SW.dx) < 8 || Math.abs(e.clientY - SW.y) > Math.abs(SW.dx) * 1.2) return;
+  SW.c.style.transition = 'none'; SW.c.style.transform = `translateX(${SW.dx}px) rotate(${SW.dx / 22}deg)`;
+  SW.c.dataset.swipe = SW.dx > 40 ? 'ok' : SW.dx < -40 ? 'no' : '';
+});
+document.addEventListener('pointerup', () => {
+  if (!SW) return; const { c, dx } = SW; SW = null;
+  if (Math.abs(dx) > 90) {
+    SWIPED = true; setTimeout(() => { SWIPED = false; }, 400);
+    c.style.transition = 'transform .25s ease-in, opacity .25s'; c.style.transform = `translateX(${dx > 0 ? 520 : -520}px) rotate(${dx > 0 ? 18 : -18}deg)`; c.style.opacity = '0';
+    setTimeout(() => runAct('rate', { dataset: { ok: dx > 0 ? '1' : '0' } }), 200);
+  } else { c.style.transition = ''; c.style.transform = ''; c.dataset.swipe = ''; }
+});
+document.addEventListener('pointercancel', () => { if (SW) { SW.c.style.transform = ''; SW.c.dataset.swipe = ''; SW = null; } });
+document.addEventListener('click', e => { if (SWIPED && e.target.closest('.flash')) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+/* ---------- Focus lock: no reward pop-ups during a focus set or a timed mock; they are shown after ---------- */
+const quietNow = () => !!((S.exam && S.exam.end && Date.now() < S.exam.end) || (T.run && T.mode === 'focus'));
+const HELD = [];
+if (typeof FX !== 'undefined') { const rev = FX.reveal; FX.reveal = (a, b, c) => quietNow() ? void HELD.push(b ? `${a}: ${b}` : a) : rev(a, b, c); } /* FXS in app.js is this same object */
+{ const gc = giveChest; giveChest = (type, why) => { if (!quietNow()) return gc(type, why); const R = R0(); R.chests.push(type); R.stat.chests++; HELD.push(`${CHESTS[type].name} (${why})`); }; }
+setInterval(() => {
+  const lock = !!(S.exam && S.exam.end && Date.now() < S.exam.end && TAB === 'examq');
+  document.body.classList.toggle('lockdown', lock);
+  if (!quietNow() && HELD.length) { const n = HELD.length; toast(n === 1 ? `While you focused: ${HELD[0]}` : `While you focused you earned ${n} rewards. See Profile and The Realm.`, 'big'); HELD.length = 0; }
+}, 1000);
+
+/* ---------- Text size ---------- */
+const TEXT_SIZES = [['normal', 'Normal'], ['large', 'Large'], ['xl', 'Extra large']];
+PLUSACT.textSize = el => { S.text = el.dataset.v; save(); applyTheme(); render(); };
+
+/* ---------- Update ready ---------- */
+function showUpdate() {
+  if ($('#upd')) return;
+  document.body.append(h('div', { id: 'upd', class: 'upd', role: 'status' }, icon('sparkle'), h('span', null, h('b', null, 'A new version is ready'), h('small', null, 'Refresh when you are free. Nothing is lost.')),
+    h('button', { type: 'button', class: 'btn primary sm', 'data-act': 'appReload' }, 'Refresh')));
+}
+PLUSACT.appReload = () => { try { sessionStorage.setItem('archeron-updated', '1'); } catch (e) {} location.reload(); };
