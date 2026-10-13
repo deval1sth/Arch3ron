@@ -98,7 +98,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, readyLog: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, readyLog: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
@@ -134,7 +134,7 @@ function normalize(raw) {
   for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
   s.sess = sessNorm(r.sess);
   s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : '';
-  s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal';
+  s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal'; s.seb = r.seb !== false;
   { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; }
   for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
   for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
@@ -439,10 +439,12 @@ function vHome() {
       h('p', { class: 'focus-meta' }, 'Stand up, drink water, look at something far away.'), ringEl(),
       h('div', { class: 'row center' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'begin sm'), B([icon('skip'), 'Skip rest'], 'skip', 'ghost')),
       R0().chests.length > 0 && h('button', { type: 'button', class: 'practise', 'data-act': 'go', 'data-tab': 'realm' }, icon('gem'),
-        h('span', null, h('b', null, 'Open a chest while you rest'), h('small', null, `${R0().chests.length} waiting in The Realm`)))));
+        h('span', null, h('b', null, 'Open a chest while you rest'), h('small', null, `${R0().chests.length} waiting in The Realm`)))),
+    sebastian('break'));
 
   if (restState) return h('div', { class: 'stack home' },
     resumeCard(), backupNag(),
+    sebastian(),
     h('section', { class: 'focus calm' },
       h('p', { class: 'eyebrow' }, part),
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
@@ -477,6 +479,7 @@ function vHome() {
     todayBar(),
     backupNag(),
     doNow(),
+    sebastian(),
     motionHint(),
     missionCard(M, false),
     quickWins());
@@ -1249,6 +1252,8 @@ function vMe() {
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
         card('Mocks', null, field('First mock exam', h('input', { type: 'date', value: S.mock, 'data-act': 'mock' })), h('p', { class: 'muted xs' }, 'Used for the trend line on your score chart.')),
+        card('Sebastian', null, h('p', { class: 'muted xs' }, 'The resident rat on Focus. Purely for fun.'),
+          h('div', { class: 'chips' }, chip('Show him', S.seb !== false, 'sebShow', { 'data-v': '1' }), chip('Hide him', S.seb === false, 'sebShow', { 'data-v': '0' }))),
         card('Text size', null, h('p', { class: 'muted xs' }, 'Makes guides, questions and sources bigger. The top bar and tabs stay the same.'),
           h('div', { class: 'chips' }, TEXT_SIZES.map(([v, l]) => chip(l, (S.text || 'normal') === v, 'textSize', { 'data-v': v })))),
         card('Backup', h('span', { class: 'muted' }, backupLine()), h('p', { class: 'muted xs' }, 'Progress lives only on this device. Back up weekly: on a phone, choose Save to Files or Google Drive. Restore it on any device.'),

@@ -456,3 +456,64 @@ function showUpdate() {
     h('button', { type: 'button', class: 'btn primary sm', 'data-act': 'appReload' }, 'Refresh')));
 }
 PLUSACT.appReload = () => { try { sessionStorage.setItem('archeron-updated', '1'); } catch (e) {} location.reload(); };
+
+/* ---------- Sebastian: the resident rat. Just for fun, always on your side. ---------- */
+const SEB_SVG = `<svg viewBox="0 0 120 110" aria-hidden="true">
+<path class="sb-tail" d="M34 94 C12 98 4 84 13 74 C20 66 19 57 9 55" fill="none" stroke="#c99aa5" stroke-width="4.4" stroke-linecap="round"/>
+<g class="sb-body"><ellipse cx="52" cy="77" rx="28" ry="24" fill="#8b8194"/><ellipse cx="58" cy="83" rx="16" ry="15" fill="#b8aebf"/>
+<ellipse cx="46" cy="100" rx="7" ry="3.6" fill="#d5a3ae"/><ellipse cx="68" cy="100" rx="7" ry="3.6" fill="#d5a3ae"/>
+<rect x="56" y="76" width="26" height="17" rx="2.5" fill="#2c2238" stroke="var(--y)" stroke-width="1.6" transform="rotate(-8 69 84)"/>
+<path d="M69 77.5 L69.5 93" stroke="var(--y)" stroke-width="1" opacity=".7" transform="rotate(-8 69 84)"/>
+<ellipse cx="59" cy="78" rx="4.6" ry="3.6" fill="#d5a3ae"/><ellipse cx="79" cy="75" rx="4.6" ry="3.6" fill="#d5a3ae"/>
+<path d="M48 61 Q66 70 84 61 L86 67.5 Q66 78 46 67.5 Z" fill="var(--y)"/><path d="M53 67 L48 85 L55 83.5 L59 69.5 Z" fill="var(--y3)"/></g>
+<g class="sb-head"><g class="sb-ear"><circle cx="57" cy="34" r="10.5" fill="#958b9e"/><circle cx="57" cy="34" r="6.4" fill="#e3a0b0"/></g>
+<g class="sb-ear sb-ear2"><circle cx="77" cy="31" r="10" fill="#958b9e"/><circle cx="77" cy="31" r="6" fill="#e3a0b0"/></g>
+<ellipse cx="69" cy="49" rx="22" ry="19" fill="#958b9e"/><path d="M80 44 Q100 46 106 53 Q104 60 84 64 Z" fill="#958b9e"/>
+<ellipse cx="84" cy="59" rx="4.2" ry="2.4" fill="#e88fa0" opacity=".35"/><circle cx="105.5" cy="53.5" r="3.4" fill="#e88fa0"/>
+<g class="sb-eye"><circle cx="80" cy="46" r="4.3" fill="#120f16"/><circle cx="81.6" cy="44.4" r="1.5" fill="#fff"/></g>
+<path d="M99 56 L117 50 M99 57.5 L119 57.5 M99 59 L116 64.5" stroke="rgba(255,255,255,.5)" stroke-width=".8" stroke-linecap="round"/></g></svg>`;
+const RAT_FACTS = ['Rats laugh when they are tickled, at a pitch too high for you to hear. True fact. Do not test it on me.',
+  'Scientists found that rats replay the day\'s mazes in their sleep. Sleep is revision too. Go to bed on time.',
+  'A rat\'s front teeth never stop growing, so I chew constantly. You should chew through past papers the same way.',
+  'Rats will free a trapped friend even when there is chocolate on offer. I am that friend. The exam is the trap.',
+  'Rats learn mazes by repeating them. Same with exam questions. Repetition is not boring, it is how brains work.'];
+let SEB_I = 0, SEB_TAPS = 0;
+function sebLines(ctx) {
+  const hr = new Date().getHours(), days = daysToMocks(), plan = todayTrain().reduce((a, x) => a + x.n, 0), done = setsOn(dkey());
+  const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length + S.queue.length, mp = predict('Maths'), rd = readiness().pct, name = S.profile.name;
+  const L = [];
+  if (ctx === 'break') return ['Break time. Stand up, stretch, drink some water. I am stretching too. It looks less impressive on me.',
+    'Rest properly. No scrolling. Your brain files away what you just learned while you rest.', 'Five minutes. Look at something far away. I recommend the ceiling. Excellent ceiling.'];
+  if (hr >= 23 || hr < 5) L.push('It is very late. Even rats sleep. One small set if you must, then bed. Tired brains forget things.');
+  else if (hr < 9) L.push(`Morning${name ? ', ' + name : ''}. Early sets count double in my heart.`);
+  if (plan && done >= plan) L.push('Plan done for today. I am proud of you, in a small, furry way.');
+  else if (done > 0) L.push(`${done} set${done > 1 ? 's' : ''} done. ${plan > done ? `${plan - done} to go. ` : ''}Keep the run going.`);
+  else L.push('Squeak. That is rat for "press Begin". One set is all it takes to get going.');
+  if (mp && mp.g !== 'U' && mp.g < 4) L.push(`Maths is at a ${mp.g} on your papers. A 4 means no resit. I would trade all my cheese for that.`);
+  else if (mp && mp.g >= 4) L.push(`Maths is at a ${mp.g} on your papers. That is a no-resit grade. Now we defend it.`);
+  else L.push('A grade 4 in Maths means no resit. That is the big one. I nibble a little Maths every day.');
+  if (due) L.push(`${due} mistake${due > 1 ? 's are' : ' is'} waiting to be fixed. Each one is marks you can win back. I already chewed off the hard bits.`);
+  if (days > 0) L.push(`Mocks in ${days} days. That is ${days} chances to get one per cent better.`);
+  L.push(rd ? `You are ${rd}% mock ready. Every set moves it, even the boring ones. Especially the boring ones.` : 'Your readiness score starts at zero. Sit one timed mock and watch it jump. I will be cheering. Quietly. I am small.');
+  L.push('Sebastian\'s rule: write down what you remember first, then check your notes. Recalling is what makes it stick.');
+  L.push('I do not care about grades. I care about crumbs. Every set is a crumb. Enough crumbs make a feast.');
+  L.push(RAT_FACTS[Math.floor(Date.now() / 864e5) % RAT_FACTS.length]);
+  return L;
+}
+function sebastian(ctx = 'home') {
+  if (S.seb === false) return null;
+  const L = sebLines(ctx), line = SEB_TAPS >= 10 ? 'Okay, okay! I am ticklish! Go and do a set before I squeak the whole house down.' : L[SEB_I % L.length];
+  const rat = h('button', { type: 'button', class: 'seb-rat', 'data-act': 'sebTap', 'aria-label': 'Sebastian the rat. Tap for another line' }); rat.innerHTML = SEB_SVG;
+  return h('section', { class: 'seb' }, rat,
+    h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, line)));
+}
+Object.assign(PLUSACT, {
+  sebTap(el) {
+    SEB_TAPS++; SEB_I++;
+    const sec = el.closest('.seb'), ctx = TAB === 'home' && T.mode === 'break' && timerActive() ? 'break' : 'home', L = sebLines(ctx);
+    sec.querySelector('.seb-say p').textContent = SEB_TAPS >= 10 && SEB_TAPS < 12 ? 'Okay, okay! I am ticklish! Go and do a set before I squeak the whole house down.' : L[SEB_I % L.length];
+    el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
+    if (SEB_TAPS >= 12) SEB_TAPS = 0;
+  },
+  sebShow(el) { S.seb = el.dataset.v === '1'; save(); render(); }
+});
