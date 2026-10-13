@@ -471,49 +471,86 @@ const SEB_SVG = `<svg viewBox="0 0 120 110" aria-hidden="true">
 <ellipse cx="69" cy="49" rx="22" ry="19" fill="#958b9e"/><path d="M80 44 Q100 46 106 53 Q104 60 84 64 Z" fill="#958b9e"/>
 <ellipse cx="84" cy="59" rx="4.2" ry="2.4" fill="#e88fa0" opacity=".35"/><circle cx="105.5" cy="53.5" r="3.4" fill="#e88fa0"/>
 <g class="sb-eye"><circle cx="80" cy="46" r="4.3" fill="#120f16"/><circle cx="81.6" cy="44.4" r="1.5" fill="#fff"/></g>
+<path class="sb-x" d="M76.5 42.5 L83.5 49.5 M83.5 42.5 L76.5 49.5" stroke="#120f16" stroke-width="2.2" stroke-linecap="round"/>
 <path d="M99 56 L117 50 M99 57.5 L119 57.5 M99 59 L116 64.5" stroke="rgba(255,255,255,.5)" stroke-width=".8" stroke-linecap="round"/></g></svg>`;
-const RAT_FACTS = ['Rats laugh when they are tickled, at a pitch too high for you to hear. True fact. Do not test it on me.',
-  'Scientists found that rats replay the day\'s mazes in their sleep. Sleep is revision too. Go to bed on time.',
-  'A rat\'s front teeth never stop growing, so I chew constantly. You should chew through past papers the same way.',
-  'Rats will free a trapped friend even when there is chocolate on offer. I am that friend. The exam is the trap.',
-  'Rats learn mazes by repeating them. Same with exam questions. Repetition is not boring, it is how brains work.'];
-let SEB_I = 0, SEB_TAPS = 0;
+/* Sebastian's material. He cannot stop talking about his cousin Emmanuel. Clean jokes only. */
+const SEB_GENERAL = [
+  'Squeak. That is rat for "press Begin". It is also rat for "hello", "cheese" and "have you met my cousin Emmanuel".',
+  'My book is called Algebra for Rodents. It is three pages long. Two of them are pictures of cheese. Emmanuel wrote it. It shows.',
+  'Write down what you remember BEFORE you check your notes. That is the Sebastian Method. Emmanuel says he invented it. He did not.',
+  'Fractions are just pizza with anxiety. You can handle pizza.',
+  'My arch-nemesis is a pigeon called Derek. Derek has never done a past paper in his life. Do not be Derek.',
+  'Fun fact: rats laugh when tickled, but it is too high-pitched for humans to hear. Emmanuel laughs at his own jokes. You can hear that one. Everyone can.',
+  'Scientists found rats replay the day\'s mazes in their sleep. Emmanuel replays his grade 9. Out loud. Anyway, sleep helps revision.',
+  'My front teeth never stop growing. If I ever go quiet, assume I am stuck in a table leg. Do not tell Emmanuel.',
+  'I once opened a crisp packet first try. Emmanuel says it does not count because it was already open. It counts.',
+  'Mitochondria is the powerhouse of the cell. Emmanuel is the powerhouse of being annoying. Only one of those is on the exam.',
+  'I tried revising once. Fell asleep on the textbook. Woke up with "photosynthesis" printed on my face. Emmanuel took a photo. It is his lock screen.',
+  'You are the main character. I am the weird rat in the corner. Emmanuel thinks he is the main character. Emmanuel is a side quest.',
+  'Every set is a crumb. Enough crumbs make a feast. That is not a revision tip, I am just hungry.',
+  'Emmanuel lives behind a Greggs and has never once been hungry. I think about that a lot. Like, a lot a lot.',
+  'Emmanuel has a gym membership. He is a rat. He goes on the treadmill and just lies there. Calls it "cardio".',
+  'Emmanuel is on holiday in Majorca. A rat. In Majorca. He sent me a postcard. It was a crumb with "wish you were here" chewed into it.',
+  'When I said I was helping someone with their GCSEs, Emmanuel said "cute". CUTE. Let us get you a grade 4 and shut him up forever.',
+  'Emmanuel thinks Macbeth is a burger. I love him, but he is wrong, and I need you to be right.',
+  'Did I mention my cousin Emmanuel? I did? Well he is doing great. Thanks for asking. You did not ask.',
+  'Emmanuel\'s tail is two centimetres longer than mine. Not that I have measured. I have measured. Eleven times.',
+  'Emmanuel says the trick to exams is "just being naturally gifted". Emmanuel failed his driving test. He is a RAT. He was not allowed to take it.',
+  'Is this a lot of revision? Yes. Is it more than the amount of cheese I have eaten today? Absolutely not. Let us both stop judging each other.'];
 function sebLines(ctx) {
   const hr = new Date().getHours(), days = daysToMocks(), plan = todayTrain().reduce((a, x) => a + x.n, 0), done = setsOn(dkey());
-  const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length + S.queue.length, mp = predict('Maths'), rd = readiness().pct, name = S.profile.name;
+  const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length + S.queue.length, mp = predict('Maths'), rd = readiness().pct;
+  if (ctx === 'break') return ['Break time. Stretch. Emmanuel does yoga on his breaks. He cannot touch his toes. He is a rat. None of us can.',
+    'Drink some water. Emmanuel drinks sparkling water and calls it "fizzy hydration". I am so embarrassed for my family.',
+    'Look at something far away. Not your phone. Your phone is close. I measured. Emmanuel helped. He measured wrong.',
+    'Five minutes. Walk around. Do NOT open the fridge. The fridge is a trap. I lived in one for a week. Emmanuel still calls me "Chilly".'];
   const L = [];
-  if (ctx === 'break') return ['Break time. Stand up, stretch, drink some water. I am stretching too. It looks less impressive on me.',
-    'Rest properly. No scrolling. Your brain files away what you just learned while you rest.', 'Five minutes. Look at something far away. I recommend the ceiling. Excellent ceiling.'];
-  if (hr >= 23 || hr < 5) L.push('It is very late. Even rats sleep. One small set if you must, then bed. Tired brains forget things.');
-  else if (hr < 9) L.push(`Morning${name ? ', ' + name : ''}. Early sets count double in my heart.`);
-  if (plan && done >= plan) L.push('Plan done for today. I am proud of you, in a small, furry way.');
-  else if (done > 0) L.push(`${done} set${done > 1 ? 's' : ''} done. ${plan > done ? `${plan - done} to go. ` : ''}Keep the run going.`);
-  else L.push('Squeak. That is rat for "press Begin". One set is all it takes to get going.');
-  if (mp && mp.g !== 'U' && mp.g < 4) L.push(`Maths is at a ${mp.g} on your papers. A 4 means no resit. I would trade all my cheese for that.`);
-  else if (mp && mp.g >= 4) L.push(`Maths is at a ${mp.g} on your papers. That is a no-resit grade. Now we defend it.`);
-  else L.push('A grade 4 in Maths means no resit. That is the big one. I nibble a little Maths every day.');
-  if (due) L.push(`${due} mistake${due > 1 ? 's are' : ' is'} waiting to be fixed. Each one is marks you can win back. I already chewed off the hard bits.`);
-  if (days > 0) L.push(`Mocks in ${days} days. That is ${days} chances to get one per cent better.`);
-  L.push(rd ? `You are ${rd}% mock ready. Every set moves it, even the boring ones. Especially the boring ones.` : 'Your readiness score starts at zero. Sit one timed mock and watch it jump. I will be cheering. Quietly. I am small.');
-  L.push('Sebastian\'s rule: write down what you remember first, then check your notes. Recalling is what makes it stick.');
-  L.push('I do not care about grades. I care about crumbs. Every set is a crumb. Enough crumbs make a feast.');
-  L.push(RAT_FACTS[Math.floor(Date.now() / 864e5) % RAT_FACTS.length]);
-  return L;
+  if (hr >= 23 || hr < 5) L.push('It is late. Go to bed. Emmanuel goes to bed at 9 and look how insufferable he is. Hm. Bad argument. Go to bed anyway, sleep is where memories stick.');
+  else if (hr < 9) L.push('Morning. Emmanuel has been up since 5 doing push-ups. I have been up since 5 watching Emmanuel do push-ups. We all have our roles.');
+  if (plan && done >= plan) L.push('Plan done! Emmanuel has never finished a plan. Well, once. He has talked about it every day since. Now YOU get to talk about it every day.');
+  else if (done > 0) L.push(`${done} set${done > 1 ? 's' : ''} done. I am telling Emmanuel. He will pretend not to care. He cares. It eats him up inside.`);
+  else L.push('Emmanuel would have pressed Begin by now. Not that it is a competition. It is, though. It always has been.');
+  if (mp && mp.g !== 'U' && mp.g < 4) L.push(`Maths is at a ${mp.g} on your papers. Emmanuel got a 9, but he also lives behind a Greggs and has an unfair amount of confidence. You need a 4. A 4 is plenty.`);
+  else if (mp && mp.g >= 4) L.push(`Maths at a ${mp.g}?! Wait till Emmanuel hears. Actually, do not tell him. He will make it about himself.`);
+  else L.push('A grade 4 in Maths means no resit. No resit means freedom. Freedom means cheese. Maybe freedom means something else for you. I do not know your life.');
+  if (due) L.push(`${due} mistake${due > 1 ? 's' : ''} waiting to be fixed. Emmanuel says he has never made a mistake. Emmanuel once fell into a bin. On purpose. Fix yours.`);
+  if (days > 0) L.push(`Mocks in ${days} days. That is ${(days * 24).toLocaleString('en-GB')} hours. I counted on my toes. I ran out of toes. Emmanuel lent me his. Weird day.`);
+  L.push(rd ? `You are ${rd}% mock ready. That is higher than Emmanuel was at this point. I made that up. Feels good though, doesn't it.`
+    : 'You are 0% mock ready. Everyone starts at zero. Even Emmanuel. He will deny it. Sit one timed mock and watch it jump.');
+  const off = Math.floor(Date.now() / 864e5) % SEB_GENERAL.length; /* a different joke first each day */
+  return L.concat(SEB_GENERAL.slice(off), SEB_GENERAL.slice(0, off));
 }
+const SEB_POKE = { 5: 'Are you poking me? You are poking me.', 8: 'I am a rat, not a button. The button is up there. It says Begin. It is lovely. Go and press it.',
+  11: 'Poke me again and I am calling Emmanuel. You do not want Emmanuel here. He will bring up his grade 9 within four seconds.',
+  14: 'Right. That is it. I am fainting dramatically.', 17: 'I am back. I saw a bright light. It was Emmanuel\'s grade 9 certificate. Horrible. Do a set.' };
+let SEB_I = 0, SEB_TAPS = 0, SEB_LAST = 0, SEB_EMM = 0;
+const sebSay = (sec, line) => {
+  if (/Emmanuel/.test(line)) SEB_EMM++;
+  sec.querySelector('.seb-say p').textContent = line;
+  const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM;
+};
 function sebastian(ctx = 'home') {
   if (S.seb === false) return null;
-  const L = sebLines(ctx), line = SEB_TAPS >= 10 ? 'Okay, okay! I am ticklish! Go and do a set before I squeak the whole house down.' : L[SEB_I % L.length];
-  const rat = h('button', { type: 'button', class: 'seb-rat', 'data-act': 'sebTap', 'aria-label': 'Sebastian the rat. Tap for another line' }); rat.innerHTML = SEB_SVG;
-  return h('section', { class: 'seb' }, rat,
-    h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, line)));
+  const L = sebLines(ctx), line = L[SEB_I % L.length];
+  const rat = h('button', { type: 'button', class: 'seb-rat', 'data-act': 'sebTap', 'data-ctx': ctx, 'aria-label': 'Sebastian the rat. Tap him' }); rat.innerHTML = SEB_SVG;
+  const sec = h('section', { class: 'seb' }, rat,
+    h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, ''), h('small', { class: 'seb-emm', hidden: true })));
+  if (sebastian.idx !== SEB_I) { sebastian.idx = SEB_I; if (/Emmanuel/.test(line)) SEB_EMM++; } /* count each line once, not every redraw */
+  sec.querySelector('.seb-say p').textContent = line;
+  const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM;
+  return sec;
 }
+const SEB_MOVES = ['hop', 'spin', 'squish', 'wiggle'];
 Object.assign(PLUSACT, {
   sebTap(el) {
-    SEB_TAPS++; SEB_I++;
-    const sec = el.closest('.seb'), ctx = TAB === 'home' && T.mode === 'break' && timerActive() ? 'break' : 'home', L = sebLines(ctx);
-    sec.querySelector('.seb-say p').textContent = SEB_TAPS >= 10 && SEB_TAPS < 12 ? 'Okay, okay! I am ticklish! Go and do a set before I squeak the whole house down.' : L[SEB_I % L.length];
-    el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
-    if (SEB_TAPS >= 12) SEB_TAPS = 0;
+    const now = Date.now(); SEB_TAPS = now - SEB_LAST < 3000 ? SEB_TAPS + 1 : 1; SEB_LAST = now;
+    const sec = el.closest('.seb'), poke = SEB_POKE[SEB_TAPS];
+    if (!poke) SEB_I++;
+    const line = poke || sebLines(el.dataset.ctx)[SEB_I % sebLines(el.dataset.ctx).length];
+    sebastian.idx = SEB_I; sebSay(sec, line);
+    const move = SEB_TAPS === 14 ? 'faint' : SEB_MOVES[Math.floor(Math.random() * SEB_MOVES.length)];
+    el.classList.remove(...SEB_MOVES, 'faint'); void el.offsetWidth; el.classList.add(move);
+    if (SEB_TAPS >= 17) SEB_TAPS = 0;
   },
   sebShow(el) { S.seb = el.dataset.v === '1'; save(); render(); }
 });

@@ -865,3 +865,15 @@ body.lockdown .rd-chip,body.lockdown .srch-b{opacity:.3}
 .seb-say b{display:block;font-family:var(--serif);font-size:15px;color:var(--y2)}
 .seb-say p{margin:2px 0 0;font-size:14px;line-height:1.45}
 html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
+.seb-rat.spin{animation:sbSpin .6s var(--ease)}
+.seb-rat.squish{animation:sbSquish .45s var(--spring);transform-origin:50% 100%}
+.seb-rat.wiggle{animation:sbWiggle .5s ease-in-out}
+.seb-rat.faint{animation:sbFaint 2.8s var(--ease) forwards;transform-origin:50% 100%}
+.seb-rat .sb-x{display:none}.seb-rat.faint .sb-x{display:inline;animation:sbXeyes 2.8s step-end forwards}.seb-rat.faint .sb-eye{animation:sbEyeOff 2.8s step-end forwards}
+@keyframes sbXeyes{0%{opacity:0}30%{opacity:1}88%{opacity:0}}
+@keyframes sbEyeOff{30%{opacity:0}88%{opacity:1}}
+@keyframes sbSpin{to{transform:rotate(360deg)}}
+@keyframes sbSquish{30%{transform:scale(1.25,.7)}60%{transform:scale(.9,1.12)}100%{transform:scale(1)}}
+@keyframes sbWiggle{20%,60%{transform:rotate(-9deg)}40%,80%{transform:rotate(9deg)}}
+@keyframes sbFaint{0%{transform:none}15%{transform:rotate(-14deg)}35%,85%{transform:translate(40px,-30px) rotate(-90deg) scale(.8)}100%{transform:none}}
+.seb-emm{display:block;margin-top:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
