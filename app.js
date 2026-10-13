@@ -177,6 +177,7 @@ function normalize(raw) {
     }
     if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
     const e = Object.entries(obj(src.ev)).filter(([k, v]) => /^[a-z0-9:]{1,24}$/.test(k) && Number.isFinite(+v)); if (e.length) out.ev = Object.fromEntries(e.map(([k, v]) => [k, Math.max(0, Math.round(+v))]));
+    const tt = Object.entries(obj(src.t)).filter(([k, v]) => /^[a-z]{1,16}$/.test(k) && +v > 0 && Number.isFinite(+v)); if (tt.length) out.t = Object.fromEntries(tt.map(([k, v]) => [k, Math.round(+v)]));
     s.days[k] = out;
   }
   for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x));
@@ -243,6 +244,7 @@ function record(id, ok, key) {
   k.n++; k.rec = [...k.rec, ok].slice(-6);
   if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
   const d = ensureDay(dkey()); d.qa = (d.qa || 0) + 1; d.qr = (d.qr || 0) + (ok ? 1 : 0);
+  const tr = LEARN.TOPIC[id] && LEARN.TOPIC[id].subject; if (tr) { d.t = d.t || {}; d.t[tr] = (d.t[tr] || 0) + 1; } /* per-subject practice, so priorities can balance */
   if (ok) {
     k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++;
     const t = LEARN.TOPIC[id]; if (t) { realmEv(t.type); realmEv('s:' + t.subject); }
@@ -417,7 +419,10 @@ function currentSid() {
   const open = todayTrain().filter(x => x.left > 0);
   if (SEL === 'free') return 'free';
   if (SEL && open.find(x => x.s.id === SEL)) return SEL;
-  return open.length ? open[0].s.id : 'free';
+  if (!open.length) return 'free';
+  /* the set whose subject needs it most right now, so doing fewer sets than planned never skips the same subjects every week */
+  const pr = x => setPriority(x.s.label);
+  return open.reduce((a, b) => pr(b) > pr(a) ? b : a).s.id;
 }
 function ringEl(compact) {
   const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') + (compact ? ' compact' : '') });

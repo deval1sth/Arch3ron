@@ -1470,6 +1470,9 @@ const gradeNum = g => { const m = String(g || '').match(/(\d)([+-]?)/); return m
 function subjGap(subj) {
   const g = S.grades[subj] || {}, rep = REPORT[subj] || ['4', '5'];
   const curS = gradeNum(g.cur) != null ? g.cur : rep[0], tgtS = gradeNum(g.tgt) != null ? g.tgt : rep[1], cur = gradeNum(curS), tgt = gradeNum(tgtS);
+  /* evidence beats the report: once you have sat papers in a subject, "now" is what your recent papers say */
+  const p = typeof predict === 'function' ? predict(subj) : null;
+  if (p) { const pg = typeof p.g === 'number' ? p.g : 0; return { cur: pg, tgt, curS: `${p.g} on papers`, tgtS, gap: Math.max(0, tgt - pg), own: !!(g.cur && g.tgt) }; }
   return { cur, tgt, curS, tgtS, gap: Math.max(0, tgt - cur), own: !!(g.cur && g.tgt) };
 }
 const accOf = id => { const k = skill(id); return k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : null; };
@@ -1478,7 +1481,21 @@ function subjPriority(sid) {
   const weak = tried.length ? 1 - tried.reduce((a, b) => a + b, 0) / tried.length : .5;
   const fixes = S.queue.filter(x => LEARN.trackOf(x.id) === sid).length;
   /* gap to target, how low the grade is now, Maths as the stated top priority, then live weakness data */
-  return gp.gap * 10 + Math.max(0, 5 - gp.cur) * 4 + (sid === 'maths' ? 8 : 0) + weak * 10 + fixes * 3 + (STUDY.some(g => g.subj === sid) ? 0 : -50);
+  /* a subject that has had more than its fair share of the last week's practice steps back, so nothing gets neglected */
+  const over = Math.max(0, recentShare(sid) - 1 / LEARN.SUBJECTS.length) * 60;
+  /* and one left untouched for over a week climbs back up, a little more each day, so it never quietly drops out */
+  const idle = daysIdle(sid), neglect = idle == null ? 0 : Math.min(30, Math.max(0, idle - 6) * 4);
+  return gp.gap * 10 + Math.max(0, 5 - gp.cur) * 4 + (sid === 'maths' ? (gp.gap > 0 ? 8 : 2) : 0) + weak * 10 + fixes * 3 - over + neglect + (STUDY.some(g => g.subj === sid) ? 0 : -50);
+}
+function daysIdle(sid) { /* days since this subject was last practised; null until there is a fortnight of history to judge by */
+  let any = false;
+  for (let i = 0; i < 60; i++) { const t = (S.days[addDays(-i)] || {}).t; if (t) { any = true; if (t[sid]) return i; } }
+  return any && Object.keys(S.days).length >= 14 ? 60 : null;
+}
+function recentShare(sid) {
+  let mine = 0, all = 0;
+  for (let i = 0; i < 7; i++) { const t = (S.days[addDays(-i)] || {}).t; if (t) for (const [k, v] of Object.entries(t)) { all += v; if (k === sid) mine += v; } }
+  return all >= 50 ? mine / all : 0; /* not enough practice yet to judge */
 }
 const sessRank = () => LEARN.SUBJECTS.map(s => s.id).filter(sid => STUDY.some(g => g.subj === sid)).sort((a, b) => subjPriority(b) - subjPriority(a));
 function guideScore(g, used) {

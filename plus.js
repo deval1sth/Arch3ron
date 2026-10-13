@@ -889,3 +889,11 @@ Object.assign(PLUSACT, {
     toast(fix ? 'Saved. The fix is on your Fix page, back in 3 days' : 'Feedback saved'); render();
   }
 });
+
+/* how much a planned set's subject needs doing now (same scale as the session planner) */
+function setPriority(label) {
+  const M = missionFor(label), tr = M.id === 'lit' ? 'englit' : M.id === 'lang' ? 'englang' : M.id === 're' ? 're' : M.subj;
+  if (M.id === 'fixes') return fixCount() ? 30 : -20;
+  if (tr === 'science') return Math.max(...['biology', 'chemistry', 'physics'].map(subjPriority));
+  return tr && SUBJ_BY[tr] ? subjPriority(tr) : 0;
+}
