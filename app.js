@@ -539,10 +539,8 @@ function vLearn() {
   return h('div', { class: 'stack' },
     hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Questions you get wrong come back; ones you know are spaced out so you never just repeat. Wrong answers come back until they stick.'),
     learnSummary(),
-    S.queue.length > 0 && card('Fix queue', h('span', { class: 'muted' }, `${S.queue.length} topic${S.queue.length > 1 ? 's' : ''}`),
-      h('p', { class: 'muted xs' }, 'Topics where you lost marks. Get 3 right in a row on each to clear it. They also come up more in Focus sets and mixed practice.'),
-      h('ul', { class: 'fixq' }, S.queue.slice(-6).reverse().map(x => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': x.id }, h('b', null, LEARN.name(x.id)), h('small', null, x.why))))),
-      B([icon('play'), 'Work through the queue'], 'drill', 'primary', { 'data-track': 'fix' })),
+    fixCount() > 0 && h('button', { type: 'button', class: 'card fixlink', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'),
+      h('span', { class: 'grow' }, h('b', null, `${fixCount()} thing${fixCount() > 1 ? 's' : ''} to fix`), h('small', null, 'Topics you keep missing and mistakes to redo, all on the Fix page.')), h('span', { class: 'btn primary sm' }, 'Fix')),
     tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'drill', 'data-track': 'all' }, h('span', { class: 'lc-ic' }, icon('compass')), h('b', null, 'Mixed practice'),
       h('span', { class: 'lc-d' }, 'Questions from all your subjects, weighted towards what you find hardest.'), h('small', null, `${S.learnOk.toLocaleString('en-GB')} answered right so far`))),
     h('div', { class: 'sgrid' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id);
@@ -692,6 +690,7 @@ function vProfile() {
   const cats = ['All', 'Focus', 'Learn', 'Exams', 'Realm'];
   const shown = ACH.filter(a => ACH_CAT === 'All' || a.cat === ACH_CAT);
   return h('div', { class: 'stack' },
+    subHero('The Realm', 'Your profile', 'realm', null, 'The Realm'),
     h('section', { class: 'card idcard' },
       h('div', { class: 'id-emb' }, emblemEl(S.profile.emblem, 'emb big')),
       h('div', { class: 'id-txt' },
@@ -718,21 +717,15 @@ function vProfile() {
 }
 /* ---------- Toolkit ---------- */
 function vTools() {
-  const dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
   const tool = (tab, ic, name, sub, extra = {}) => tilt(h('button', Object.assign({ type: 'button', class: 'tool', 'data-act': 'go', 'data-tab': tab }, extra), h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
   return h('div', { class: 'stack' },
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     h('div', { class: 'tools' },
+      tool('ready', 'chart', 'Progress', `${readiness().pct}% mock ready · learned, this week, papers`),
+      tool('fix', 'wrench', 'Fix', fixCount() ? `${fixCount()} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
+      tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
-      tool('week', 'calendar', 'Weekly review', 'This week vs last, and predicted grades'),
-      tool('stats', 'chart', 'Progress', 'What you have actually learned, by subject'),
-      tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Answer, mark, score by topic'),
-      tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
-      tool('fix', 'wrench', 'Fix list', dueM ? `${dueM} ready to redo` : 'Turn mistakes into marks'),
-      tool('cards', 'cards', 'Flashcards', allDue() ? `${allDue()} ready to review` : 'All reviewed for today'),
-      tool('today', 'flame', "Today's plan", 'Tick sets you did away from the app'),
-      tool('plan', 'calendar', 'Weekly plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''}`),
-      tool('write', 'edit', 'Plans and writing', `${S.plans.length} saved`),
+      tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
       tool('me', 'user', 'Settings', 'Subjects, grades, timer, backup')));
 }
 
@@ -969,7 +962,7 @@ function vStats() {
     .filter(x => x[1] < .7).sort((a, b) => a[1] - b[1]).slice(0, 6);
   const tile = (v, l, sub) => h('div', { class: 'tile' }, h('b', null, v), h('span', null, l), sub && h('small', null, sub));
   return h('div', { class: 'stack narrow' },
-    subHero('Learn', 'Progress', 'learn', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
+    subHero('Progress', 'What you have learned', 'tools', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
     card('Overall', h('span', { class: 'pill' }, `${allT ? Math.round(allL / allT * 100) : 0}% learned`), bar(allT ? allL / allT * 100 : 0),
       h('p', { class: 'muted xs' }, `${allL.toLocaleString('en-GB')} of ${allT.toLocaleString('en-GB')} facts, definitions, equations and skills learned. In each subject, the faint bar shows what you have tried; the bright bar shows what you have learned.`),
       h('div', { class: 'tiles' },
@@ -990,7 +983,7 @@ function vStats() {
 
 /* Past papers */
 function vPapers() {
-  return h('div', { class: 'stack' }, subHero('Toolkit', 'Past papers', 'tools'), chartCard(), lostCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
+  return h('div', { class: 'stack' }, subHero('Progress', 'Past papers', 'tools'), chartCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
 }
 function trend(pts) {
   if (pts.length < 2) return null;
@@ -1180,25 +1173,12 @@ function fixList(open) {
       isDue ? h('div', { class: 'row nowrap' }, B('Fixed', 'misOk', 'primary sm', { 'data-id': m.id }), B('Again', 'misAgain', 'ghost sm', { 'data-id': m.id }))
         : B(icon('x'), 'misDel', 'ghost icon-only', { 'data-id': m.id, 'aria-label': 'Delete mistake' })); }));
 }
-function vFix() {
-  const open = S.mistakes.filter(m => !m.fixed).sort((a, b) => a.redo < b.redo ? -1 : 1), M = DRAFT.mis;
-  return h('div', { class: 'stack' },
-    subHero('Redo loop', 'Fix list', 'tools', 'Every mistake you redo is a mark you take back on the day.'),
-    h('div', { class: 'cols' },
-      card('Add a mistake', null,
-        h('div', { class: 'grid2' }, field('Subject', selectSubj('mis.subj', M.subj)), field('Topic', h('input', { 'data-draft': 'mis.topic', value: M.topic, placeholder: 'e.g. Ratio', maxlength: 80 }))),
-        field('What went wrong', h('textarea', { rows: 2, 'data-draft': 'mis.note', value: M.note, placeholder: 'e.g. Shared in the wrong order', maxlength: 300 })),
-        B('Add · redo in 3 days', 'addMis', 'primary wide')),
-      card('Redo list', h('span', { class: 'muted' }, `${S.fixedCount} fixed so far`),
-        open.length ? fixList(open) : h('p', { class: 'muted' }, 'Nothing waiting. After a paper or a drill, add what tripped you up.'))));
-}
-
 /* Plan editor */
 function vPlan() {
   const w = PD, plan = S.plan[w];
   const kinds = [['train', 'Training'], ['rest', 'Rest'], ['other', 'Fixed (e.g. tutoring)']];
   return h('div', { class: 'stack narrow' },
-    subHero('Your week', 'Training plan', 'tools', 'Name sessions after a subject (e.g. "Geography", "Science: Chemistry") and Focus builds the right mission for them.'),
+    subHero('Plan', 'Your week', 'tools', 'Name sessions after a subject (e.g. "Geography", "Science: Chemistry") and Focus builds the right mission for them.'),
     card('Week', h('span', { class: 'muted' }, weekTarget() + ' sets a week'),
       h('div', { class: 'chips scroll' }, [1, 2, 3, 4, 5, 6, 0].map(d => chip([DAYN[d], h('span', { class: 'n' }, daySets(d))], d === w, 'planDay', { 'data-d': d }))),
       h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: S.deload, 'data-act': 'deload', role: 'switch' }),
@@ -1265,9 +1245,9 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { ready: 'home', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { search: vSearch, ready: vReady, mockstart: vMockStart, week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { exam: 'learn', examq: 'learn', mpaper: 'learn', mockstart: 'learn', profile: 'realm', stats: 'tools', ready: 'tools', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 

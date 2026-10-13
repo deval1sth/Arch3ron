@@ -893,3 +893,15 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .donow.alt::after{opacity:.4}
 .donow.alt .dn-main h2{font-size:24px}
 .dn-segs span{min-width:58px}
+
+/* ---------- Merged areas: Progress tabs, Fix, profile in the Realm ---------- */
+.ptabs{margin-top:-4px}
+.ptabs .chip.on{pointer-events:none}
+.fixlink,.rprof{display:flex;align-items:center;gap:14px;width:100%;text-align:left;color:var(--t);font:inherit;cursor:pointer}
+.fixlink>.i{flex:none;color:var(--y);width:22px;height:22px}
+.fixlink b,.rprof b{display:block;font-size:16px}.fixlink small,.rprof small{color:var(--m);font-size:12.5px}
+.rprof .emb{flex:none;width:48px;height:48px}
+.rprof .rp-go{flex:none;transform:rotate(180deg);color:var(--m)}
+.fix-tiles{margin-top:0}
+.fix-tiles{grid-template-columns:repeat(3,1fr)}
+.fix-tiles .tile b{font-size:22px}.fix-tiles .tile span{font-size:12px;line-height:1.3}

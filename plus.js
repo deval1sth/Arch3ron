@@ -167,7 +167,7 @@ function vWeek() {
     S.queue.length ? [`Clear ${Math.min(5, S.queue.length)} topics from your fix queue`, `${S.queue.length} waiting. Each one is marks you have already lost once.`, B([icon('wrench'), 'Open'], 'go', 'ghost sm', { 'data-tab': 'fix' })]
       : [`Answer ${Math.max(100, wk.n + 20)} questions`, `This week: ${wk.n}.`, null]].filter(Boolean);
   return h('div', { class: 'stack narrow' },
-    subHero('Toolkit', 'Weekly review', 'tools', verdict),
+    subHero('Progress', 'This week', 'tools', verdict),
     h('section', { class: 'card week' },
       h('div', { class: 'card-h' }, h('h2', null, 'Last 7 days'), h('span', { class: 'muted' }, `${fmtDate(from)} to today`)),
       h('div', { class: 'wk-chart', role: 'img', 'aria-label': days.map(d => `${d.d}: ${d.done} of ${d.plan} sets`).join(', ') }, days.map((d, i) => h('div', { class: 'wk-col' + (i === 6 ? ' today' : '') + (d === best && d.done ? ' best' : '') },
@@ -260,7 +260,7 @@ function vReady() {
   const R = readiness(), wk = readyAgo(7), d = wk == null ? null : R.pct - wk, days = daysToMocks();
   const log = Array.from({ length: 28 }, (_, i) => S.readyLog[addDays(i - 27)]), have = log.filter(v => v != null);
   return h('div', { class: 'stack narrow' },
-    subHero('Focus', 'Mock readiness', 'home', null, 'Focus'),
+    subHero('Progress', 'Mock readiness', 'tools', null, 'Toolkit'),
     h('section', { class: 'card rd-hero' },
       h('div', { class: 'rd-ring', style: `--p:${R.pct}`, role: 'img', 'aria-label': `${R.pct}% ready` }, h('div', null, h('b', null, R.pct + '%'), h('small', null, 'ready'))),
       h('h2', null, readyTier(R.pct)),
@@ -453,7 +453,7 @@ if (typeof FX !== 'undefined') { const rev = FX.reveal; FX.reveal = (a, b, c) =>
 setInterval(() => {
   const lock = !!(S.exam && S.exam.end && Date.now() < S.exam.end && TAB === 'examq');
   document.body.classList.toggle('lockdown', lock);
-  if (!quietNow() && HELD.length) { const n = HELD.length; toast(n === 1 ? `While you focused: ${HELD[0]}` : `While you focused you earned ${n} rewards. See Profile and The Realm.`, 'big'); HELD.length = 0; }
+  if (!quietNow() && HELD.length) { const n = HELD.length; toast(n === 1 ? `While you focused: ${HELD[0]}` : `While you focused you earned ${n} rewards. See The Realm.`, 'big'); HELD.length = 0; }
 }, 1000);
 
 /* ---------- Text size ---------- */
@@ -768,3 +768,40 @@ PLUSACT.sebFact = el => {
   sec.querySelector('.seb-say b').textContent = f.head; sec.querySelector('.seb-say p').textContent = f.text;
   el.classList.remove(...SEB_MOVES); void el.offsetWidth; el.classList.add(rnd(SEB_MOVES));
 };
+
+/* ---------- One Fix page: topics to retrain, mistakes to redo, marks lost on papers ---------- */
+const fixCount = () => S.queue.length + S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
+function vFixAll() {
+  const open = S.mistakes.filter(m => !m.fixed).sort((a, b) => a.redo < b.redo ? -1 : 1), M = DRAFT.mis, due = open.filter(m => m.redo <= dkey()).length;
+  return h('div', { class: 'stack narrow' },
+    subHero('Toolkit', 'Fix', 'tools', 'Everything you have got wrong, in one place. Each thing you fix is a mark you take back on the day.'),
+    h('div', { class: 'tiles fix-tiles' },
+      h('div', { class: 'tile' }, h('b', null, String(S.queue.length)), h('span', null, 'topics to retrain')),
+      h('div', { class: 'tile' }, h('b', null, String(due)), h('span', null, 'mistakes to redo today')),
+      h('div', { class: 'tile' }, h('b', null, String(S.fixedCount)), h('span', null, 'fixed so far'))),
+    card('Topics to retrain', h('span', { class: 'muted' }, 'added automatically'), S.queue.length
+      ? [h('p', { class: 'muted xs' }, 'From wrong answers in drills, papers, mocks and your weekly review. Get 3 right in a row on a topic to clear it.'),
+        h('ul', { class: 'fixq' }, S.queue.slice().reverse().map(x => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': x.id }, h('b', null, LEARN.name(x.id)), h('small', null, x.why))))),
+        B([icon('play'), 'Work through them all'], 'drill', 'primary', { 'data-track': 'fix' })]
+      : h('p', { class: 'muted' }, 'Nothing to retrain. Topics you keep missing in practice land here by themselves.')),
+    card('Mistakes to redo', h('span', { class: 'muted' }, 'ones you added'), open.length ? fixList(open) : h('p', { class: 'muted' }, 'Nothing waiting. After a paper or homework, add what tripped you up below.'),
+      acc('fix-add', h('b', null, 'Add a mistake'), [
+        h('div', { class: 'grid2' }, field('Subject', selectSubj('mis.subj', M.subj)), field('Topic', h('input', { 'data-draft': 'mis.topic', value: M.topic, placeholder: 'e.g. Ratio', maxlength: 80 }))),
+        field('What went wrong', h('textarea', { rows: 2, 'data-draft': 'mis.note', value: M.note, placeholder: 'e.g. Shared in the wrong order', maxlength: 300 })),
+        B('Add · redo in 3 days', 'addMis', 'primary wide')], { open: !open.length })),
+    lostCard());
+}
+
+/* ---------- One Progress area: Readiness, Learned, This week, Papers ---------- */
+const PROG_TABS = [['ready', 'Readiness'], ['stats', 'Learned'], ['week', 'This week'], ['papers', 'Papers']];
+const tabRow = (list, cur, label) => h('div', { class: 'chips scroll ptabs', role: 'tablist', 'aria-label': label }, list.map(([t, l]) => chip(l, t === cur, 'go', { 'data-tab': t, role: 'tab', 'aria-selected': String(t === cur) })));
+const withTabs = (list, label) => (id, fn) => () => { const v = fn(); const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
+const progView = withTabs(PROG_TABS, 'Progress');
+const planView = withTabs([['today', 'Today'], ['plan', 'Your week']], 'Plan');
+
+/* ---------- Profile lives in The Realm ---------- */
+function realmProfileCard() {
+  const life = lifeSets();
+  return h('button', { type: 'button', class: 'card rprof', 'data-act': 'go', 'data-tab': 'profile' }, emblemEl(S.profile.emblem, 'emb'),
+    h('span', { class: 'grow' }, h('b', null, S.profile.name || 'Your profile'), h('small', null, `${R0().title ? COSMETICS[R0().title].name : titleFor(life)} · ${badgeCount()} badges · emblems and mastery`)), icon('back', 'rp-go'));
+}

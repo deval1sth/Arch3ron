@@ -419,6 +419,7 @@ function vRealm() {
   return h('div', { class: 'stack realm' },
     hero('The Realm', 'The Hollow Reach', 'Nine regions lost to the Veil. Every truth you learn burns the fog away, raises your castles and arms you against the Heralds.'),
     realmHead(),
+    realmProfileCard(),
     acc('realm-how', h('h2', null, 'How to play'), h('ol', { class: 'steps' },
       h('li', null, 'Tap a region on the map (or a name below it). Each region is one subject.'),
       h('li', null, 'Press "Burn back the fog" and answer questions. Every question you learn clears fog, and your castle there grows from ruins to a citadel.'),
