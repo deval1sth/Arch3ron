@@ -607,6 +607,7 @@ function vDrill() {
     subHero(DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'session' ? 'Back to your session' : back === 'guide' ? 'Back to the guide' : back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
     DR.topic && guidePanel(DR.topic),
     drillPanel(),
+    drillFact(),
     h('p', { class: 'muted xs center' }, 'Keys: 1–4 pick an answer, Enter checks or moves on. Getting it wrong here is how it sticks for the exam.'));
 }
 function drillPanel() {

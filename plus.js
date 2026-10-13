@@ -473,12 +473,11 @@ const SEB_SVG = `<svg viewBox="0 0 120 110" aria-hidden="true">
 <g class="sb-eye"><circle cx="80" cy="46" r="4.3" fill="#120f16"/><circle cx="81.6" cy="44.4" r="1.5" fill="#fff"/></g>
 <path class="sb-x" d="M76.5 42.5 L83.5 49.5 M83.5 42.5 L76.5 49.5" stroke="#120f16" stroke-width="2.2" stroke-linecap="round"/>
 <path d="M99 56 L117 50 M99 57.5 L119 57.5 M99 59 L116 64.5" stroke="rgba(255,255,255,.5)" stroke-width=".8" stroke-linecap="round"/></g></svg>`;
-/* Sebastian's material. He cannot stop talking about his cousin Emmanuel. Clean jokes only. */
+/* Sebastian's material. He cannot stop talking about his cousin Emmanuel. Clean jokes only.
+   Nothing repeats until every line in its group has been used (see fresh() below). */
 const SEB_GENERAL = [
-  'Squeak. That is rat for "press Begin". It is also rat for "hello", "cheese" and "have you met my cousin Emmanuel".',
   'My book is called Algebra for Rodents. It is three pages long. Two of them are pictures of cheese. Emmanuel wrote it. It shows.',
   'Write down what you remember BEFORE you check your notes. That is the Sebastian Method. Emmanuel says he invented it. He did not.',
-  'Fractions are just pizza with anxiety. You can handle pizza.',
   'My arch-nemesis is a pigeon called Derek. Derek has never done a past paper in his life. Do not be Derek.',
   'Fun fact: rats laugh when tickled, but it is too high-pitched for humans to hear. Emmanuel laughs at his own jokes. You can hear that one. Everyone can.',
   'Scientists found rats replay the day\'s mazes in their sleep. Emmanuel replays his grade 9. Out loud. Anyway, sleep helps revision.',
@@ -496,61 +495,265 @@ const SEB_GENERAL = [
   'Did I mention my cousin Emmanuel? I did? Well he is doing great. Thanks for asking. You did not ask.',
   'Emmanuel\'s tail is two centimetres longer than mine. Not that I have measured. I have measured. Eleven times.',
   'Emmanuel says the trick to exams is "just being naturally gifted". Emmanuel failed his driving test. He is a RAT. He was not allowed to take it.',
-  'Is this a lot of revision? Yes. Is it more than the amount of cheese I have eaten today? Absolutely not. Let us both stop judging each other.'];
-function sebLines(ctx) {
-  const hr = new Date().getHours(), days = daysToMocks(), plan = todayTrain().reduce((a, x) => a + x.n, 0), done = setsOn(dkey());
-  const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length + S.queue.length, mp = predict('Maths'), rd = readiness().pct;
-  if (ctx === 'break') return ['Break time. Stretch. Emmanuel does yoga on his breaks. He cannot touch his toes. He is a rat. None of us can.',
-    'Drink some water. Emmanuel drinks sparkling water and calls it "fizzy hydration". I am so embarrassed for my family.',
-    'Look at something far away. Not your phone. Your phone is close. I measured. Emmanuel helped. He measured wrong.',
-    'Five minutes. Walk around. Do NOT open the fridge. The fridge is a trap. I lived in one for a week. Emmanuel still calls me "Chilly".'];
-  const L = [];
-  if (hr >= 23 || hr < 5) L.push('It is late. Go to bed. Emmanuel goes to bed at 9 and look how insufferable he is. Hm. Bad argument. Go to bed anyway, sleep is where memories stick.');
-  else if (hr < 9) L.push('Morning. Emmanuel has been up since 5 doing push-ups. I have been up since 5 watching Emmanuel do push-ups. We all have our roles.');
-  if (plan && done >= plan) L.push('Plan done! Emmanuel has never finished a plan. Well, once. He has talked about it every day since. Now YOU get to talk about it every day.');
-  else if (done > 0) L.push(`${done} set${done > 1 ? 's' : ''} done. I am telling Emmanuel. He will pretend not to care. He cares. It eats him up inside.`);
-  else L.push('Emmanuel would have pressed Begin by now. Not that it is a competition. It is, though. It always has been.');
-  if (mp && mp.g !== 'U' && mp.g < 4) L.push(`Maths is at a ${mp.g} on your papers. Emmanuel got a 9, but he also lives behind a Greggs and has an unfair amount of confidence. You need a 4. A 4 is plenty.`);
-  else if (mp && mp.g >= 4) L.push(`Maths at a ${mp.g}?! Wait till Emmanuel hears. Actually, do not tell him. He will make it about himself.`);
-  else L.push('A grade 4 in Maths means no resit. No resit means freedom. Freedom means cheese. Maybe freedom means something else for you. I do not know your life.');
-  if (due) L.push(`${due} mistake${due > 1 ? 's' : ''} waiting to be fixed. Emmanuel says he has never made a mistake. Emmanuel once fell into a bin. On purpose. Fix yours.`);
-  if (days > 0) L.push(`Mocks in ${days} days. That is ${(days * 24).toLocaleString('en-GB')} hours. I counted on my toes. I ran out of toes. Emmanuel lent me his. Weird day.`);
-  L.push(rd ? `You are ${rd}% mock ready. That is higher than Emmanuel was at this point. I made that up. Feels good though, doesn't it.`
-    : 'You are 0% mock ready. Everyone starts at zero. Even Emmanuel. He will deny it. Sit one timed mock and watch it jump.');
-  const off = Math.floor(Date.now() / 864e5) % SEB_GENERAL.length; /* a different joke first each day */
-  return L.concat(SEB_GENERAL.slice(off), SEB_GENERAL.slice(0, off));
-}
+  'Is this a lot of revision? Yes. Is it more than the amount of cheese I have eaten today? Absolutely not. Let us both stop judging each other.',
+  'Emmanuel once tried to revise by sleeping with the textbook under his pillow. He woke up with a sore neck and zero knowledge.',
+  'My nan used to say "a rat who revises is a rat who thrives". She also said "never trust a pigeon". She was right about both.',
+  'I am not saying I am clever. I am saying I once found my way out of a maze and only cried twice.',
+  'Emmanuel claims he can read upside down. He just holds the book upside down. It is not the same thing.',
+  'Derek the pigeon asked me what a past paper is. I said it is like bread but it makes you smarter. He ate one. He is not smarter.',
+  'I made a revision playlist. It is just the sound of a crisp packet, on repeat, for three hours. Very focusing. For me.',
+  'New game: every time I mention Emmanuel, you do one question. Wait. That is a terrible deal for you. Forget I said anything.',
+  'Emmanuel highlights every single word. The whole page is yellow. He calls it "being thorough". It is a crime.',
+  'Your brain is a muscle. Sort of. Not really. But revision makes it stronger, so the metaphor works. I am a rat, not a neuroscientist.',
+  'Little and often beats massive and never. That is the best revision advice I know, and I know two pieces of advice.',
+  'Emmanuel says "practice makes perfect". Emmanuel has never practised anything. He was just born like that. Annoying.',
+  'If you ever feel stuck, remember I once spent a whole week trying to climb a sock. You are doing great by comparison.',
+  'Emmanuel and I once had a staring contest. He blinked first. I will be talking about that until I die.',
+  'My lucky number is 4, because that is your Maths target. Before that, my lucky number was "cheese". I have grown as a rat.',
+  'Emmanuel sent me a voice note. It was eleven minutes long. It was about a crumb. I listened to all of it. That is family.',
+  'Emmanuel wrote "I am the best" on a sticky note and stuck it on his mirror. Then he stuck one on mine. I took it down. He put it back. Twice.',
+  'Take a sip of water. Go on. Done? Great. I am basically your personal trainer now. I charge in crumbs.',
+  'Emmanuel thinks a hypotenuse is a type of dinosaur. I have stopped correcting him. It is easier for everyone.',
+  'I respect you in a strictly professional, rat-to-student way. Now do some revision before this gets weird.',
+  'Emmanuel once got lost in a cereal box for two days. He says he was "exploring". He was crying.',
+  'I tried to teach Derek the pigeon long division. He did a poo on the worksheet. Honestly, fair review.',
+  'Emmanuel has a podcast. It has one listener. It is his mum. She skips the intro.'];
+const SEB_BREAK = ['Break time. Stretch. Emmanuel does yoga on his breaks. He cannot touch his toes. He is a rat. None of us can.',
+  'Drink some water. Emmanuel drinks sparkling water and calls it "fizzy hydration". I am so embarrassed for my family.',
+  'Look at something far away. Not your phone. Your phone is close. I measured. Emmanuel helped. He measured wrong.',
+  'Five minutes. Walk around. Do NOT open the fridge. The fridge is a trap. I lived in one for a week. Emmanuel still calls me "Chilly".',
+  'Break time. Emmanuel spends his breaks posing for photos. Nobody is taking the photos. He just poses.',
+  'Rest your eyes. Stare at a wall. Walls are great. I have lived inside several.'];
 const SEB_POKE = { 5: 'Are you poking me? You are poking me.', 8: 'I am a rat, not a button. The button is up there. It says Begin. It is lovely. Go and press it.',
   11: 'Poke me again and I am calling Emmanuel. You do not want Emmanuel here. He will bring up his grade 9 within four seconds.',
   14: 'Right. That is it. I am fainting dramatically.', 17: 'I am back. I saw a bright light. It was Emmanuel\'s grade 9 certificate. Horrible. Do a set.' };
-let SEB_I = 0, SEB_TAPS = 0, SEB_LAST = 0, SEB_EMM = 0;
-const sebSay = (sec, line) => {
+const s_ = n => n === 1 ? '' : 's';
+/* lines that react to what is going on right now; several versions of each so the same situation reads differently */
+function sebSituation() {
+  const hr = new Date().getHours(), days = daysToMocks(), plan = todayTrain().reduce((a, x) => a + x.n, 0), n = setsOn(dkey());
+  const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length + S.queue.length, mp = predict('Maths'), rd = readiness().pct, L = [];
+  if (hr >= 23 || hr < 5) L.push('It is late. Go to bed. Emmanuel goes to bed at 9 and look how insufferable he is. Hm. Bad argument. Go to bed anyway, sleep is when memories stick.',
+    'It is past 11. I am nocturnal and even I think this is late. Your brain saves what you learned while you sleep. Mine saves crumbs.');
+  else if (hr < 9) L.push('Morning. Emmanuel has been up since 5 doing push-ups. I have been up since 5 watching Emmanuel do push-ups. We all have our roles.', 'Good morning. I have been awake since 4. Not studying. Just vibrating.');
+  if (plan && n >= plan) L.push('Plan done! Emmanuel has never finished a plan. Well, once. He has talked about it every day since. Now YOU get to talk about it every day.',
+    'That is the whole plan done. I would throw you a party, but I only know four people and one of them is a woodlouse called Kevin.',
+    'Plan complete. You are now legally allowed to lie on the floor. That is what I do. Every day. Regardless.', 'All sets done. I am celebrating by running in a small circle for no reason. As is rat tradition.');
+  else if (n > 0) L.push(`${n} set${s_(n)} done. I am telling Emmanuel. He will pretend not to care. He cares. It eats him up inside.`,
+    `${n} down${plan > n ? `, ${plan - n} to go` : ''}. You are on fire. Not literally. I checked. I am very jumpy about fire.`,
+    `${n} set${s_(n)} already. If revision were cheese, you would be a small block of cheddar by now. Mature cheddar. Respect.`,
+    `${n} done. I would high-five you, but my hand is the size of a raisin. Imagine it anyway. Powerful raisin high-five.`);
+  else L.push('Emmanuel would have pressed Begin by now. Not that it is a competition. It is, though. It always has been.',
+    'Squeak. That is rat for "press Begin". It is also rat for "hello", "cheese" and "have you met my cousin Emmanuel".',
+    'I have been staring at that Begin button for an hour. It has not pressed itself. Lazy button.',
+    'One set is 25 minutes. I once hid under a fridge for three days because I heard a crisp packet. You can do 25 minutes.',
+    'If you press Begin I will do a little dance. I will not, I have no rhythm. But I will think about it really hard.',
+    'Today\'s sets are not going to do themselves. I checked. I asked them nicely. Nothing.');
+  if (mp && mp.g !== 'U' && mp.g >= 4) L.push(`Maths at a ${mp.g}?! Wait till Emmanuel hears. Actually, do not tell him. He will make it about himself.`,
+    `Maths is at a ${mp.g}. I would do a backflip, but last time I landed in a teapot and we do not talk about the teapot.`, `A ${mp.g} in Maths. That is a no-resit grade. Now we guard it like the last crumb on Earth.`);
+  else {
+    L.push('A grade 4 in Maths means no resit. No resit means freedom. Freedom means cheese. Maybe freedom means something else for you. I do not know your life.',
+      'Fractions are just pizza with anxiety. Percentages are pizza out of 100. Everything is pizza if you are brave enough.',
+      'Nobody has ever regretted doing a Maths set. Except me. I did one and fell into the protractor drawer.');
+    if (mp) L.push(`Maths is at a ${mp.g} on your papers. Emmanuel got a 9, but he also lives behind a Greggs and has an unfair amount of confidence. You need a 4. A 4 is plenty.`,
+      `Maths is sitting at a ${mp.g}. I am sitting at a U, but in my defence, I ate the calculator.`);
+  }
+  if (due) L.push(`${due} mistake${s_(due)} waiting to be fixed. Emmanuel says he has never made a mistake. Emmanuel once fell into a bin. On purpose. Fix yours.`,
+    `${due} mistake${s_(due)} in the fix queue. I would fix them myself, but last time I tried I accidentally ate question 3.`,
+    `You have ${due} mistake${s_(due)} to win back. Mistakes are just marks you have not collected yet. I read that on a poster. The poster was in a bin. Still true.`);
+  if (days > 0) L.push(`Mocks in ${days} days. That is ${(days * 24).toLocaleString('en-GB')} hours. I counted on my toes. I ran out of toes. Emmanuel lent me his. Weird day.`,
+    `${days} days until mocks. I am not panicking. I am just chewing a sock really fast. Normal behaviour.`,
+    `Mocks in ${days} days. That is ${days} chances to get one per cent better, or ${days} chances to listen to Emmanuel brag. Let us do the first one.`);
+  if (!rd) L.push('You are 0% mock ready. Everyone starts at zero. Even Emmanuel. He will deny it. Sit one timed mock and watch it jump.', 'Readiness: 0%. Same as me before my morning crumb. One timed mock and that number moves. Promise.');
+  else L.push(`You are ${rd}% mock ready. That is higher than Emmanuel was at this point. I made that up. Feels good though, doesn't it.`,
+    `${rd}% mock ready. I am about 4% ready for anything, ever, and I am thriving. You are doing way better than me.`, `Readiness is at ${rd}%. Every set nudges it up. Even the boring ones. Especially the boring ones.`);
+  return L;
+}
+
+/* Memory: what he has said, per device. Cosmetic, so plain localStorage is fine; it fails quietly. */
+const strHash = s => { let x = 7; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x; };
+const sebSeen = new Set((() => { try { const v = JSON.parse(localStorage.getItem('archeron-seb')); return Array.isArray(v) ? v : []; } catch (e) { return []; } })());
+function sebMark(t) { const k = strHash(t); sebSeen.delete(k); sebSeen.add(k); try { localStorage.setItem('archeron-seb', JSON.stringify([...sebSeen].slice(-800))); } catch (e) {} }
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+/* an unseen item; once the whole group has been seen, forget that group and start again (never the line just shown) */
+function fresh(list, avoid, reset = true) {
+  if (!list || !list.length) return null;
+  let pool = list.filter(t => t !== avoid && !sebSeen.has(strHash(t)));
+  if (!pool.length && reset) { for (const t of list) sebSeen.delete(strHash(t)); pool = list.filter(t => t !== avoid); }
+  return pool.length ? rnd(pool) : null;
+}
+let SEB_CUR = null, SEB_TAPS = 0, SEB_LAST = 0, SEB_EMM = 0;
+function sebPick(ctx, avoid) {
+  if (ctx === 'break') { const t = fresh(Math.random() < .6 ? SEB_BREAK : SEB_GENERAL, avoid) || fresh(SEB_BREAK, avoid); sebMark(t); return t; }
+  const top = sessRank()[0], r = Math.random();
+  const order = r < .4 ? ['now', 'joke', 'fact'] : r < .78 ? ['joke', 'now', 'fact'] : ['fact', 'joke', 'now'];
+  /* unused lines from any group first; a group only starts again once every group has run dry */
+  for (const reset of [false, true]) for (const k of order) {
+    if (k === 'fact') { const f = top && factPick(SUBJ_BY[top].name, top, avoid, reset); if (f) return `${f.head}: ${f.text}`; continue; }
+    const t = fresh(k === 'now' ? sebSituation() : SEB_GENERAL, avoid, reset); if (t) { sebMark(t); return t; }
+  }
+  return avoid || '';
+}
+function sebShowLine(sec, line) {
   if (/Emmanuel/.test(line)) SEB_EMM++;
   sec.querySelector('.seb-say p').textContent = line;
   const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM;
-};
+}
 function sebastian(ctx = 'home') {
   if (S.seb === false) return null;
-  const L = sebLines(ctx), line = L[SEB_I % L.length];
   const rat = h('button', { type: 'button', class: 'seb-rat', 'data-act': 'sebTap', 'data-ctx': ctx, 'aria-label': 'Sebastian the rat. Tap him' }); rat.innerHTML = SEB_SVG;
   const sec = h('section', { class: 'seb' }, rat,
     h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, ''), h('small', { class: 'seb-emm', hidden: true })));
-  if (sebastian.idx !== SEB_I) { sebastian.idx = SEB_I; if (/Emmanuel/.test(line)) SEB_EMM++; } /* count each line once, not every redraw */
-  sec.querySelector('.seb-say p').textContent = line;
-  const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM;
+  if (!SEB_CUR || SEB_CUR.ctx !== ctx || Date.now() - SEB_CUR.at > 45000) { /* a new line when you come back, the same one while you are here */
+    SEB_CUR = { ctx, at: Date.now(), line: sebPick(ctx, SEB_CUR && SEB_CUR.line) }; sebShowLine(sec, SEB_CUR.line);
+  } else { sec.querySelector('.seb-say p').textContent = SEB_CUR.line; const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM; }
   return sec;
 }
 const SEB_MOVES = ['hop', 'spin', 'squish', 'wiggle'];
 Object.assign(PLUSACT, {
   sebTap(el) {
     const now = Date.now(); SEB_TAPS = now - SEB_LAST < 3000 ? SEB_TAPS + 1 : 1; SEB_LAST = now;
-    const sec = el.closest('.seb'), poke = SEB_POKE[SEB_TAPS];
-    if (!poke) SEB_I++;
-    const line = poke || sebLines(el.dataset.ctx)[SEB_I % sebLines(el.dataset.ctx).length];
-    sebastian.idx = SEB_I; sebSay(sec, line);
-    const move = SEB_TAPS === 14 ? 'faint' : SEB_MOVES[Math.floor(Math.random() * SEB_MOVES.length)];
+    const sec = el.closest('.seb'), line = SEB_POKE[SEB_TAPS] || sebPick(el.dataset.ctx, SEB_CUR && SEB_CUR.line);
+    SEB_CUR = { ctx: el.dataset.ctx, at: now, line }; sebShowLine(sec, line);
+    const move = SEB_TAPS === 14 ? 'faint' : rnd(SEB_MOVES.filter(m => !el.classList.contains(m)));
     el.classList.remove(...SEB_MOVES, 'faint'); void el.offsetWidth; el.classList.add(move);
     if (SEB_TAPS >= 17) SEB_TAPS = 0;
   },
   sebShow(el) { S.seb = el.dataset.v === '1'; save(); render(); }
 });
+
+/* ---------- Sebastian's topic facts: real facts about the people and history behind what you are studying ---------- */
+/* [subjects, topic pattern or null for any topic in the subject, fact]. Facts checked; legends are called legends. */
+const SEB_FACTS = [
+  ['maths', /pythag|trigonometr/, 'Pythagoras led a group of followers in ancient Greece, and legend says they were not allowed to eat beans. The Babylonians were using his triangle rule more than 1,000 years before he was born, though.'],
+  ['maths', /trigonometr/, '"Trigonometry" is Greek for "triangle measuring". Ancient astronomers used it to estimate the distance to the Moon.'],
+  ['maths', /percent|%|interest|multiplier/, 'The % sign comes from Italian merchants writing "per cento", meaning per hundred. Centuries of lazy handwriting squashed it down into %.'],
+  ['maths|business', /interest/, 'Albert Einstein is often quoted calling compound interest "the eighth wonder of the world". There is no evidence he ever said it. The internet just really wanted him to.'],
+  ['maths', /fraction/, 'The flat line in a fraction is called a vinculum. The slanted one, like in 3/4, is called a solidus. Use those words to scare people.'],
+  ['maths', /ratio|proportion/, 'The golden ratio, about 1.618, shows up in nature, like the spirals of seeds in a sunflower head and the scales of a pine cone.'],
+  ['maths', /algebra|equation|expand|substitut|unknown|factoris|simplif/, 'The word "algebra" comes from "al-jabr" in the title of a book by al-Khwarizmi, a mathematician in 9th-century Baghdad. His name also gave us the word "algorithm".'],
+  ['maths', /equation|unknown|solv/, 'The equals sign was invented in 1557 by the Welsh mathematician Robert Recorde. He picked two parallel lines because "no two things can be more equal".'],
+  ['maths', /sequence|nth/, 'The Fibonacci sequence (1, 1, 2, 3, 5, 8...) is named after Leonardo of Pisa, who made it famous in 1202 with a puzzle about breeding rabbits. Rabbits. Not rats. I am offended.'],
+  ['maths', /circle/, 'Pi Day is 14 March, because Americans write that date as 3/14. It is also Albert Einstein\'s birthday.'],
+  ['maths', /circle/, 'Pi goes on forever without repeating. Computers have worked it out to more than 100 trillion digits. You need about two of them. 3.14. Done.'],
+  ['maths', /angle|polygon/, 'There are 360 degrees in a circle probably because of the ancient Babylonians, who counted in 60s. 360 divides neatly by 2, 3, 4, 5, 6, 8, 9, 10, 12 and loads more.'],
+  ['maths', /negative|number skill/, 'Over 2,000 years ago, Chinese mathematicians used red counting rods for positive numbers and black ones for negatives. In the 1500s, some European mathematicians were still calling negative numbers "absurd".'],
+  ['maths', /bidmas|order of operations|number skill/, 'BIDMAS is called BODMAS in lots of places and PEMDAS in America. Same rules, different letters. Everyone still argues about it online.'],
+  ['maths|physics', /standard form/, 'A googol is 1 × 10^100. The name was made up by a 9-year-old, Milton Sirotta, nephew of the mathematician Edward Kasner. Google is named after it, spelled wrong.'],
+  ['maths', /probab/, 'Probability theory started in 1654 with letters between Blaise Pascal and Pierre de Fermat about how to fairly split the prize money from a game of chance that was stopped halfway.'],
+  ['maths|geography|biology', /mean|median|mode|average|range|statistic|frequency|population|rainfall/, 'Florence Nightingale was a statistics pioneer. Her diagrams proved more soldiers were dying from disease than from battle wounds, and in 1858 she became the first woman in the Royal Statistical Society.'],
+  ['maths', /round/, 'In 1982 the Vancouver Stock Exchange launched an index at 1,000, then kept chopping off decimals instead of rounding properly. Within two years it showed roughly half its real value. Rounding matters.'],
+  ['maths|physics', /speed|distance|compound measure|unit/, 'Usain Bolt\'s 100 m world record of 9.58 seconds works out at about 10.4 metres per second, or roughly 23 miles per hour.'],
+  ['maths', /area|volume|perimeter|trapez|triangle/, 'The Great Pyramid of Giza was the tallest human-made structure in the world for about 3,800 years.'],
+  ['maths', /graph|y = mx/, 'Graphs with x and y axes are called Cartesian graphs, after René Descartes. Legend says he got the idea watching a fly crawl across his ceiling.'],
+  ['maths', null, 'Zero as a proper number was developed in India. The mathematician Brahmagupta wrote rules for calculating with it in 628 AD.'],
+  ['physics', /newton|force|resultant|momentum|motion|acceleration|weight/, 'Isaac Newton studied at Trinity College, Cambridge. When plague shut the university in 1665, he went home to Woolsthorpe in Lincolnshire and worked out huge chunks of his ideas on gravity, light and calculus. Best lockdown ever.'],
+  ['physics', /newton|force|resultant|momentum|motion/, 'Newton later ran the Royal Mint and personally hunted down people forging coins. He reportedly went undercover in pubs to gather evidence.'],
+  ['physics', /weight|gravit|newton/, 'The apple story is mostly true: Newton told friends that seeing an apple fall in his garden got him thinking about gravity. It never hit him on the head. That bit was added later.'],
+  ['physics', /energy|work done|kinetic|potential energy/, 'The joule is named after James Prescott Joule, a brewer\'s son from Salford who showed work can be turned into heat. Legend says he took a thermometer on his honeymoon to measure waterfalls.'],
+  ['physics', /power/, 'The watt is named after James Watt, the Scottish engineer who massively improved the steam engine. He also came up with "horsepower" to help sell it.'],
+  ['physics', /charge|electric|circuit|potential difference/, 'Alessandro Volta built the first battery in 1800 by stacking zinc and copper discs with salty cardboard or cloth between them. The volt is named after him.'],
+  ['physics', /resistance|circuit|electric/, 'Georg Ohm was a maths and physics teacher when he did the experiments behind V = IR. Your teacher could be next. Be nice to them.'],
+  ['physics', /charge|electric/, 'Benjamin Franklin is the reason electrons count as "negative". He chose the labels before anyone knew electrons existed, and we have been stuck with it ever since.'],
+  ['physics', /wave|spectrum|light/, 'Light from the Sun takes about 8 minutes to reach Earth. So if the Sun vanished, you would get 8 more minutes of revision. Use them wisely.'],
+  ['physics', /wave|spectrum|radio/, 'Heinrich Hertz was the first to deliberately make and detect radio waves, in the 1880s. The hertz, the unit of frequency, is named after him.'],
+  ['physics', /magnet/, 'Earth\'s magnetic north pole wanders. It has been drifting tens of kilometres a year, so navigation maps have to be updated regularly.'],
+  ['physics|chemistry', /particle|radiation|radioactiv|atom/, 'Marie Curie is the only person to win Nobel Prizes in two different sciences: Physics in 1903 and Chemistry in 1911. Her notebooks are still radioactive and are kept in lead-lined boxes.'],
+  ['physics', /density|particle model/, 'Archimedes supposedly shouted "Eureka!" ("I have found it!") in the bath after working out how to test whether a king\'s crown was pure gold, using water displacement. Legend, not on the exam.'],
+  ['physics', /spring|force/, 'Hooke\'s law is named after Robert Hooke, who also named biological "cells". He and Isaac Newton could not stand each other.'],
+  ['physics', /speed|wave/, 'Sound travels at about 340 metres per second in air. Count the seconds between lightning and thunder, divide by 3, and you get roughly how many kilometres away the storm is.'],
+  ['chemistry', /periodic|group|atom|electron/, 'Dmitri Mendeleev left gaps in his periodic table for elements nobody had discovered yet, and predicted what they would be like. When gallium and germanium were found, he was spot on.'],
+  ['chemistry|physics', /atom|electron|nucle/, 'Rutherford\'s gold foil experiment showed atoms are mostly empty space. He said seeing particles bounce back was like firing a shell at tissue paper and having it come back and hit you.'],
+  ['chemistry', /bond|structure|ionic|formula|naming/, 'Table salt is sodium, a metal that reacts violently with water, bonded to chlorine, a poisonous gas. Together they go on your chips.'],
+  ['chemistry', /bond|structure|propert/, 'Diamond and the graphite in pencils are both pure carbon. The only difference is how the carbon atoms are bonded together.'],
+  ['chemistry', /electrolysis/, 'Humphry Davy used electrolysis to discover potassium and sodium in 1807. His cousin wrote that he danced around the lab with joy.'],
+  ['chemistry', /acid|salt|reactivity|chemical change/, 'The pH scale was invented in 1909 by Søren Sørensen while he worked at the Carlsberg brewery\'s laboratory in Copenhagen.'],
+  ['chemistry|biology', /rate|energy change|catalys|enzyme/, 'Enzymes are biological catalysts. Without them, some reactions in your body would take millions of years. With them, it takes a fraction of a second.'],
+  ['chemistry', /crude oil|fuel/, 'Crude oil mostly formed from tiny sea creatures like plankton, buried and squashed for millions of years. Not dinosaurs. Sorry.'],
+  ['chemistry', /atmosphere|resource/, 'Earth\'s early atmosphere had almost no oxygen. It built up over hundreds of millions of years thanks to algae and, later, plants doing photosynthesis.'],
+  ['chemistry', /mixture|separation|chromatograph|rf value|analysis/, 'Chromatography was invented by the botanist Mikhail Tsvet to separate plant pigments. "Chroma" is Greek for colour, and "tsvet" is Russian for colour. A built-in pun.'],
+  ['chemistry', /formula|equation|balanc|mass|concentration|calculation/, 'Antoine Lavoisier showed that mass is conserved in chemical reactions, which is exactly why equations have to balance. He also named oxygen and hydrogen.'],
+  ['chemistry', /gas test/, 'The squeaky pop test works because hydrogen burns so fast with oxygen that it makes a tiny explosion. Rat-sized. Very safe. Mostly.'],
+  ['chemistry', null, 'The Haber process makes ammonia for fertiliser. It is estimated that food grown with it feeds around half the people on Earth.'],
+  ['biology', /cell|magnification|microscop/, 'Robert Hooke named "cells" in 1665 after looking at cork under a microscope. The tiny boxes reminded him of the small rooms monks lived in, which were called cells.'],
+  ['biology', /cell|microscop|disease/, 'Antonie van Leeuwenhoek, a Dutch cloth merchant, was the first person to see bacteria, using microscopes he made himself in the 1670s.'],
+  ['biology', /diffusion|osmosis|transport/, 'One estimate says your body has around 37 trillion cells, and every single one relies on diffusion to get oxygen in and carbon dioxide out.'],
+  ['biology', /enzyme|digest/, 'The word "enzyme" comes from Greek for "in yeast", because they were first studied in fermenting yeast.'],
+  ['biology', /photosynth|respiration|bioenerg|plant/, 'About half of the oxygen on Earth is made by tiny plankton in the oceans, not by trees.'],
+  ['biology', /heart|blood|lung|organisation/, 'In 1628, William Harvey showed that blood circulates around the body. Before that, many people believed the liver kept making fresh blood that the body used up.'],
+  ['biology', /disease|immun|medicine|infection/, 'Edward Jenner tested the first vaccine in 1796, using cowpox. "Vaccine" comes from "vacca", the Latin word for cow.'],
+  ['biology', /disease|immun|medicine|infection/, 'Alexander Fleming discovered penicillin in 1928 when mould grew on a dish of bacteria he had left out while he was on holiday. Messy desks: occasionally world-changing.'],
+  ['biology', /hormone|homeostasis|glucose/, 'Insulin was discovered in 1921 by Frederick Banting and Charles Best in Toronto. They sold the patent for just $1 each so it could help as many people as possible.'],
+  ['biology', /nerv|reflex|homeostasis/, 'Some nerve signals travel at over 100 metres per second. That is roughly ten times faster than Usain Bolt.'],
+  ['biology', /inherit|genetic|variation/, 'Gregor Mendel, a monk, worked out the basic rules of inheritance by growing and studying tens of thousands of pea plants in his monastery garden.'],
+  ['biology', /inherit|genetic|dna/, 'Rosalind Franklin\'s X-ray image, known as Photo 51, was key to discovering that DNA is shaped like a double helix.'],
+  ['biology', /evolution|selective|variation/, 'Charles Darwin studied at Cambridge and spent nearly five years sailing around the world on HMS Beagle, collecting the evidence that led to his theory of evolution.'],
+  ['biology', /ecolog|ecosystem|cycle|sampling/, 'A single teaspoon of healthy soil can contain more living organisms than there are people on Earth.'],
+  ['englit', /macbeth/, 'Shakespeare probably wrote Macbeth around 1606, partly with King James I in mind. James was so into witches that he wrote a whole book about them called Daemonologie.'],
+  ['englit', /macbeth/, 'Actors traditionally refuse to say "Macbeth" inside a theatre and call it "the Scottish play" instead, because of an old superstition that the play is cursed.'],
+  ['englit', /christmas carol|scrooge|stave/, 'Dickens wrote A Christmas Carol in about six weeks in 1843, and paid for it to be published himself.'],
+  ['englit', /christmas carol|scrooge|stave/, 'When Dickens was 12, his dad was sent to a debtors\' prison and Dickens had to work in a factory sticking labels on pots of boot polish. You can see why he cared so much about poverty.'],
+  ['englit', /journey|stanhope|sherriff/, 'R. C. Sherriff served as an officer in the First World War and was wounded at Passchendaele in 1917. He started writing plays to raise money for his rowing club.'],
+  ['englit', /power and conflict|poet|poem/, 'Wilfred Owen, who wrote "Exposure", was killed one week before the First World War ended. His mother got the telegram on Armistice Day, as church bells rang for peace.'],
+  ['englit', /power and conflict|poet|poem/, 'Percy Shelley wrote "Ozymandias" in 1817 as a friendly competition with his friend Horace Smith, who wrote a sonnet on the same subject. Shelley\'s is the one everyone remembers.'],
+  ['englit', /essay|literature/, '"Essay" comes from the French "essayer", meaning "to try". So technically every essay is just an attempt. No pressure.'],
+  ['englit|englang', null, 'Shakespeare is credited with the earliest recorded uses of hundreds of English words, including "lonely" and "bedroom".'],
+  ['englang', /sound/, 'Animal noises change by language. A dog says "woof" in English, "wan wan" in Japanese and "guau" in Spanish.'],
+  ['englang', /sight|colour|light/, 'Homer, the ancient Greek poet, famously described the sea as "wine-dark" rather than blue. Writers have been choosing surprising colour words for about 2,800 years.'],
+  ['englang', null, 'The words "run" and "set" have some of the longest entries in the Oxford English Dictionary, with hundreds of meanings each.'],
+  ['geography', /tectonic|hazard|earthquake|volcan/, 'Charles Richter created the Richter scale in 1935. Each whole number up means about ten times more ground shaking.'],
+  ['geography', /tectonic|hazard|earthquake|volcan/, 'Iceland sits on the Mid-Atlantic Ridge, so it is being pulled apart by about 2 centimetres a year. At Silfra you can snorkel in the gap between two tectonic plates.'],
+  ['geography', /weather|climate|rainfall|hazard/, 'The UK\'s highest temperature ever recorded is 40.3°C, at Coningsby in Lincolnshire, in July 2022.'],
+  ['geography', /coast/, 'The Holderness coast in Yorkshire is one of the fastest-eroding coastlines in Europe, losing around 1 to 2 metres a year in places.'],
+  ['geography', /river|coast/, 'The River Thames used to freeze so solid that Londoners held "frost fairs" on it, with stalls and games on the ice. The last one was in 1814.'],
+  ['geography', /urban|population|development|natural increase/, 'Since about 2007, more than half of all the people on Earth have lived in towns and cities.'],
+  ['geography', /living world|ecosystem/, 'Tropical rainforests cover a small slice of Earth\'s land, but they are home to around half of its plant and animal species.'],
+  ['business', /enterprise|ownership|entrepreneur/, 'James Dyson built 5,127 prototypes of his bagless vacuum cleaner before he got it right. Emmanuel gave up on a sandwich after one attempt.'],
+  ['business', /marketing/, 'Nike\'s swoosh logo was designed in 1971 by a student, Carolyn Davidson. She was paid $35.'],
+  ['business', /finance|cash|profit|revenue|break-even|margin|return|calculation/, 'Luca Pacioli published the first description of double-entry bookkeeping in 1494. He was friends with Leonardo da Vinci and taught him maths.'],
+  ['business', /operations|people/, 'Henry Ford\'s moving assembly line cut the time to build a Model T car from about 12 hours to about an hour and a half.'],
+  ['business', /external|finance/, 'The Bank of England, which sets the UK\'s base interest rate, was founded in 1694 to raise money for a war against France.'],
+  ['re', /christian/, 'The Bible is the most translated book in the world. The full Bible is available in over 700 languages.'],
+  ['re', /christian/, 'The Bible never says what date Jesus was born. The first recorded Christmas on 25 December was in Rome in the 300s AD.'],
+  ['re', /islam/, 'The Qur\'an was revealed in Arabic, and many Muslims memorise all of it. Someone who has done that is called a hafiz.'],
+  ['re', /islam/, 'Ramadan moves about 11 days earlier each year, because the Islamic calendar follows the Moon.'],
+  ['re', /islam/, 'Around two million Muslims perform Hajj, the pilgrimage to Makkah, each year.'],
+  ['re', /theme|key term|answering/, 'The word "ethics" comes from the Greek "ethos", meaning character or custom.']];
+const SEBF_HEADS = ['Sebastian\'s fun fact', 'Fun fact, from a rat', 'Okay, nerd moment', 'Did you know?', 'Rat fact of the moment', 'Quick history lesson'];
+const SEBF_TAILS = ['Emmanuel says he knew that. He did not.', 'I told Emmanuel this and he said "cool" and ate a napkin.', 'Not on the exam. But now you will never forget the topic.',
+  'Emmanuel thinks this fact is about him. It is not.', 'I learned that from a book. Well, I ate a book. Same thing.', 'Tell someone that today. Not Emmanuel. He will pretend he already knew.',
+  'Derek the pigeon has never heard of this. Derek has never heard of anything.', 'Anyway. Back to it. You are doing great.'];
+/* topic facts first, then the rest of the subject; nothing repeats until the subject's facts are used up */
+function factPick(text, subj, avoidText, reset = true) {
+  const t = String(text).toLowerCase(), mine = f => f[0].split('|').includes(subj);
+  const topical = SEB_FACTS.filter(f => mine(f) && f[1] && f[1].test(t)).map(f => f[2]), all = SEB_FACTS.filter(mine).map(f => f[2]);
+  if (!all.length) return null;
+  const avoid = all.find(x => avoidText && String(avoidText).includes(x));
+  const unseenTop = topical.filter(x => x !== avoid && !sebSeen.has(strHash(x)));
+  const raw = unseenTop.length ? rnd(unseenTop) : fresh(all, avoid, reset);
+  if (!raw) return null;
+  sebMark(raw);
+  const tail = Math.random() < .4 ? fresh(SEBF_TAILS) : null; if (tail) sebMark(tail);
+  return { head: rnd(SEBF_HEADS), text: raw + (tail ? ' ' + tail : '') };
+}
+const SEBF_CUR = {}, SEBF_CTX = {}; /* the fact on screen for each guide or question, so redraws do not swap it */
+function sebFactCard(text, subj, key) {
+  if (S.seb === false) return null;
+  SEBF_CTX[key] = [text, subj];
+  const f = SEBF_CUR[key] || (SEBF_CUR[key] = factPick(text, subj)); if (!f) return null;
+  const rat = h('button', { type: 'button', class: 'seb-rat mini', 'data-act': 'sebFact', 'data-k': key, 'aria-label': 'Sebastian. Tap for another fact' }); rat.innerHTML = SEB_SVG;
+  return h('section', { class: 'seb fact' }, rat, h('div', { class: 'seb-say', role: 'note' }, h('b', null, f.head), h('p', null, f.text)));
+}
+/* in practice: every fourth question, once you have answered */
+function drillFact() {
+  if (!DR || !DR.q || DR.state === 'ask' || DR.count % 4 !== 3) return null;
+  const id = DR.q.id, g = STUDY.find(x => x.topics.includes(id));
+  return sebFactCard(`${LEARN.name(id)} ${g ? g.title : ''}`, LEARN.trackOf(id), 'd' + id + DR.count);
+}
+{ const g1 = STUDYACT.guide; STUDYACT.guide = el => { delete SEBF_CUR['g' + el.dataset.id]; g1(el); }; }
+PLUSACT.sebFact = el => {
+  const k = el.dataset.k, c = SEBF_CTX[k]; if (!c) return;
+  const f = factPick(c[0], c[1], SEBF_CUR[k] && SEBF_CUR[k].text); if (!f) return;
+  SEBF_CUR[k] = f; const sec = el.closest('.seb');
+  sec.querySelector('.seb-say b').textContent = f.head; sec.querySelector('.seb-say p').textContent = f.text;
+  el.classList.remove(...SEB_MOVES); void el.offsetWidth; el.classList.add(rnd(SEB_MOVES));
+};

@@ -1455,6 +1455,7 @@ function vGuide() {
     subHero(SUBJ_BY[g.subj].name, g.title, GUIDE_BACK, null, GUIDE_BACK === 'session' ? 'Back to your session' : 'Study'),
     h('p', { class: 'lede' }, g.lead),
     h('article', { class: 'card guide-body' }, guideBody(g.body)),
+    sebFactCard(`${g.title} ${g.topics.map(LEARN.name).join(' ')}`, g.subj, 'g' + g.id),
     g.topics.length > 0 && card('Practise this now', null, h('p', { class: 'muted xs' }, 'Questions are generated fresh, and wrong ones come back until they stick.'),
       h('div', { class: 'chips' }, g.topics.map(t => chip([icon('play'), LEARN.name(t)], false, 'guideDrill', { 'data-topic': t })))),
     h('div', { class: 'row' }, S.read[g.id] ? h('span', { class: 'pill won' }, `✓ Read ${fmtDate(S.read[g.id])}`) : B([icon('check'), 'Mark as read'], 'guideRead', 'primary', { 'data-id': g.id }),
