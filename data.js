@@ -52,7 +52,12 @@ const DECKS = {
     ['"I will honour Christmas in my heart, and try to keep it all the year"', 'Scrooge, Stave 4: his promise to change'],
     ['"as merry as a schoolboy"', 'Scrooge, Stave 5: redemption, reborn and childlike'],
     ['"as good a friend, as good a master, and as good a man"', 'Narrator, Stave 5: complete transformation']] },
-  je: { name: "Journey's End", cards: [], note: 'Add quotes from your own copy of the play, checked word for word. A misquote can cost marks, so this deck starts empty on purpose.' },
+  je: { name: "Journey's End", cards: [
+    ['"To forget, you little fool – to forget! D\'you understand? To forget!"', 'Stanhope to Raleigh, Act 3: drink is how he copes with the horror. Check the wording in your copy.'],
+    ['"If I went up those steps into the front line – without being doped with whisky – I\'d go mad with fright."', 'Stanhope to Osborne: the cost of the war on the best officer. Check the wording in your copy.'],
+    ['"He\'s the finest officer in the battalion, and the men simply love him."', 'Raleigh\'s letter home, Act 2: hero-worship, and Stanhope\'s fear of being seen as he really is. Check the wording in your copy.'],
+    ['"He\'s a long way the best company commander we\'ve got."', 'Osborne on Stanhope, Act 1: loyalty, and his steady, fatherly role. Check the wording in your copy.']],
+    note: 'Four starter quotes. Check each one word for word against your own copy (a misquote can cost marks), then add the eight key moments with Add card.' },
   phy: { name: 'Physics equations', cards: [
     ['Weight', 'W = m × g  (N, kg, N/kg)'], ['Work done', 'W = F × s  (J, N, m)'], ['Spring force', 'F = k × e  (N, N/m, m)'],
     ['Speed', 'v = s ÷ t  (m/s, m, s)'], ['Acceleration', 'a = Δv ÷ t  (m/s², m/s, s)'], ['Resultant force', 'F = m × a  (N, kg, m/s²)'],

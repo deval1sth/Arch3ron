@@ -83,7 +83,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -147,7 +147,7 @@ function normalize(raw) {
   const ex = obj(r.exam), paper = EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
   if (paper) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
     got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
-    lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1) };
+    lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1), end: Math.max(0, num(ex.end)) };
   const rp = obj(r.plan);
   if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
     s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
@@ -466,6 +466,7 @@ function vHome() {
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
+    doNow(),
     motionHint(),
     missionCard(M, false),
     todayStrip(todayN),
@@ -514,6 +515,7 @@ function quickWins() {
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
     h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'session' }, icon('book'), h('span', null, h('b', null, activeSession() ? 'Resume your revision session' : 'Plan a revision session'), h('small', null, 'Guides and practice for your weakest subjects'))),
+    new Date().getDay() < 2 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'week' }, icon('calendar'), h('span', null, h('b', null, 'Weekly review'), h('small', null, 'How the week went, and what to fix next'))),
     R0().hunt.last !== dkey() && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'realm' }, icon('crown'), h('span', null, h('b', null, 'The Hunt'), h('small', null, "Today's run is waiting")))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
 }
@@ -730,6 +732,7 @@ function vTools() {
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     h('div', { class: 'tools' },
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
+      tool('week', 'calendar', 'Weekly review', 'This week vs last, and predicted grades'),
       tool('stats', 'chart', 'Progress', 'What you have actually learned, by subject'),
       tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Answer, mark, score by topic'),
       tool('papers', 'scroll', 'Past papers', S.scores.length ? `${S.scores.length} logged · chart and marks lost` : 'Log scores, see your trend'),
@@ -786,6 +789,7 @@ function vExam() {
     subHero('Learn', 'Exam practice', 'learn', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
     EXRES && card('Paper marked', h('span', { class: 'pill' }, `${EXRES.got}/${EXRES.max} · ${Math.round(EXRES.got / EXRES.max * 100)}%`),
       h('p', null, h('b', null, EXRES.name)),
+      h('p', null, `That is about a grade ${gradeFor(EXRES.subj, Math.round(EXRES.got / EXRES.max * 100))} (rough guide).`),
       h('ul', { class: 'hbars' }, EXRES.tp.map(t => h('li', null, h('div', { class: 'hb-l' }, h('b', null, t.topic)),
         h('div', { class: 'hb-b' }, h('i', { style: `width:${t.got / t.max * 100}%;background:var(--y)` }), h('span', null, `${t.got}/${t.max}`))))),
       h('p', { class: 'muted xs' }, 'Lost marks are now in Past papers → Marks to win back.'),
@@ -799,7 +803,7 @@ function vExam() {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', null, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
-        B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }));
+        h('div', { class: 'row' }, B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }), !(run && run.id === p.id) && B([icon('flame'), 'Timed mock'], 'exStart', 'ghost sm', { 'data-id': p.id, 'data-timed': '1', 'aria-label': `Timed mock, ${p.mins} minutes` })));
     })))),
     card('Results by topic', h('span', { class: 'muted' }, 'weakest first'), topics.length
       ? h('ul', { class: 'hbars' }, topics.map(t => h('li', null, h('div', { class: 'hb-l' }, h('b', null, t.topic), h('small', null, t.subj)),
@@ -832,6 +836,7 @@ function vExamQ() {
   return h('div', { class: 'stack narrow' },
     subHero(p.subj, p.name, 'exam', null, 'Exam practice'),
     h('div', { class: 'exdots', 'aria-label': `Question ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (qDone(E, k, qq) ? ' done' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    mockClock(),
     i === 0 && how && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'How to do this paper'), h('p', null, how))),
     srcs.map(k => acc(`src-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true })),
     h('section', { class: 'card qcard exq' + (show ? ' marked' : '') },
@@ -851,7 +856,7 @@ const EXACT = {
   exStart(el) {
     const p = paperOf(el.dataset.id);
     if (S.exam && S.exam.pid !== p.id && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
-    if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false) };
+    if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), end: el.dataset.timed ? Date.now() + p.mins * 60000 : 0 };
     EXRES = null; exOpen(S.exam.i); go('examq', '#exans');
   },
   exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); E.marked[E.i] = true; save(); render(); },
@@ -879,13 +884,13 @@ const EXACT = {
       if (m > g) { const key = q[0] + '|' + qType(q); lost[key] = lost[key] || { topic: q[0], type: qType(q), marks: 0 }; lost[key].marks += m - g; }
     });
     const tps = Object.values(tp), got = tps.reduce((a, t) => a + t.got, 0), max = tps.reduce((a, t) => a + t.max, 0), pc = Math.round(got / max * 100);
-    const name = p.name + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
+    const name = p.name + (E.end ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25); realmEv('paper');
     const g = groupOf(p), added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
-    EXRES = { name, got, max, tp: tps }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
+    EXRES = { name, got, max, tp: tps, subj: p.subj }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
   }
 };
 
@@ -925,7 +930,7 @@ function mpResults() {
   const R = MPRES;
   return h('div', { class: 'stack narrow' },
     subHero('Maths', 'Generated paper marked', 'exam', null, 'Exam practice'),
-    card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}%`)),
+    card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}% · about a grade ${gradeFor('Maths', Math.round(R.score / R.rows.length * 100))}`)),
       h('p', { class: 'muted' }, R.added ? `${R.added} topic${R.added > 1 ? 's' : ''} you got wrong ${R.added > 1 ? 'are' : 'is'} now in your fix queue.` : R.score === R.rows.length ? 'Full marks. Generate another; it will be different.' : 'Saved to Past papers.'),
       h('div', { class: 'row' }, B([icon('sparkle'), 'New paper'], 'mpNew', 'primary'), B('Done', 'mpDone', 'ghost'))),
     card('Question by question', null, h('ul', { class: 'mpres' }, R.rows.map((r, k) => h('li', { class: r.ok ? 'ok' : 'no' },
@@ -985,6 +990,7 @@ function vStats() {
         tile(Object.values(S.skill).reduce((a, k) => a + k.n, 0).toLocaleString('en-GB'), 'questions answered'),
         tile(wk.pc == null ? '–' : wk.pc + '%', 'right this week', wk.pc != null && prev.pc != null ? (wk.pc >= prev.pc ? `up ${wk.pc - prev.pc} from last week` : `down ${prev.pc - wk.pc} from last week`) : `${wk.n} answered`),
         tile(S.queue.length, 'in the fix queue'))),
+    predictCard(),
     card('Last 28 days', h('span', { class: 'muted' }, `${acts.reduce((a, b) => a + b, 0)} questions`),
       h('div', { class: 'spark', role: 'img', 'aria-label': 'Questions answered per day for the last 28 days' }, acts.map((n, i) => h('i', { style: `height:${Math.max(n ? 6 : 2, n / top * 100)}%`, title: `${fmtDate(addDays(i - 27))}: ${n}` }))),
       h('div', { class: 'spark-l muted xs' }, h('span', null, '4 weeks ago'), h('span', null, 'today'))),
@@ -1270,8 +1276,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['profile', 'user', 'Profile'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
+const PARENT = { week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { week: vWeek, home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: vToday, papers: vPapers, exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: vStats, cards: vCards, lists: vLists, fix: vFix, plan: vPlan, me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1531,7 +1537,7 @@ const CHG = {
   }
 };
 
-Object.assign(ACT, EXACT, MPACT, REALMACT, STUDYACT);
+Object.assign(ACT, EXACT, MPACT, REALMACT, STUDYACT, PLUSACT);
 CHG.sessTick = STUDYACT.sessTick; /* checkbox: arrives as a change event, not a click */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
