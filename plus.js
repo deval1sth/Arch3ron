@@ -805,3 +805,87 @@ function realmProfileCard() {
   return h('button', { type: 'button', class: 'card rprof', 'data-act': 'go', 'data-tab': 'profile' }, emblemEl(S.profile.emblem, 'emb'),
     h('span', { class: 'grow' }, h('b', null, S.profile.name || 'Your profile'), h('small', null, `${R0().title ? COSMETICS[R0().title].name : titleFor(life)} · ${badgeCount()} badges · emblems and mastery`)), icon('back', 'rp-go'));
 }
+
+/* ---------- Writing feedback: package an answer for Claude to mark like an examiner, then keep the mark and the fix ---------- */
+const CLAUDE_URL = 'https://claude.ai/new';
+function fbPrompt(c) {
+  const lv = c.levels && c.levels.length ? c.levels.map(([lo, hi, d], i) => `- Level ${c.levels.length - i} (${lo === hi ? lo : `${lo}-${hi}`} marks): ${d}`).join('\n') : '';
+  return [`You are an experienced AQA GCSE ${c.subj} examiner. Mark my answer${c.max ? ` out of ${c.max}` : ''} the way a real examiner would.`,
+    `\nQuestion:\n${c.question.trim()}`,
+    c.source && `\nSource / extract the question is about:\n${c.source.trim()}`,
+    lv && `\nMark scheme levels (a summary of how the bands read):\n${lv}`,
+    c.look && c.look.length && `\nWhat examiners look for:\n${c.look.map(x => '- ' + x).join('\n')}`,
+    c.scheme && `\nMark scheme / what the question wants:\n${c.scheme.trim()}`,
+    `\nMy answer:\n"""\n${c.answer.trim()}\n"""`,
+    `\nPlease reply with:\n1. Mark: X${c.max ? `/${c.max}` : ''}${c.levels ? ' and the level' : ''}, with one sentence saying why.\n2. Two things I did well (quote my words).\n3. The ONE change that would move me up a level. Show me by rewriting one of my sentences.\n4. A short model sentence or paragraph for my weakest part.`,
+    `\nKeep it short, honest and specific. I am aiming for a grade ${c.aim}. Do not rewrite my whole answer.`].filter(Boolean).join('\n');
+}
+const FB = {}; /* the answer each feedback box packages, by key */
+function fbBox(key, ctx) {
+  FB[key] = ctx;
+  const D = DRAFT.fb && DRAFT.fb.k === key ? DRAFT.fb : (DRAFT.fb = { k: key, mark: '', fix: '', note: '' });
+  const canShare = !!navigator.share;
+  return h('section', { class: 'card fbbox' },
+    h('div', { class: 'card-h' }, h('h2', null, 'Get examiner feedback'), h('span', { class: 'pill' }, 'with Claude')),
+    h('p', { class: 'muted xs' }, 'Marking your own long answers is hard: you cannot see what you did not do. Send this to Claude and you get a mark, two strengths and the one change that moves you up a level.'),
+    h('ol', { class: 'fb-steps' },
+      h('li', null, h('b', null, 'Send it. '), canShare ? 'Share it straight to the Claude app, or copy it and paste it into a new chat.' : 'Copy it, then paste it into a new Claude chat.'),
+      h('li', null, h('b', null, 'Read the feedback. '), 'Do the rewrite it suggests, in your own words.'),
+      h('li', null, h('b', null, 'Come back and save the mark '), 'and the one thing to fix. The fix goes to your Fix page.')),
+    h('div', { class: 'row' }, canShare && B([icon('sparkle'), 'Share to Claude'], 'fbShare', 'primary', { 'data-k': key }), B([icon('check'), 'Copy for Claude'], 'fbCopy', canShare ? 'ghost' : 'primary', { 'data-k': key }),
+      h('a', { class: 'btn ghost', href: CLAUDE_URL, target: '_blank', rel: 'noopener' }, 'Open Claude')),
+    acc('fbsee-' + key, h('b', null, 'See exactly what gets sent'), h('pre', { class: 'fb-pre' }, fbPrompt(ctx))),
+    h('div', { class: 'fb-save' }, h('p', { class: 'fb-h' }, 'Got your feedback?'),
+      h('div', { class: 'fb-fields' }, field(`Claude's mark${ctx.max ? ` (out of ${ctx.max})` : ''}`, h('input', { type: 'number', inputmode: 'numeric', min: 0, max: ctx.max || 100, 'data-draft': 'fb.mark', value: D.mark })),
+        field('The one thing to fix', h('input', { 'data-draft': 'fb.fix', value: D.fix, maxlength: 200, placeholder: 'e.g. explain the effect of each quote' }))),
+      field('Paste the feedback to keep it (optional)', h('textarea', { rows: 3, 'data-draft': 'fb.note', value: D.note, maxlength: 4000 })),
+      B([icon('check'), 'Save feedback'], 'fbSave', 'primary', { 'data-k': key })));
+}
+/* in a practice paper: long answers only, once written */
+function examFeedback(p, q, E, i) {
+  const x = qX(q), m = qMax(q), ans = (x.same ? E.ans[i - 1] : E.ans[i]) || '';
+  if (!(q[2].lv || m >= 4) || ans.trim().length < 40) return null;
+  const src = [].concat(x.src || []).filter(k => p.src && p.src[k]).map(k => `${p.src[k][0]}\n${p.src[k][1]}`).join('\n\n');
+  return fbBox(`ex-${p.id}-${i}`, { subj: p.subj, question: q[1], source: src, levels: q[2].lv || null, look: qTicks(q), max: m, answer: ans, aim: aimOf(p.subj), exam: { pid: p.id, i } });
+}
+/* anything else: homework, a plan you wrote up, a past-paper answer on paper */
+function vFeedback() {
+  const F = DRAFT.fbf || (DRAFT.fbf = { subj: 'English Language', max: '', question: '', answer: '', scheme: '' }), past = (S.fbk || []).slice().reverse();
+  const ready = F.question.trim().length > 5 && F.answer.trim().length > 40;
+  return h('div', { class: 'stack narrow' },
+    subHero('Learn', 'Writing feedback', 'write', 'For any long answer: homework, a past paper you did on paper, or practice writing. Practice papers in the app have this built in after you mark.', 'Plans and writing'),
+    card('Your answer', null,
+      h('div', { class: 'grid2' }, field('Subject', selectSubj('fbf.subj', F.subj)), field('Marks available', h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 60, 'data-draft': 'fbf.max', value: F.max, placeholder: 'e.g. 12' }))),
+      field('The question', h('textarea', { rows: 2, 'data-draft': 'fbf.question', value: F.question, maxlength: 1500 })),
+      field('Your answer', h('textarea', { rows: 8, 'data-draft': 'fbf.answer', value: F.answer, maxlength: 12000, placeholder: 'Type it, or paste it from your notes' })),
+      field('Mark scheme or what the question wants (optional)', h('textarea', { rows: 2, 'data-draft': 'fbf.scheme', value: F.scheme, maxlength: 3000, placeholder: 'Paste the mark scheme if you have it: it makes the mark more accurate' })),
+      B('Get it ready for Claude', 'fbReady', 'primary wide')),
+    ready && FB_FREE && fbBox('free', { subj: F.subj, question: F.question, answer: F.answer, scheme: F.scheme, max: +F.max || 0, aim: aimOf(F.subj) }),
+    past.length > 0 && card('Feedback you have saved', h('span', { class: 'muted' }, String(past.length)),
+      past.slice(0, 20).map(f => acc('fbk' + f.id, h('span', { class: 'pl-h' }, h('b', null, f.subj), h('small', null, `${fmtDate(f.date)}${f.mark >= 0 ? ` · ${f.mark}${f.max ? '/' + f.max : ''}` : ''}`)),
+        [h('p', null, h('b', null, 'Question: '), f.q), f.fix && h('p', null, h('b', null, 'Fix: '), f.fix), f.note && h('p', { class: 'fb-note' }, f.note)], { cls: 'saved' }))));
+}
+let FB_FREE = false;
+const fbText = k => FB[k] && fbPrompt(FB[k]);
+Object.assign(PLUSACT, {
+  fbReady() { const F = DRAFT.fbf; if (F.question.trim().length <= 5) return toast('Add the question'); if (F.answer.trim().length <= 40) return toast('Add your answer first'); FB_FREE = true; render(); setTimeout(() => $('.fbbox')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 80); },
+  fbCopy(el) {
+    const t = fbText(el.dataset.k); if (!t) return;
+    const done = () => toast('Copied. Paste it into a new Claude chat'), ta = () => { const a = h('textarea', { style: 'position:fixed;opacity:0' }); a.value = t; document.body.append(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Could not copy. Open "See exactly what gets sent" and copy it from there'); } a.remove(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, ta); else ta();
+  },
+  fbShare(el) { const t = fbText(el.dataset.k); if (t) navigator.share({ text: t }).catch(() => {}); },
+  fbSave(el) {
+    const k = el.dataset.k, c = FB[k], D = DRAFT.fb; if (!c || !D) return;
+    const mark = D.mark === '' ? -1 : Math.round(+D.mark), fix = str(D.fix, 200).trim(), note = str(D.note, 4000).trim();
+    if (mark < 0 && !fix && !note) return toast('Add the mark, the fix or the feedback first');
+    if (c.max && mark > c.max) return toast(`The mark can be at most ${c.max}`);
+    (S.fbk = S.fbk || []).push({ id: newId(), date: dkey(), subj: c.subj, q: str(c.question, 300), mark, max: c.max || 0, fix, note });
+    if (S.fbk.length > 60) S.fbk = S.fbk.slice(-60);
+    if (fix) S.mistakes.push({ id: newId(), date: dkey(), subj: SUBJ.includes(c.subj) ? c.subj : 'English Language', topic: str(c.question, 60).replace(/\s+/g, ' ').trim(), note: fix, redo: addDays(3), fixed: false });
+    const E = S.exam, ex = c.exam;
+    if (ex && mark >= 0 && E && E.pid === ex.pid) { const q = paperOf(ex.pid).qs[ex.i]; if (q[2].lv) { E.lv[ex.i] = Math.min(mark, qMax(q)); E.marked[ex.i] = true; } }
+    DRAFT.fb = { k, mark: '', fix: '', note: '' }; save();
+    toast(fix ? 'Saved. The fix is on your Fix page, back in 3 days' : 'Feedback saved'); render();
+  }
+});

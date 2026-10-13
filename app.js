@@ -84,7 +84,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -98,7 +98,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, readyLog: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, readyLog: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
@@ -135,6 +135,7 @@ function normalize(raw) {
   s.sess = sessNorm(r.sess);
   s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : '';
   s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal'; s.seb = r.seb !== false;
+  s.fbk = arr(r.fbk).map(obj).filter(x => x.q || x.note || x.fix).slice(-60).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 30), q: str(x.q, 300), mark: Math.round(num(x.mark, -1)), max: Math.max(0, num(x.max)), fix: str(x.fix, 200), note: str(x.note, 4000) }));
   { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; }
   for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
   for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
@@ -669,6 +670,8 @@ function langGuides() {
 function vWrite() {
   return h('div', { class: 'stack narrow' },
     subHero('Learn', 'Plans and writing', 'learn', 'A five-minute plan is the fastest way to a structured answer. Plans are saved on this device.'),
+    h('button', { type: 'button', class: 'card fixlink fblink', 'data-act': 'go', 'data-tab': 'feedback' }, icon('sparkle'),
+      h('span', { class: 'grow' }, h('b', null, 'Get feedback on any answer'), h('small', null, 'Paste a homework or past-paper answer and Claude marks it like an examiner.')), h('span', { class: 'btn primary sm' }, 'Open')),
     card('Plan an answer', null, planBuilder(Object.keys(PLAN_KIND), 'write')),
     card('How to answer English Language questions', null, langGuides()),
     S.plans.length ? card('Saved plans', h('span', { class: 'muted' }, S.plans.length + ' saved'),
@@ -824,6 +827,7 @@ function vExamQ() {
       show ? [
         h('p', { class: 'yours' }, h('b', null, x.same ? `Your answer to question ${i}: ` : 'Your answer: '), (x.same ? E.ans[i - 1] : E.ans[i]) || '(left blank)'),
         markPanel(q, E, i),
+        examFeedback(p, q, E, i),
         h('div', { class: 'row' }, last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
       : [h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
         h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'), !last && B('Skip', 'exGo', 'ghost', { 'data-i': i + 1 }))]),
@@ -1246,8 +1250,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { exam: 'learn', examq: 'learn', mpaper: 'learn', mockstart: 'learn', profile: 'realm', stats: 'tools', ready: 'tools', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
+const PARENT = { feedback: 'learn', exam: 'learn', examq: 'learn', mpaper: 'learn', mockstart: 'learn', profile: 'realm', stats: 'tools', ready: 'tools', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
+const VIEWS = { feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 

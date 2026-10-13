@@ -905,3 +905,14 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .fix-tiles{margin-top:0}
 .fix-tiles{grid-template-columns:repeat(3,1fr)}
 .fix-tiles .tile b{font-size:22px}.fix-tiles .tile span{font-size:12px;line-height:1.3}
+
+/* ---------- Writing feedback ---------- */
+.fbbox{border-color:rgba(var(--y-rgb),.35);background:linear-gradient(170deg,rgba(var(--y-rgb),.08),var(--card) 55%)}
+.fb-steps{margin:10px 0 14px;padding-left:20px;display:grid;gap:6px;font-size:14px}
+.fb-steps li::marker{color:var(--y);font-weight:700}
+.fb-pre{white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:auto;margin:8px 0 0;padding:12px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid var(--line2);font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--m)}
+.fb-save{margin-top:16px;padding-top:14px;border-top:1px solid var(--line2)}
+.fb-note{white-space:pre-wrap;font-size:13.5px;color:var(--m)}
+.fblink>.i{color:var(--y2)}
+.fb-fields{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:end}
+.qcard .fbbox{margin-top:16px;padding:16px 0 0;border:0;border-top:1px solid var(--line2);border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
