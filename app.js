@@ -454,7 +454,8 @@ function vHome() {
     todayBar());
 
   const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
-  const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
+  const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} in this block · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
+  const HT = M.subj && M.subj !== 'science' ? M.subj : { lit: 'englit', lang: 'englang', re: 're' }[M.id] || null; /* the subject the next set is about */
 
   if (active) return h('div', { class: 'stack home working' },
     h('section', { class: 'focus-bar' + (T.run ? ' live' : '') },
@@ -465,7 +466,7 @@ function vHome() {
 
   return h('div', { class: 'stack home' },
     resumeCard(),
-    h('section', { class: 'focus' },
+    h('section', { class: 'focus hero' },
       h('p', { class: 'eyebrow' }, `${part} · next up`),
       h('h1', { class: 'focus-title' }, title),
       h('p', { class: 'focus-meta' }, meta),
@@ -477,18 +478,18 @@ function vHome() {
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
     todayBar(),
+    missionCard(Object.assign({ why: missionWhy(HT) }, M), false),
     backupNag(),
-    doNow(),
+    doNow(HT),
     sebastian(),
     motionHint(),
-    missionCard(M, false),
     quickWins());
 }
 function missionCard(M, live) {
   const head = h('div', { class: 'm-head' }, h('span', { class: 'lc-ic' }, icon(M.id === 'fixes' ? 'wrench' : M.id === 'paper' ? 'scroll' : M.id === 'lit' ? 'feather' : M.id === 'lang' ? 'book' : M.id === 're' ? 'sparkle' : 'target')),
     h('div', null, h('p', { class: 'eyebrow' }, live ? 'Your mission' : 'In this set you will'), h('h2', null, M.title)));
   const steps = h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)));
-  if (!live) return h('section', { class: 'card mission' }, head, steps, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
+  if (!live) return h('section', { class: 'card mission' }, head, steps, M.why || null, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
   return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
 }
 function missionPanel(M) {
@@ -518,9 +519,8 @@ function quickWins() {
   const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
   const items = [
     h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
-    dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} ready to review`))),
+    dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} due · even 10 helps`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
-    h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'session' }, icon('book'), h('span', null, h('b', null, activeSession() ? 'Resume your revision session' : 'Plan a revision session'), h('small', null, 'Guides and practice for your weakest subjects'))),
     new Date().getDay() < 2 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'week' }, icon('calendar'), h('span', null, h('b', null, 'Weekly review'), h('small', null, 'How the week went, and what to fix next'))),
     R0().hunt.last !== dkey() && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'realm' }, icon('crown'), h('span', null, h('b', null, 'The Hunt'), h('small', null, "Today's run is waiting")))];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));

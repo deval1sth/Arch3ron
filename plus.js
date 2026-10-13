@@ -112,7 +112,16 @@ function examReport(R) {
 
 /* ---------- Do this now ---------- */
 let DN_I = 0;
-function doNow() {
+/* why the next set's subject matters right now, and the guide to read first; replaces a separate Do this now card when they agree */
+function missionWhy(track) {
+  const s = track && SUBJ_BY[track]; if (!s || activeSession()) return null;
+  const gp = subjGap(s.subj), blk = (makeSession(25, [track]).blocks || [])[0], g = blk && STUDY_BY[blk.gid];
+  const acc = blk && blk.topic ? accOf(blk.topic) : null, fixes = S.queue.filter(x => LEARN.trackOf(x.id) === track).length;
+  const parts = [`now ${gp.curS}, aim ${gp.tgtS}`, blk && blk.topic && (acc != null ? `${LEARN.name(blk.topic)} is ${Math.round(acc * 100)}% right` : `${LEARN.name(blk.topic)} not practised yet`), fixes && `${fixes} in your fix queue`].filter(Boolean);
+  return h('div', { class: 'm-why' }, h('p', null, h('b', null, 'Why it matters: '), parts.join(' · ')),
+    g && B([icon('book'), h('span', null, 'Stuck? Read the guide: ', h('b', null, g.title))], 'guide', 'ghost sm m-guide', { 'data-id': g.id }));
+}
+function doNow(heroTrack) {
   const a = activeSession();
   if (a) {
     const bi = a.blocks.findIndex(b => b.steps.some(x => !x.d)), b = a.blocks[bi], st = b.steps.find(x => !x.d), s = SUBJ_BY[b.sid];
@@ -124,16 +133,18 @@ function doNow() {
   }
   const rank = sessRank(); if (!rank.length) return null;
   const sid = rank[DN_I % rank.length], s = SUBJ_BY[sid], gp = subjGap(s.subj), blk = (makeSession(25, [sid]).blocks || [])[0];
+  if (heroTrack && sid === heroTrack) return null; /* the next set already covers it: the mission card says why */
+  const second = !!heroTrack; /* the Begin button is the main action; this is the alternative */
   if (!blk) return null;
   const g = STUDY_BY[blk.gid], acc = blk.topic ? accOf(blk.topic) : null, fixes = S.queue.filter(x => LEARN.trackOf(x.id) === sid).length;
   const why = [`now ${gp.curS}, aim ${gp.tgtS}`, blk.topic && (acc != null ? `${LEARN.name(blk.topic)} is ${Math.round(acc * 100)}% right` : `${LEARN.name(blk.topic)} not practised yet`), fixes && `${fixes} in your fix queue`].filter(Boolean);
   const segs = blk.steps.map(x => [{ blurt: 'Warm up', learn: 'Learn', practise: 'Practise', plan: 'Apply', check: 'Check' }[x.k] || 'Step', x.m]);
-  return h('section', { class: 'card donow' },
-    h('div', { class: 'dn-top' }, h('p', { class: 'eyebrow' }, DN_I % rank.length ? `Option ${DN_I % rank.length + 1} of ${rank.length}` : 'Do this now · biggest gap'), h('span', { class: 'pill' }, '25 min')),
+  return h('section', { class: 'card donow' + (second ? ' alt' : '') },
+    h('div', { class: 'dn-top' }, h('p', { class: 'eyebrow' }, DN_I % rank.length ? `Option ${DN_I % rank.length + 1} of ${rank.length}` : second ? 'Or tackle your biggest gap' : 'Do this now · biggest gap'), h('span', { class: 'pill' }, '25 min')),
     h('div', { class: 'dn-main' }, h('span', { class: 'dn-ic' }, icon(s.icon)), h('div', null, h('h2', null, s.name), h('small', { class: 'muted' }, g.title))),
     h('p', { class: 'dn-why' }, why.join(' · ')),
     h('div', { class: 'dn-segs', 'aria-label': segs.map(([n, m]) => `${n} ${m} minutes`).join(', ') }, segs.map(([n, m]) => h('span', { style: `flex:${m}` }, h('i'), h('b', null, n), h('small', null, m + 'm')))),
-    h('div', { class: 'row' }, B([icon('play'), 'Start now'], 'doNow', 'primary grow'), B('Something else', 'doSkip', 'ghost')));
+    h('div', { class: 'row' }, B([icon('play'), second ? 'Plan it instead' : 'Start now'], 'doNow', (second ? 'ghost' : 'primary') + ' grow'), B('Something else', 'doSkip', second ? 'link' : 'ghost')));
 }
 
 /* ---------- Weekly review ---------- */

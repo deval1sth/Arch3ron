@@ -880,3 +880,16 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .seb.fact{align-items:flex-end}
 .seb-rat.mini{width:76px;height:70px}
 .seb.fact .seb-say{margin-bottom:18px}
+
+/* ---------- Focus page tidy-up ---------- */
+.focus.hero .ring{width:min(212px,56vw);margin:14px auto 18px}
+.focus.hero .time{font-size:clamp(44px,11vw,58px)}
+.focus.hero .focus-meta{margin-top:6px}
+.m-why{margin:12px 0 8px;padding:12px 14px;border-radius:var(--r-sm);background:rgba(var(--y-rgb),.07);border:1px solid rgba(var(--y-rgb),.18)}
+.m-why p{margin:0 0 10px;font-size:13.5px}.m-why p b{color:var(--y2)}
+.m-guide{white-space:normal;text-align:left;height:auto;min-height:40px;padding:8px 14px;line-height:1.3}
+.m-guide b{font-weight:700}
+.donow.alt{border-color:var(--line);background:var(--card)}
+.donow.alt::after{opacity:.4}
+.donow.alt .dn-main h2{font-size:24px}
+.dn-segs span{min-width:58px}
