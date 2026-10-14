@@ -916,3 +916,7 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .fblink>.i{color:var(--y2)}
 .fb-fields{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:end}
 .qcard .fbbox{margin-top:16px;padding:16px 0 0;border:0;border-top:1px solid var(--line2);border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.rprof svg.i,.rprof .rp-go{width:20px;height:20px;flex:none}
+.rprof .emb svg{width:100%;height:100%}
+.rprof .grow{display:block;min-width:0}
+#view:focus{outline:none}

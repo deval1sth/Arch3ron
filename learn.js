@@ -393,7 +393,9 @@ const LEARN = (() => {
        questions stay new, so you keep moving forward. (Before, new facts always came first and misses came back at random, so a
        struggling student's facts faded before they were ever reviewed. Found by the 12-week simulation.) */
     due.sort((a, b) => gap(a.m) - gap(b.m));
-    const set = due.length && (Math.random() < .75 || !fresh.length) ? due.slice(0, 6) : fresh.length ? fresh : null;
+    /* learn a few properly before adding more: with 12+ half-learned facts in this topic, no new ones (found by the simulation: Science spread too thin) */
+    const busy = pool.filter(r => r.m && r.m.s < 2).length >= 12;
+    const set = due.length && (busy || Math.random() < .75 || !fresh.length) ? due.slice(0, 6) : fresh.length && !busy ? fresh : null;
     const r = set ? pick(set) : pool.reduce((a, b) => gap(b.m) > gap(a.m) ? b : a); /* nothing due: the one closest to due */
     RECENT.push(r.k); if (RECENT.length > 40) RECENT.shift();
     return [r.it, r.k];
