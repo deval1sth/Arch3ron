@@ -98,7 +98,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, readyLog: {}, pused: [], lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
     realm: realmNorm(null),
@@ -133,6 +133,7 @@ function normalize(raw) {
   s.realm = realmNorm(r.realm || null);
   for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
   s.sess = sessNorm(r.sess);
+  for (const [k, v] of Object.entries(obj(r.why))) if (WHY.some(w => w[0] === k)) s.why[k] = Math.max(0, Math.round(num(v)));
   s.pused = arr(r.pused).filter(x => typeof x === 'string').slice(-4000).map(x => x.slice(0, 120));
   s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : '';
   s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal'; s.seb = r.seb !== false;
@@ -185,7 +186,7 @@ function normalize(raw) {
   s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() }));
   const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
   if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
-    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
+    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
   return s;
 }
 
@@ -918,6 +919,7 @@ const qSig = q => q.key ? 'k' + q.key : q.id + '|' + String(q.q).slice(0, 80);
 function vMPaper() {
   if (MPRES) return mpResults();
   const M = S.mp; if (!M) return vExam();
+  if (M.self) return vSelfMark(M);
   const i = M.i, q = M.qs[i], last = i === M.qs.length - 1;
   return h('div', { class: 'stack narrow' },
     subHero(TRACK_NAME(M.track || 'maths'), 'Generated paper', 'exam', null, 'Exam practice'),
@@ -939,6 +941,7 @@ function mpResults() {
   const R = MPRES;
   return h('div', { class: 'stack narrow' },
     subHero(TRACK_NAME(R.track || 'maths'), 'Generated paper marked', 'exam', null, 'Exam practice'),
+    R.self && selfCard(R.self),
     card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}% · about a grade ${gradeFor(trackSubj(R.track || 'maths'), Math.round(R.score / R.rows.length * 100))}`)),
       h('p', { class: 'muted' }, R.added ? `${R.added} topic${R.added > 1 ? 's' : ''} you got wrong ${R.added > 1 ? 'are' : 'is'} now in your fix queue.` : R.score === R.rows.length ? 'Full marks. Generate another; it will be different.' : 'Saved to Past papers.'),
       h('div', { class: 'row' }, R.ppp && R.added ? B([icon('wrench'), 'Do the corrections now'], 'drill', 'primary', { 'data-track': 'fix' }) : B([icon('sparkle'), 'New paper'], 'mpNew', 'primary', Object.assign({ 'data-track': R.track || 'maths' }, R.ppp ? { 'data-ppp': '1' } : {})), B('Done', 'mpDone', 'ghost'))),
@@ -967,6 +970,7 @@ const MPACT = {
     const track = M.track || 'maths', subj = trackSubj(track), tn = TRACK_NAME(track);
     const blank = M.ans.filter(a => !a).length;
     if (blank && !confirm(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
+    if (M.ppp && !M.self) { M.self = { i: 0, my: M.qs.map(() => null), why: M.qs.map(() => '') }; save(); render(); return scrollTo({ top: 0 }); } /* PPP: you mark it first */
     const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
@@ -974,7 +978,7 @@ const MPACT = {
     S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ' (full length)' : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
-    CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
+    CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
   }
 };
 

@@ -942,8 +942,61 @@ function vPPP() {
       : card('Next paper', null, h('p', { class: 'muted xs' }, `Suggested: ${SUBJ_BY[sid].name}, your biggest gap right now.`),
         B([icon('play'), `Start a ${SUBJ_BY[sid].name} paper`], 'mpNew', corrections ? 'ghost' : 'primary', { 'data-track': sid, 'data-ppp': '1' }),
         h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id, 'data-ppp': '1' })))),
+    Object.keys(S.why || {}).length > 0 && card('Why you lose marks', h('span', { class: 'muted' }, 'all PPP papers'), whyBars(S.why)),
     card('Your PPP record', h('span', { class: 'muted' }, `${papers.length} paper${papers.length === 1 ? '' : 's'}`),
       papers.length ? h('ul', { class: 'list' }, Object.entries(bySubj).map(([s, l]) => h('li', null, h('div', { class: 'grow' }, h('b', null, s), h('small', null, `${l.length} paper${l.length > 1 ? 's' : ''} · latest ${l[l.length - 1]}% · best ${Math.max(...l)}%`)), medal(gradeFor(s, l[l.length - 1]), 'sm'))))
         : h('p', { class: 'muted' }, 'No PPP papers yet. Your first one sets the baseline.'),
       h('p', { class: 'muted xs' }, `${uniq.toLocaleString('en-GB')} different questions used on papers so far. None will appear on another paper until a subject's bank runs out; then the ones you got wrong come back first.`)));
 }
+
+/* ---------- PPP self-marking: be the examiner. Compare your answer with the mark scheme, decide the mark, say why you lost it.
+   Then the app checks your marking, and your reasons for losing marks build up across papers. ---------- */
+const WHY = [['know', "Didn't know it"], ['misread', 'Misread the question'], ['method', 'Wrong method'], ['slip', 'Careless slip'], ['time', 'Rushed or ran out of time']];
+const WHY_FIX = { know: 'Learn it: these topics go to Fix, and the guide for each is the place to start.', misread: 'Underline the command word and key numbers before answering. Read the question twice.',
+  method: 'Copy the worked method from the mark scheme, then redo a fresh version without looking.', slip: 'Check every answer against the question at the end. Write down working so slips are visible.',
+  time: 'Do a timed mock: aim for about a minute per mark, and skip and return to hard questions.' };
+const answerText = (q, a) => a === '' || a == null ? '(left blank)' : q.kind === 'mcq' ? q.options[+a] : a;
+function vSelfMark(M) {
+  const SM = M.self, i = SM.i, q = M.qs[i], done = SM.my.filter(x => x !== null).length;
+  return h('div', { class: 'stack narrow' },
+    subHero(TRACK_NAME(M.track || 'maths'), 'Mark your paper', 'ppp', null, 'PPP mode'),
+    h('div', { class: 'exdots' }, M.qs.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (SM.my[k] === true ? ' done' : SM.my[k] === false ? ' miss' : ''), 'data-act': 'smGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    i === 0 && !done && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'You are the examiner now'), h('p', null, 'Compare each answer with the mark scheme. Only give the mark if your answer really matches it: examiners do not give the benefit of the doubt. When you lose a mark, say why.'))),
+    h('section', { class: 'card qcard' },
+      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, LEARN.name(q.id)), h('span', null, `Question ${i + 1} of ${M.qs.length}`)),
+      h('p', { class: 'qtext' }, q.q),
+      h('div', { class: 'sm-cols' },
+        h('div', { class: 'sm-box mine' }, h('small', null, 'Your answer'), h('b', null, answerText(q, M.ans[i]))),
+        h('div', { class: 'sm-box scheme' }, h('small', null, 'Mark scheme'), h('b', null, q.show || String(q.a)),
+          q.steps && q.steps.length > 0 && h('ol', { class: 'steps' }, q.steps.map(x => h('li', null, x))))),
+      h('div', { class: 'row' }, B([icon('check'), 'I got the mark'], 'smMark', 'ghost grow' + (SM.my[i] === true ? ' on' : ''), { 'data-v': '1' }), B([icon('x'), 'I lost the mark'], 'smMark', 'ghost grow' + (SM.my[i] === false ? ' on' : ''), { 'data-v': '0' })),
+      SM.my[i] === false && [h('p', { class: 'fb-h' }, 'Why did you lose it?'), h('div', { class: 'chips' }, WHY.map(([k, l]) => chip(l, SM.why[i] === k, 'smWhy', { 'data-r': k })))]),
+    h('div', { class: 'row' }, i > 0 && B('Back', 'smGo', 'ghost', { 'data-i': i - 1 }),
+      done === M.qs.length ? B([icon('check'), 'Finish marking'], 'smDone', 'primary grow') : B('Next', 'smGo', 'primary grow', { 'data-i': Math.min(M.qs.length - 1, i + 1), disabled: SM.my[i] === null || (SM.my[i] === false && !SM.why[i]) })),
+    h('p', { class: 'muted xs center' }, `${done} of ${M.qs.length} marked. Your place is saved if you leave.`));
+}
+function selfReport(M, rows) {
+  const generous = [], harsh = [], why = {};
+  rows.forEach((r, k) => { const me = M.self.my[k]; if (me && !r.ok) generous.push(k + 1); if (me === false && r.ok) harsh.push(k + 1); if (!r.ok && M.self.why[k]) why[M.self.why[k]] = (why[M.self.why[k]] || 0) + 1; });
+  for (const [k, n] of Object.entries(why)) S.why[k] = (S.why[k] || 0) + n;
+  return { agree: rows.length - generous.length - harsh.length, total: rows.length, generous, harsh, why };
+}
+function whyBars(why) {
+  const tot = Object.values(why).reduce((a, b) => a + b, 0); if (!tot) return null;
+  const top = WHY.filter(([k]) => why[k]).sort((a, b) => why[b[0]] - why[a[0]]);
+  return [h('ul', { class: 'hbars' }, top.map(([k, l]) => h('li', null, h('div', { class: 'hb-l' }, h('b', null, l)), h('div', { class: 'hb-b' }, h('i', { style: `width:${why[k] / tot * 100}%;background:var(--y)` }), h('span', null, `${why[k]}`))))),
+    h('p', { class: 'muted xs' }, h('b', null, 'Biggest fix: '), WHY_FIX[top[0][0]])];
+}
+function selfCard(R) {
+  return card('How you marked', h('span', { class: 'pill' }, `${R.agree}/${R.total} agree with the scheme`),
+    h('p', { class: 'muted xs' }, R.generous.length || R.harsh.length ? 'Examiners mark exactly to the scheme. Look again at these:' : 'You marked exactly like an examiner. That is a real skill.'),
+    R.generous.length > 0 && h('p', null, h('b', null, 'Too generous on: '), R.generous.map(n => 'Q' + n).join(', '), h('small', { class: 'muted' }, ' (you gave a mark the scheme would not)')),
+    R.harsh.length > 0 && h('p', null, h('b', null, 'Too harsh on: '), R.harsh.map(n => 'Q' + n).join(', '), h('small', { class: 'muted' }, ' (your answer was actually right)')),
+    Object.keys(R.why).length > 0 && [h('p', { class: 'fb-h' }, 'Why you lost marks on this paper'), whyBars(R.why)]);
+}
+Object.assign(PLUSACT, {
+  smGo(el) { S.mp.self.i = +el.dataset.i; save(); render(); scrollTo({ top: 0 }); },
+  smMark(el) { const SM = S.mp.self, v = el.dataset.v === '1'; SM.my[SM.i] = v; if (v) { SM.why[SM.i] = ''; if (SM.i < S.mp.qs.length - 1) SM.i++; } save(); render(); if (v) scrollTo({ top: 0 }); },
+  smWhy(el) { const SM = S.mp.self; SM.why[SM.i] = el.dataset.r; if (SM.i < S.mp.qs.length - 1) SM.i++; save(); render(); scrollTo({ top: 0 }); },
+  smDone() { MPACT.mpFinish(); }
+});
