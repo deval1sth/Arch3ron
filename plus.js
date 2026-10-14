@@ -796,7 +796,7 @@ function vFixAll() {
 /* ---------- One Progress area: Readiness, Learned, This week, Papers ---------- */
 const PROG_TABS = [['ready', 'Readiness'], ['stats', 'Learned'], ['week', 'This week'], ['papers', 'Papers']];
 const tabRow = (list, cur, label) => h('div', { class: 'chips scroll ptabs', role: 'tablist', 'aria-label': label }, list.map(([t, l]) => chip(l, t === cur, 'go', { 'data-tab': t, role: 'tab', 'aria-selected': String(t === cur) })));
-const withTabs = (list, label) => (id, fn) => () => { const v = fn(); const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
+const withTabs = (list, label) => (id, fn) => () => { const v = fn(); v.classList.add('narrow'); /* same width on every tab, so switching tabs does not jump */ const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
 const progView = withTabs(PROG_TABS, 'Progress');
 const planView = withTabs([['today', 'Today'], ['plan', 'Your week']], 'Plan');
 
@@ -856,7 +856,7 @@ function vFeedback() {
   return h('div', { class: 'stack narrow' },
     subHero('Learn', 'Writing feedback', 'write', 'For any long answer: homework, a past paper you did on paper, or practice writing. Practice papers in the app have this built in after you mark.', 'Plans and writing'),
     card('Your answer', null,
-      h('div', { class: 'grid2' }, field('Subject', selectSubj('fbf.subj', F.subj)), field('Marks available', h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 60, 'data-draft': 'fbf.max', value: F.max, placeholder: 'e.g. 12' }))),
+      h('div', { class: 'grid2 g-wl' }, field('Subject', selectSubj('fbf.subj', F.subj)), field('Marks available', h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 60, 'data-draft': 'fbf.max', value: F.max, placeholder: 'e.g. 12' }))),
       field('The question', h('textarea', { rows: 2, 'data-draft': 'fbf.question', value: F.question, maxlength: 1500 })),
       field('Your answer', h('textarea', { rows: 8, 'data-draft': 'fbf.answer', value: F.answer, maxlength: 12000, placeholder: 'Type it, or paste it from your notes' })),
       field('Mark scheme or what the question wants (optional)', h('textarea', { rows: 2, 'data-draft': 'fbf.scheme', value: F.scheme, maxlength: 3000, placeholder: 'Paste the mark scheme if you have it: it makes the mark more accurate' })),

@@ -792,11 +792,9 @@ function vExam() {
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
       h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
-      g === 'Maths' && h('div', { class: 'gen' }, S.mp ? B([icon('play'), `Resume generated paper (Q${S.mp.i + 1})`], 'mpResume', 'primary') : B([icon('sparkle'), 'Generate a fresh paper'], 'mpNew', 'primary'),
-        h('small', { class: 'muted' }, 'A new 20-question paper every time, weighted to grade 4 topics and your weak spots. Marked automatically at the end.')),
       h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
-      return h('li', null, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
+      return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
         h('div', { class: 'row' }, B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }), !(run && run.id === p.id) && B([icon('flame'), 'Mock'], 'mockGo', 'ghost sm', { 'data-id': p.id, 'aria-label': `Timed mock, ${p.mins} minutes` })));
     })))),
@@ -1215,7 +1213,7 @@ function fixList(open) {
 /* Plan editor */
 function vPlan() {
   const w = PD, plan = S.plan[w];
-  const kinds = [['train', 'Training'], ['rest', 'Rest'], ['other', 'Fixed (e.g. tutoring)']];
+  const kinds = [['train', 'Training'], ['rest', 'Rest'], ['other', 'Fixed']];
   return h('div', { class: 'stack narrow' },
     subHero('Plan', 'Your week', 'tools', 'Name sessions after a subject (e.g. "Geography", "Science: Chemistry") and Focus builds the right mission for them.'),
     card('Week', h('span', { class: 'muted' }, weekTarget() + ' sets a week'),
