@@ -876,7 +876,6 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 @keyframes sbSquish{30%{transform:scale(1.25,.7)}60%{transform:scale(.9,1.12)}100%{transform:scale(1)}}
 @keyframes sbWiggle{20%,60%{transform:rotate(-9deg)}40%,80%{transform:rotate(9deg)}}
 @keyframes sbFaint{0%{transform:none}15%{transform:rotate(-14deg)}35%,85%{transform:translate(40px,-30px) rotate(-90deg) scale(.8)}100%{transform:none}}
-.seb-emm{display:block;margin-top:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
 .seb.fact{align-items:flex-end}
 .seb-rat.mini{width:76px;height:70px}
 .seb.fact .seb-say{margin-bottom:18px}

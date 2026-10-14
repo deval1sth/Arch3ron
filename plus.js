@@ -593,7 +593,7 @@ function fresh(list, avoid, reset = true) {
   if (!pool.length && reset) { for (const t of list) sebSeen.delete(strHash(t)); pool = list.filter(t => t !== avoid); }
   return pool.length ? rnd(pool) : null;
 }
-let SEB_CUR = null, SEB_TAPS = 0, SEB_LAST = 0, SEB_EMM = 0;
+let SEB_CUR = null, SEB_TAPS = 0, SEB_LAST = 0;
 function sebPick(ctx, avoid) {
   if (ctx === 'break') { const t = fresh(Math.random() < .6 ? SEB_BREAK : SEB_GENERAL, avoid) || fresh(SEB_BREAK, avoid); sebMark(t); return t; }
   const top = sessRank()[0], r = Math.random();
@@ -605,19 +605,15 @@ function sebPick(ctx, avoid) {
   }
   return avoid || '';
 }
-function sebShowLine(sec, line) {
-  if (/Emmanuel/.test(line)) SEB_EMM++;
-  sec.querySelector('.seb-say p').textContent = line;
-  const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM;
-}
+function sebShowLine(sec, line) { sec.querySelector('.seb-say p').textContent = line; }
 function sebastian(ctx = 'home') {
   if (S.seb === false) return null;
   const rat = h('button', { type: 'button', class: 'seb-rat', 'data-act': 'sebTap', 'data-ctx': ctx, 'aria-label': 'Sebastian the rat. Tap him' }); rat.innerHTML = SEB_SVG;
   const sec = h('section', { class: 'seb' }, rat,
-    h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, ''), h('small', { class: 'seb-emm', hidden: true })));
+    h('div', { class: 'seb-say', role: 'status', 'aria-live': 'polite' }, h('b', null, 'Sebastian'), h('p', null, '')));
   if (!SEB_CUR || SEB_CUR.ctx !== ctx || Date.now() - SEB_CUR.at > 45000) { /* a new line when you come back, the same one while you are here */
     SEB_CUR = { ctx, at: Date.now(), line: sebPick(ctx, SEB_CUR && SEB_CUR.line) }; sebShowLine(sec, SEB_CUR.line);
-  } else { sec.querySelector('.seb-say p').textContent = SEB_CUR.line; const c = sec.querySelector('.seb-emm'); c.textContent = `Emmanuel mentions today: ${SEB_EMM}`; c.hidden = !SEB_EMM; }
+  } else sebShowLine(sec, SEB_CUR.line);
   return sec;
 }
 const SEB_MOVES = ['hop', 'spin', 'squish', 'wiggle'];
