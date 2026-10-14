@@ -403,6 +403,7 @@ Object.assign(PLUSACT, {
   exp() { backupNow().then(ok => { if (ok) { S.lastBackup = dkey(); save(); toast('Backup saved'); render(); } }); }
 });
 ICONS.search = ['M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z', 'M20 20l-4.2-4.2'];
+ICONS.share = ['M12 3v12', 'M7 8l5-5 5 5', 'M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6'];
 const searchBtn = () => h('button', { type: 'button', class: 'srch-b', 'data-act': 'searchOpen', 'aria-label': 'Search everything' }, icon('search'));
 
 /* ---------- Pick up where you left off ---------- */
@@ -450,11 +451,10 @@ document.addEventListener('click', e => { if (SWIPED && e.target.closest('.flash
 const quietNow = () => !!((S.exam && S.exam.end && Date.now() < S.exam.end) || (T.run && T.mode === 'focus'));
 const HELD = [];
 if (typeof FX !== 'undefined') { const rev = FX.reveal; FX.reveal = (a, b, c) => quietNow() ? void HELD.push(b ? `${a}: ${b}` : a) : rev(a, b, c); } /* FXS in app.js is this same object */
-{ const gc = giveChest; giveChest = (type, why) => { if (!quietNow()) return gc(type, why); const R = R0(); R.chests.push(type); R.stat.chests++; HELD.push(`${CHESTS[type].name} (${why})`); }; }
 setInterval(() => {
   const lock = !!(S.exam && S.exam.end && Date.now() < S.exam.end && TAB === 'examq');
   document.body.classList.toggle('lockdown', lock);
-  if (!quietNow() && HELD.length) { const n = HELD.length; toast(n === 1 ? `While you focused: ${HELD[0]}` : `While you focused you earned ${n} rewards. See The Realm.`, 'big'); HELD.length = 0; }
+  if (!quietNow() && HELD.length) { const n = HELD.length; toast(n === 1 ? `While you focused: ${HELD[0]}` : `While you focused you earned ${n} achievements. See your profile.`, 'big'); HELD.length = 0; }
 }, 1000);
 
 /* ---------- Text size ---------- */
@@ -796,12 +796,6 @@ const withTabs = (list, label) => (id, fn) => () => { const v = fn(); v.classLis
 const progView = withTabs(PROG_TABS, 'Progress');
 const planView = withTabs([['today', 'Today'], ['plan', 'Your week']], 'Plan');
 
-/* ---------- Profile lives in The Realm ---------- */
-function realmProfileCard() {
-  const life = lifeSets();
-  return h('button', { type: 'button', class: 'card rprof', 'data-act': 'go', 'data-tab': 'profile' }, emblemEl(S.profile.emblem, 'emb'),
-    h('span', { class: 'grow' }, h('b', null, S.profile.name || 'Your profile'), h('small', null, `${R0().title ? COSMETICS[R0().title].name : titleFor(life)} · ${badgeCount()} badges · emblems and mastery`)), icon('back', 'rp-go'));
-}
 
 /* ---------- Writing feedback: package an answer for Claude to mark like an examiner, then keep the mark and the fix ---------- */
 const CLAUDE_URL = 'https://claude.ai/new';
@@ -1160,4 +1154,121 @@ Object.assign(PLUSACT, {
   smMark(el) { const SM = S.mp.self, v = el.dataset.v === '1'; SM.my[SM.i] = v; if (v) { SM.why[SM.i] = ''; if (SM.i < S.mp.qs.length - 1) SM.i++; } save(); render(); if (v) scrollTo({ top: 0 }); },
   smWhy(el) { const SM = S.mp.self; SM.why[SM.i] = el.dataset.r; if (SM.i < S.mp.qs.length - 1) SM.i++; save(); render(); scrollTo({ top: 0 }); },
   smDone() { MPACT.mpFinish(); }
+});
+
+/* ---------- Mocks: the exam hub that replaced the Realm. What to sit next, corrections, predicted grades, and your week ---------- */
+/* the paper that would move your grades most: furthest below your aim (no paper yet counts as far), sat longest ago, Maths first */
+function nextMock() {
+  const rows = SUBJ.filter(s => EXAMS.some(e => e.subj === s)).map(s => {
+    const p = predict(s), aim = aimOf(s), last = subjPts(s).slice(-1)[0], gap = p ? boundFor(s, aim) - p.pc : 30;
+    const ago = last ? Math.round((parseKey(dkey()) - parseKey(last.date)) / 864e5) : 14;
+    return { s, p, aim, w: gap + Math.min(ago, 14) * 2 + (s === 'Maths' && gap > 0 ? 15 : 0) };
+  });
+  return rows.sort((a, b) => b.w - a.w)[0];
+}
+const hubTool = (tab, ic, name, sub, act = 'go') => tilt(h('button', { type: 'button', class: 'tool', 'data-act': act, 'data-tab': tab }, h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
+function vMocks() {
+  const days = daysToMocks(), R = readiness(), fx = fixCount(), nm = nextMock(), run = S.exam && paperOf(S.exam.pid);
+  const rows = SUBJ.map(s => ({ s, p: predict(s), aim: aimOf(s) }));
+  const doNext = run ? [h('p', null, h('b', null, run.name.replace(/^PPP /, '')), ' is in progress.'), B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id })]
+    : fx >= 5 ? [h('p', null, `${fx} things to fix first. Clear them before the next paper, or the same mistakes cost you marks again.`), B([icon('wrench'), 'Do the corrections'], 'go', 'primary', { 'data-tab': 'fix' })]
+    : [h('p', null, nm.p ? `${nm.s}: you average ${nm.p.pc}%, and grade ${nm.aim} needs about ${boundFor(nm.s, nm.aim)}%.` : `${nm.s}: no paper yet, so you cannot know where you stand. One timed paper fixes that.`),
+      B([icon('flame'), `Sit a timed ${nm.s} paper`], 'mockGo', 'primary', { 'data-subj': nm.s })];
+  return h('div', { class: 'stack' },
+    hero('Mocks', days > 0 ? `${days} day${days === 1 ? '' : 's'} to go` : days === 0 ? 'Mocks start today' : 'Mock season', `Your mocks start on ${fmtDate(S.mock)}. You are ${R.pct}% ready.`),
+    card('Do this next', h('span', { class: 'pill' }, 'moves your grades most'), ...doNext, h('div', { class: 'row' }, B('Choose a different paper', 'go', 'link', { 'data-tab': 'exam' }))),
+    wrapCard(),
+    card('Predicted grades', B('Details', 'go', 'link sm', { 'data-tab': 'stats' }),
+      h('ul', { class: 'mg' }, rows.map(({ s, p, aim }) => h('li', { class: p && typeof p.g === 'number' && p.g >= aim ? 'ok' : '' },
+        h('b', null, s), h('span', { class: 'mg-bar', role: 'img', 'aria-label': p ? `${p.pc}%, aim about ${boundFor(s, aim)}%` : 'no paper yet' }, h('i', { style: `width:${p ? p.pc : 0}%` }), h('em', { style: `left:${boundFor(s, aim)}%` })),
+        h('span', { class: 'mg-g' }, p ? String(p.g) : '–'), h('small', null, `aim ${aim}`)))),
+      h('p', { class: 'muted xs' }, 'From your last 3 papers in each subject. The line on each bar is roughly where your aim grade starts.')),
+    h('div', { class: 'tools' },
+      hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
+      hubTool('ready', 'chart', 'Progress', `${R.pct}% ready · learned, this week, papers`),
+      hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
+      labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')));
+}
+
+/* ---------- Your week, wrapped: the week as a story, a slide at a time ---------- */
+const wkStart = k => addDays(-((parseKey(k).getDay() + 6) % 7), k); /* Monday of that week */
+const wrapWeek = () => new Date().getDay() === 0 ? wkStart(dkey()) : addDays(-7, wkStart(dkey())); /* Sunday shows this week; other days the last full week */
+function weekStats(mon) {
+  const keys = Array.from({ length: 7 }, (_, i) => addDays(i, mon)), end = keys[6];
+  const per = keys.map(k => { const d = S.days[k] || {}, ev = d.ev || {}; return { k, qa: d.qa || 0, qr: d.qr || 0, sets: Math.max(setsOn(k), ev.sets || 0), t: d.t || {}, ev }; });
+  const sum = f => per.reduce((a, d) => a + f(d), 0), subj = {};
+  for (const d of per) for (const [t, n] of Object.entries(d.t)) subj[t] = (subj[t] || 0) + n;
+  const papers = S.scores.filter(x => x.date >= mon && x.date <= end);
+  return { mon, end, per, sets: sum(d => d.sets), qa: sum(d => d.qa), qr: sum(d => d.qr), fix: sum(d => d.ev.fix || 0), run: Math.max(0, ...per.map(d => d.ev.run || 0)),
+    active: per.filter(d => d.sets || d.qa >= 20).length, subj: Object.entries(subj).filter(([t]) => SUBJ_BY[t]).sort((a, b) => b[1] - a[1]), papers, best: per.slice().sort((a, b) => b.qa - a.qa)[0] };
+}
+const WRAP_SEB = [
+  W => `Emmanuel did one flashcard this week and told his mum he "revised all weekend". You did ${W.qa}. I am telling her.`,
+  () => 'I tried to make a Wrapped for Emmanuel. It was one slide. It just said "nap".',
+  W => `${W.sets} sets. Emmanuel thinks a set is when you set an alarm and then ignore it.`,
+  () => 'Proud of you. Do not tell Emmanuel I said that. He will want a speech too.',
+  () => 'Emmanuel asked if Wrapped means the week is over. I said yes. He went back to sleep.'
+];
+function wrapSlides(W, P) {
+  const pc = W.qa ? Math.round(W.qr / W.qa * 100) : 0, ppc = P.qa ? Math.round(P.qr / P.qa * 100) : null, pl = (n, w) => `${w}${n === 1 ? '' : 's'}`;
+  const vs = (a, b, w) => !b ? '' : a > b ? ` ${a - b} more than the week before.` : a < b ? ` ${b - a} fewer than the week before.` : ' Same as the week before.';
+  const out = [{ eyebrow: `${fmtDate(W.mon)} to ${fmtDate(W.end)}`, big: 'Your week,', title: 'wrapped', sub: W.qa || W.sets ? 'Tap to see how it went.' : 'A quiet one. Tap anyway.' }];
+  if (!W.qa && !W.sets && !W.papers.length) out.push({ big: 0, title: 'sets this week', sub: 'Everyone has a quiet week. One 25-minute set on Monday restarts everything.' });
+  else {
+    out.push({ big: `${W.active}/7`, title: 'days you showed up', dots: W.per.map(d => !!(d.sets || d.qa >= 20)), sub: W.active >= 5 ? 'That is a proper habit.' : W.active >= 3 ? 'Solid. One more day next week makes a real difference.' : 'Little and often beats one big day. Aim for 3 days next week.' });
+    if (W.sets) out.push({ big: W.sets, title: pl(W.sets, 'focus set'), sub: `${fmtHours(W.sets * S.timer.focus)} of real focus.${vs(W.sets, P.sets)}` });
+    if (W.qa) out.push({ big: W.qa, title: pl(W.qa, 'question') + ' answered', sub: `${pc}% right.${ppc == null ? '' : pc >= ppc ? ` Up from ${ppc}% the week before.` : ` Down from ${ppc}%, which usually means harder topics. Good.`}` });
+    if (W.subj.length) out.push({ big: TRACK_NAME(W.subj[0][0]), title: 'was your main subject', bars: W.subj.slice(0, 4).map(([t, n]) => [TRACK_NAME(t), Math.round(n / Math.max(1, W.qa) * 100)]), sub: W.subj.length < 3 ? 'Only a couple of subjects got time. Spread it out a bit next week.' : `${W.subj.length} subjects got some time this week.` });
+    if (W.best && W.best.qa >= 10) out.push({ big: DAYFULL[parseKey(W.best.k).getDay()], title: 'was your biggest day', sub: `${W.best.qa} questions${W.best.sets ? ` and ${W.best.sets} ${pl(W.best.sets, 'set')}` : ''}.` });
+    if (W.run >= 5) out.push({ big: W.run, title: 'right in a row', sub: 'Your longest run of right answers this week.' });
+    const bp = W.papers.slice().sort((a, b) => pctOf(b) - pctOf(a))[0];
+    out.push({ big: W.papers.length, title: pl(W.papers.length, 'paper'), sub: bp ? `Best: ${bp.paper.replace(/^PPP /, '').replace(/ \(timed\)$/, '')} at ${pctOf(bp)}%.` : 'No papers this week. One timed paper next week tells you more than a hundred flashcards.' });
+    if (W.fix) out.push({ big: W.fix, title: `${pl(W.fix, 'mistake')} fixed`, sub: 'Each one is a mark you would have dropped in the exam.' });
+  }
+  const nx = sessRank()[0], g = SUBJ_BY[nx] && subjGap(SUBJ_BY[nx].subj);
+  out.push({ eyebrow: 'Next week', big: SUBJ_BY[nx] ? SUBJ_BY[nx].name : 'Maths', title: 'is the one to push', sub: g ? `Now ${g.curS}, aiming for ${g.tgtS}. Give it the first set on Monday.` : 'Give it the first set on Monday.',
+    seb: S.seb !== false && WRAP_SEB[strHash(W.mon) % WRAP_SEB.length](W), end: true });
+  return out;
+}
+let WRAP_I = 0;
+function vWrapped() {
+  const mon = wrapWeek(), W = weekStats(mon), sl = wrapSlides(W, weekStats(addDays(-7, mon))), i = clamp(WRAP_I, 0, sl.length - 1), s = sl[i];
+  if (S.wrapSeen !== mon) { S.wrapSeen = mon; save(); }
+  return h('div', { class: 'stack narrow' },
+    subHero('Mocks', 'Your week, wrapped', 'mocks', null, 'Mocks'),
+    h('section', { class: `wrap w${i % 5}` + (s.end ? ' end' : '') },
+      h('div', { class: 'wrap-bars', 'aria-hidden': 'true' }, sl.map((_, k) => h('i', { class: k < i ? 'done' : k === i ? 'on' : '' }))),
+      h('div', { class: 'wrap-tap', 'data-act': s.end ? null : 'wrapGo', 'data-d': 1, 'aria-live': 'polite' },
+        s.eyebrow && h('p', { class: 'eyebrow' }, s.eyebrow),
+        h('p', { class: 'wrap-big' }, typeof s.big === 'number' ? h('span', { 'data-count': s.big }, String(s.big)) : s.big),
+        h('p', { class: 'wrap-title' }, s.title),
+        s.dots && h('div', { class: 'wrap-dots' }, s.dots.map((on, k) => h('span', { class: on ? 'on' : '' }, h('i'), h('small', null, DAYN[(k + 1) % 7])))),
+        s.bars && h('ul', { class: 'wrap-share' }, s.bars.map(([n, p]) => h('li', null, h('b', null, n), h('span', null, h('i', { style: `width:${p}%` })), h('small', null, p + '%')))),
+        s.sub && h('p', { class: 'wrap-sub' }, s.sub),
+        s.seb && h('p', { class: 'wrap-seb' }, h('b', null, 'Sebastian: '), s.seb)),
+      h('div', { class: 'wrap-nav' }, B('Back', 'wrapGo', 'ghost sm', { 'data-d': -1, disabled: i === 0 }), h('span', { class: 'muted xs' }, `${i + 1} of ${sl.length}`),
+        s.end ? B([icon('share'), 'Share'], 'wrapShare', 'primary sm') : B('Next', 'wrapGo', 'primary sm', { 'data-d': 1 }))),
+    s.end && h('div', { class: 'row center' }, B('Full weekly review', 'go', 'ghost', { 'data-tab': 'week' }), B('Watch again', 'wrapOpen', 'link')));
+}
+function wrapCard() {
+  const mon = wrapWeek(), W = weekStats(mon);
+  return h('button', { type: 'button', class: 'card wrapcard', 'data-act': 'wrapOpen' }, h('span', { class: 'wc-ic' }, icon('star')),
+    h('span', { class: 'grow' }, h('b', null, 'Your week, wrapped'), h('small', null, `${fmtDate(W.mon)} to ${fmtDate(W.end)} · ${W.sets} ${W.sets === 1 ? 'set' : 'sets'} · ${W.qa} questions`)), h('span', { class: 'btn primary sm' }, 'Play'));
+}
+/* Sunday and Monday: a nudge on Focus until you have watched it */
+function wrapNudge() {
+  const mon = wrapWeek(); if (new Date().getDay() > 1 || S.wrapSeen === mon) return null;
+  const W = weekStats(mon); if (!W.qa && !W.sets) return null;
+  return h('button', { type: 'button', class: 'qw', 'data-act': 'wrapOpen' }, icon('star'), h('span', null, h('b', null, 'Your week, wrapped'), h('small', null, `${W.sets} sets · ${W.qa} questions · tap to watch`)));
+}
+Object.assign(PLUSACT, {
+  wrapOpen() { WRAP_I = 0; go('wrapped'); },
+  wrapGo(el) { WRAP_I = Math.max(0, WRAP_I + (+el.dataset.d || 1)); render({ enter: !REDUCED }); },
+  wrapShare() {
+    const W = weekStats(wrapWeek()), pc = W.qa ? Math.round(W.qr / W.qa * 100) : 0;
+    const text = `My revision week: ${W.sets} focus sets, ${W.qa} questions (${pc}% right), ${W.papers.length} past papers, ${W.active}/7 days. Mocks in ${daysToMocks()} days.`;
+    if (navigator.share) navigator.share({ text }).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Copied. Paste it anywhere.'), () => toast(text));
+    else toast(text);
+  }
 });

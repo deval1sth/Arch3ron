@@ -84,7 +84,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', realm: 'The Realm', region: 'Region', subject: 'Subject' };
+const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -100,8 +100,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, notes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2,
-    realm: realmNorm(null),
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
 const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -118,7 +117,7 @@ function normalize(raw) {
   s.theme = ['ember', 'amethyst', 'abyss', 'verdant', 'frost'].includes(r.theme) ? r.theme : 'ember'; s.achV = num(r.achV);
   for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
   s.deload = !!r.deload;
-  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint;
+  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
   const t = obj(r.timer);
   s.timer = { focus: clamp(Math.round(num(t.focus, 25)), 1, 120), brk: clamp(Math.round(num(t.brk, 5)), 1, 60) };
   for (const [k, c] of Object.entries(obj(r.cards))) { const o = obj(c); if (isKey(o.due)) s.cards[k] = { box: clamp(Math.round(num(o.box)), 0, 5), due: o.due }; }
@@ -130,7 +129,6 @@ function normalize(raw) {
   for (const [k, v] of Object.entries(obj(r.hidden))) if (v) s.hidden[k] = true;
   const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k]));
   const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) };
-  s.realm = realmNorm(r.realm || null);
   for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
   s.sess = sessNorm(r.sess);
   for (const [k, v] of Object.entries(obj(r.why))) if (WHY.some(w => w[0] === k)) s.why[k] = Math.max(0, Math.round(num(v)));
@@ -212,6 +210,8 @@ const target = s => s.kind !== 'train' ? 0 : S.deload ? Math.ceil(s.sets / 2) : 
 const countDone = (a, n) => (a || []).slice(0, n).filter(Boolean).length;
 const dayOf = k => S.days[k] || { s: {}, f: {} };
 const ensureDay = k => S.days[k] = S.days[k] || { s: {}, f: {} };
+/* per-day counters (sets, fixes, papers, best run): the weekly Wrapped reads them */
+function dayEv(name, n = 1, asMax = false) { const d = ensureDay(dkey()); d.ev = d.ev || {}; d.ev[name] = asMax ? Math.max(d.ev[name] || 0, n) : (d.ev[name] || 0) + n; }
 function setsOn(k) { const d = S.days[k]; if (!d) return 0; let n = 0; for (const a of Object.values(d.s)) n += a.filter(Boolean).length; return n; }
 function lifeSets() { let n = 0; for (const k in S.days) n += setsOn(k); return n; }
 function daysTrained() { let n = 0; for (const k in S.days) if (setsOn(k)) n++; return n; }
@@ -250,10 +250,10 @@ function record(id, ok, key) {
   const tr = LEARN.TOPIC[id] && LEARN.TOPIC[id].subject; if (tr) { d.t = d.t || {}; d.t[tr] = (d.t[tr] || 0) + 1; } /* per-subject practice, so priorities can balance */
   if (ok) {
     k.ok++; k.run++; k.best = Math.max(k.best, k.run); S.learnOk++; if (id.startsWith('q-')) S.quoteOk++;
-    const t = LEARN.TOPIC[id]; if (t) { realmEv(t.type); realmEv('s:' + t.subject); }
+    const t = LEARN.TOPIC[id]; if (t) { dayEv(t.type); dayEv('s:' + t.subject); }
   } else k.run = 0;
   const qi = S.queue.findIndex(x => x.id === id);
-  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); realmEv('fix'); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
+  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); dayEv('fix'); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
   save();
 }
 /* Fix queue: topics where marks were lost come back in Focus and mixed practice until you get 3 right in a row */
@@ -303,17 +303,9 @@ const ACH = [
   ['improve', 'Exams', 'Rising Tide', 'chart', 'personal bests on papers', [3, 10, 25], () => S.stat.improve],
   ['fixes', 'Exams', 'Mended Blade', 'wrench', 'mistakes fixed', [5, 25, 60, 120], () => S.fixedCount],
   ['ready', 'Exams', 'Cartographer', 'map', 'topics rated exam-ready', [10, 40, 90, 140], () => examReady()],
-  ['heralds', 'Realm', 'Demonbane', 'bolt', 'Herald forms slain', [1, 5, 12, 20, 27], () => Object.values(S.realm.bosses).reduce((a, b) => a + b, 0)],
-  ['hunts', 'Realm', 'Nightstalker', 'crown', 'Hunts completed', [5, 20, 50, 100], () => S.realm.stat.hunts],
-  ['huntbest', 'Realm', 'Apex', 'star', 'best Hunt score', [1500, 3000, 4500, 6000], () => S.realm.hunt.best],
-  ['bestiary', 'Realm', 'Beastbinder', 'leaf', 'creatures bound', [5, 20, 50, 100, 150], () => Object.keys(S.realm.bound).length],
-  ['contracts', 'Realm', 'Contract Keeper', 'check', 'daily contracts claimed', [10, 50, 150, 300], () => S.realm.stat.quests],
-  ['heat', 'Realm', 'Undying Flame', 'flame', 'peak flame heat', [7, 14, 30, 60], () => S.realm.stat.heatBest],
-  ['fog', 'Realm', 'Fogbreaker', 'map', '% of the Reach cleared', [10, 25, 50, 75, 100], () => Object.keys(REGIONS).reduce((a, sid) => a + regionPct(sid), 0) / 9]
 ].map(([id, cat, name, ic, unit, t, v]) => ({ id, cat, name, icon: ic, unit, t, v }));
 const tierOf = a => a.t.filter(x => a.v() >= x).length;
 function checkAch(silent) {
-  realmSync(silent);
   const fresh = [];
   for (const a of ACH) {
     const tier = tierOf(a), had = S.ach[a.id] ? S.ach[a.id].tier : 0;
@@ -323,7 +315,7 @@ function checkAch(silent) {
   save();
   if (!silent) for (const [a, tier] of fresh.slice(0, 3)) FXS.reveal(`${TIERS[tier - 1]} achievement`, a.name, `${a.t[tier - 1].toLocaleString('en-GB')} ${a.unit} · yours for good`);
 }
-const badgeCount = () => Object.values(S.ach).reduce((t, a) => t + a.tier, 0);
+const badgeCount = () => ACH.reduce((t, a) => t + (S.ach[a.id] ? S.ach[a.id].tier : 0), 0);
 const badgeTotal = ACH.reduce((t, a) => t + a.t.length, 0);
 
 /* ---------- flashcards ---------- */
@@ -361,12 +353,12 @@ function timerTick() {
 function timerDone() {
   T.run = false; beep();
   if (T.mode === 'focus') {
-    S.focusSets++; S.focusMin += S.timer.focus; realmOnSet();
+    S.focusSets++; S.focusMin += S.timer.focus; dayEv('sets');
     const now = new Date(), hr = now.getHours(), wd = now.getDay();
     if (hr >= 20 || hr < 4) S.stat.night++; else if (hr < 9) S.stat.early++;
     if (wd === 0 || wd === 6) S.stat.weekend++;
     const d = ensureDay(dkey()), s = T.sid && S.plan[wd].find(x => x.id === T.sid && x.kind === 'train');
-    let sub = `Rest ${S.timer.brk} minutes. Check your daily contracts in The Realm.`;
+    let sub = `Rest ${S.timer.brk} minutes. Stand up and look away from the screen.`;
     if (s) {
       const n = target(s), a = d.s[s.id] = d.s[s.id] || [];
       const j = Array.from({ length: n }, (_, i) => i).find(i => !a[i]);
@@ -448,8 +440,7 @@ function vHome() {
       h('p', { class: 'eyebrow' }, 'Recovery'), h('h1', { class: 'focus-title' }, 'Rest'),
       h('p', { class: 'focus-meta' }, 'Stand up, drink water, look at something far away.'), ringEl(),
       h('div', { class: 'row center' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'begin sm'), B([icon('skip'), 'Skip rest'], 'skip', 'ghost')),
-      R0().chests.length > 0 && h('button', { type: 'button', class: 'practise', 'data-act': 'go', 'data-tab': 'realm' }, icon('gem'),
-        h('span', null, h('b', null, 'Open a chest while you rest'), h('small', null, `${R0().chests.length} waiting in The Realm`)))),
+    ),
     sebastian('break'));
 
   if (restState) return h('div', { class: 'stack home' },
@@ -460,7 +451,7 @@ function vHome() {
       h('h1', { class: 'focus-title' }, list.length ? 'The rest is earned' : 'A day of rest'),
       h('p', { class: 'focus-meta' }, list.length ? "Today's sets are done. Recovery is part of the programme." : 'Nothing planned today. Recharge, or do a set if you feel like it.'),
       h('div', { class: 'moon' }, icon('moon')),
-      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('crown'), 'The Realm'], 'go', 'ghost', { 'data-tab': 'realm' }))),
+      h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('flame'), 'Mocks'], 'go', 'ghost', { 'data-tab': 'mocks' }))),
     todayBar());
 
   const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
@@ -531,8 +522,7 @@ function quickWins() {
     h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} due · even 10 helps`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
-    new Date().getDay() < 2 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'week' }, icon('calendar'), h('span', null, h('b', null, 'Weekly review'), h('small', null, 'How the week went, and what to fix next'))),
-    R0().hunt.last !== dkey() && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'realm' }, icon('crown'), h('span', null, h('b', null, 'The Hunt'), h('small', null, "Today's run is waiting")))];
+    wrapNudge()];
   return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
 }
 
@@ -559,9 +549,6 @@ function vLearn() {
     h('div', { class: 'lgrid' },
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'write' }, h('span', { class: 'lc-ic' }, icon('edit')), h('b', null, 'Plans and writing'),
         h('span', { class: 'lc-d' }, 'Essay plans, RE 12-markers, creative and viewpoint writing, and how to answer each English question.'), h('small', null, S.plans.length ? `${S.plans.length} plans saved` : 'Plan beats panic'))),
-      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'exam' }, h('span', { class: 'lc-ic' }, icon('scroll')), h('b', null, 'Exam practice'),
-        h('span', { class: 'lc-d' }, 'Exam-style papers for every subject. Answer, mark it like an examiner, and track scores by paper and topic.'),
-        h('small', null, S.exam ? 'A paper is in progress' : `${EXAMS.length} practice papers`))),
       tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
         h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
     hard.length > 0 && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
@@ -698,18 +685,18 @@ function emblemEl(id, cls = 'emb') {
 function vProfile() {
   const life = lifeSets(), nt = nextTitle(life);
   const stats = [['flame', life, 'sets finished'], ['hourglass', fmtHours(S.focusMin), 'focused'], ['target', S.learnOk, 'questions right'], ['crown', masteredAll(), 'topics mastered'],
-    ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed'], ['crown', R0().hunt.best, 'best Hunt']];
-  const cats = ['All', 'Focus', 'Learn', 'Exams', 'Realm'];
+    ['calendar', daysTrained(), 'days studied'], ['scroll', S.scores.length, 'papers logged'], ['wrench', S.fixedCount, 'mistakes fixed']];
+  const cats = ['All', 'Focus', 'Learn', 'Exams'];
   const shown = ACH.filter(a => ACH_CAT === 'All' || a.cat === ACH_CAT);
   return h('div', { class: 'stack' },
-    subHero('The Realm', 'Your profile', 'realm', null, 'The Realm'),
+    subHero('Toolkit', 'Your profile', 'tools', null, 'Toolkit'),
     h('section', { class: 'card idcard' },
       h('div', { class: 'id-emb' }, emblemEl(S.profile.emblem, 'emb big')),
       h('div', { class: 'id-txt' },
         h('input', { class: 'id-name', value: S.profile.name, placeholder: 'Your name', maxlength: 30, 'data-act': 'pname', 'aria-label': 'Your name' }),
-        h('p', { class: 'id-title' }, R0().title ? COSMETICS[R0().title].name : titleFor(life)),
+        h('p', { class: 'id-title' }, titleFor(life)),
         h('p', { class: 'muted xs' }, nt ? `${nt[0] - life} more set${nt[0] - life === 1 ? '' : 's'} to become ${nt[1]}` : 'The highest title there is.'),
-        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('gem'), `${R0().shards} shards`), h('span', { class: 'lan-chip' }, icon('crown'), rank().name)))),
+        h('div', { class: 'id-badges' }, h('span', { class: 'lan-chip' }, icon('star'), `${badgeCount()} badges`), h('span', { class: 'lan-chip' }, icon('flame'), `${daysTrained()} days studied`)))),
     acc('emblems', [h('h2', null, 'Emblem'), h('span', { class: 'muted acc-r' }, 'unlocked by sets')],
       h('div', { class: 'emblems' }, EMBLEMS.map(([id, need]) => { const ok = life >= need;
         return h('button', { type: 'button', class: 'emb-pick' + (S.profile.emblem === id ? ' on' : '') + (ok ? '' : ' locked'), 'data-act': 'emblem', 'data-id': id, disabled: !ok, 'aria-label': ok ? `Use ${id} emblem` : `Locked: finish ${need} sets` },
@@ -733,11 +720,9 @@ function vTools() {
   return h('div', { class: 'stack' },
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     h('div', { class: 'tools' },
-      tool('ready', 'chart', 'Progress', `${readiness().pct}% mock ready · learned, this week, papers`),
-      tool('fix', 'wrench', 'Fix', fixCount() ? `${fixCount()} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
-      tool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
       tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
+      tool('profile', 'star', 'Profile', `${badgeCount()} badges · emblem and mastery`),
       tool('me', 'user', 'Settings', 'Subjects, grades, timer, backup'),
       tool('lab', 'shield', 'Experimental', labOpen() ? 'Unlocked on this device' : 'Locked')));
 }
@@ -915,7 +900,7 @@ const EXACT = {
     const name = p.name + (timed ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
-    CHART.add(p.subj); xp(25); realmEv('paper');
+    CHART.add(p.subj); xp(25); dayEv('paper');
     const g = groupOf(p), lostIds = p.qs.filter((q, k) => done[k] && qX(q).tid && qScore(q, E.got[k], E.lv[k]) < qMax(q)).map(q => qX(q).tid);
     const added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0) + (lostIds.length ? addFix([...new Set(lostIds)], `Lost marks on ${p.name}`) : 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
@@ -1012,7 +997,7 @@ const MPACT = {
     S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ` (${rows.length} questions)` : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
-    CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
+    CHART.add(subj); xp(25); dayEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
   }
 };
 
@@ -1318,9 +1303,9 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['realm', 'crown', 'Realm'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'learn', examq: 'learn', mpaper: 'learn', mockstart: 'learn', profile: 'realm', stats: 'tools', ready: 'tools', week: 'tools', guide: 'study', session: 'study', fog: 'realm', region: 'realm', boss: 'realm', hunt: 'realm', bestiary: 'realm', perks: 'realm', vault: 'realm', story: 'realm', rank: 'realm', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'tools', lists: 'tools', fix: 'tools', plan: 'tools', me: 'tools' };
-const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, realm: vRealm, region: vRegion, fog: vFog, boss: vBoss, hunt: vHunt, bestiary: vBestiary, perks: vPerks, vault: vVault, story: vStory, rank: vRank, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['mocks', 'scroll', 'Mocks'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'mocks', ready: 'mocks', week: 'mocks', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'mocks', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1402,8 +1387,7 @@ function finishAnswer(res) {
   record(DR.q.id, res.ok, DR.q.key);
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
   if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); } else DR.run = 0;
-  realmEv('run', DR.run, true);
-  if (['boss', 'hunt', 'fog'].includes(DR.ctx)) realmOnAnswer(res.ok);
+  dayEv('run', DR.run, true);
   save();
   render({ focus: '#nextq' });
   if (res.ok) FXS.burst($('.qcard'), DR.run >= 5 ? 60 : 36);
@@ -1455,7 +1439,7 @@ const ACT = {
     const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; if (['boss', 'hunt', 'fog'].includes(DR.ctx)) realmOnAnswer(false); DR.state = 'shown'; render({ focus: '#nextq' }); },
+  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
@@ -1577,7 +1561,7 @@ const CHG = {
   }
 };
 
-Object.assign(ACT, EXACT, MPACT, REALMACT, STUDYACT, PLUSACT);
+Object.assign(ACT, EXACT, MPACT, STUDYACT, PLUSACT);
 CHG.sessTick = STUDYACT.sessTick; /* checkbox: arrives as a change event, not a click */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
@@ -1590,7 +1574,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
-  if (DR && ['drill', 'home', 'boss', 'hunt', 'fog'].includes(TAB) && DR.q) {
+  if (DR && ['drill', 'home'].includes(TAB) && DR.q) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
     if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
   }
@@ -1645,7 +1629,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloading) return;
-    if (performance.now() < 6000 && !T.run && !RF) { reloading = true; try { sessionStorage.setItem('archeron-updated', '1'); } catch (e) {} location.reload(); } /* just opened: update straight away */
+    if (performance.now() < 6000 && !T.run) { reloading = true; try { sessionStorage.setItem('archeron-updated', '1'); } catch (e) {} location.reload(); } /* just opened: update straight away */
     else showUpdate(); /* in the middle of something: ask instead */
   });
   navigator.serviceWorker.register('sw.js').then(reg => {
