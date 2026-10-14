@@ -259,9 +259,9 @@ canvas#ch{width:100%;height:clamp(220px,32vw,300px);display:block;margin-top:10p
 .pace li i{width:9px;height:9px;border-radius:50%;align-self:center}
 .pace li span{color:var(--m)}
 .hbars{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.hbars li{display:grid;grid-template-columns:minmax(90px,30%) 1fr auto;gap:10px;align-items:center}
+.hbars li{display:grid;grid-template-columns:minmax(108px,40%) 1fr auto;gap:10px;align-items:center}
 .hbars.types li{grid-template-columns:minmax(90px,30%) 1fr}
-.hb-l{min-width:0}.hb-l b{display:block;font-size:13.5px;line-height:1.25;overflow-wrap:anywhere}.hb-l small{font-size:11.5px;color:var(--m)}
+.hb-l{min-width:0}.hb-l b{display:block;font-size:13.5px;line-height:1.25;overflow-wrap:break-word}.hb-l small{font-size:11.5px;color:var(--m)}
 .hb-b{display:flex;align-items:center;gap:8px}
 .hb-b i{height:10px;border-radius:99px;background:var(--rest);min-width:4px;transition:width .6s var(--ease)}
 .hb-b span{font-size:12.5px;color:var(--m);font-variant-numeric:tabular-nums}
@@ -596,7 +596,7 @@ a.btn{color:inherit;text-decoration:none}
 .bar.two{position:relative}.bar.two i{position:absolute;left:0;top:0;bottom:0}.bar.two i.tried{opacity:.3}
 
 /* ---------- The Realm ---------- */
-.realm svg:not(.i){display:block;width:100%;height:auto}
+.realm svg:where(:not(.i)){display:block;width:100%;height:auto}
 .rhead{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px}
 .rh-flame,.rh-stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);text-align:left;color:inherit;font:inherit}
 button.rh-stat{cursor:pointer}
@@ -947,3 +947,4 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .conf{gap:7px}.cf{position:relative;width:30px;height:30px}.cf::before{content:'';position:absolute;inset:-5px}
 .grid2.g-wl{grid-template-columns:1.7fr 1fr}
 @media (max-width:520px){.rs-bl{flex-direction:column;gap:1px;font-size:12px}.rs-bl small{font-size:12px}}
+.exdot.gs{margin-left:8px}

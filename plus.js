@@ -924,30 +924,195 @@ document.addEventListener('submit', e => {
 });
 PLUSACT.labLock = () => { try { localStorage.removeItem('archeron-lab'); } catch (e) {} go('tools'); };
 
-/* ---------- PPP mode: the paper → mark → correct loop, with papers that never repeat a question ---------- */
+/* ---------- PPP mode: the paper → mark → correct loop. Papers follow the real AQA format: the same marks, time and number of questions.
+   Short parts are fresh every paper (generated, or unused bank questions); longer written parts come from the practice papers, unused ones first. ---------- */
+const PPP_IDS = s => s.split(' ');
+const PPP_SCI = (n, t, w, ids) => ({ n, t, mins: 75, marks: 70, qn: 'about 7 questions in parts', ws: .45, parts: 8, maxQ: 12, minQ: 6, sec: [[null, 70, [w], null, PPP_IDS(ids)]] });
+const PPP_SPEC = {
+  maths: [['Paper 1', 'Non-calculator', 'm1'], ['Paper 2', 'Calculator', 'm2'], ['Paper 3', 'Calculator', 'm2']].map(([n, t, w]) => ({ n, t, mins: 90, marks: 80, qn: 'about 25 to 30 questions', ws: .3, parts: 2, maxQ: 6, easy: true, sec: [[null, 80, [w], null, null]] })),
+  biology: [PPP_SCI('Paper 1', 'Cells, organisation, infection, bioenergetics', 'b1', 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-heart b-plants b-disease b-immune b-energy q2-b-cells q2-b-organisation q2-b-infection q2-b-bioenergetics q3-b-practicals d-b-cells d-b-organisation d-b-disease d-b-energy'),
+    PPP_SCI('Paper 2', 'Homeostasis, inheritance, ecology', 'b2', 'bc-mean b-hormones b-nerves b-genes b-ecology q2-b-homeostasis q2-b-genetics q2-b-ecology q3-b-practicals d-b-homeostasis d-b-genetics d-b-ecology')],
+  chemistry: [PPP_SCI('Paper 1', 'Atoms, bonding, quantities, chemical and energy changes', 'c1', 'cc-mr cc-pct cc-conc c-atoms c-electrons c-separation c-groups c-bonding c-reactions c-rates q2-c-atoms q2-c-bonding q2-c-quantitative q2-c-changes q2-c-energy-rates q3-c-practicals d-c-atoms d-c-bonding d-c-changes d-c-energy ce-formula ce-name ce-word ce-balance'),
+    PPP_SCI('Paper 2', 'Rates, organic, analysis, atmosphere, resources', 'c2', 'cc-rf cc-rate c-rates c-organic c-tests c-atmos q2-c-energy-rates q2-c-organic-atmos q3-c-practicals d-c-energy d-c-organic ce-formula ce-word ce-balance')],
+  physics: [PPP_SCI('Paper 1', 'Energy, electricity, particles, atomic structure', 'p1', 'p-ke p-gpe p-power-e p-energy-pt p-charge p-ohm p-power-vi p-power-ir p-energy-qv p-density pr-energy pr-electric pr-particles q2-p-energy q2-p-electricity q2-p-particles q3-p-practicals d-p-energy d-p-electric d-p-particles'),
+    PPP_SCI('Paper 2', 'Forces, waves, magnetism', 'p2', 'p-weight p-work p-spring p-speed p-accel p-newton2 p-momentum p-wave pr-forces-waves q2-p-forces q2-p-waves-magnets q3-p-practicals d-p-forces d-p-waves')],
+  englang: [{ n: 'Paper 1', t: 'Creative reading and writing', mins: 105, marks: 80, qn: '5 questions', fixed: ['el1'] }, { n: 'Paper 2', t: 'Writers\' viewpoints and perspectives', mins: 105, marks: 80, qn: '5 questions', fixed: ['el2'] }],
+  englit: [{ n: 'Paper 1', t: 'Macbeth and A Christmas Carol', mins: 105, marks: 64, qn: '2 essays', fixed: ['lit1'] }, { n: 'Paper 2', t: 'Journey\'s End and poetry', mins: 135, marks: 96, qn: '4 questions', fixed: ['lit2'] }],
+  re: [{ n: 'Paper 1', t: 'Christianity and Islam', mins: 105, marks: 102, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re1', 're2'], spag: [3, 3] }, { n: 'Paper 2', t: 'Thematic studies', mins: 105, marks: 99, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re3', 're4'], spag: [3] }],
+  geography: [{ n: 'Paper 1', t: 'Living with the physical environment', mins: 90, marks: 88, qn: '3 sections, plus SPaG', ws: .85, spag: [3], sec: [
+      ['Section A: The challenge of natural hazards', 30, ['g1', 'g3'], ['Natural hazards', 'Weather and climate'], PPP_IDS('g-tectonics g-weather q2-g-hazards q2-g-climate q3-g-cases-hazards gc-data')],
+      ['Section B: The living world', 25, ['g1', 'g3'], ['The living world'], PPP_IDS('g-living q2-g-living')],
+      ['Section C: Physical landscapes in the UK', 30, ['g1', 'g3'], ['Coasts and rivers'], PPP_IDS('g-coasts-rivers q2-g-landscapes q3-g-cases-landscapes')]] },
+    { n: 'Paper 2', t: 'Challenges in the human environment', mins: 90, marks: 88, qn: '3 sections, plus SPaG', ws: .85, spag: [3], sec: [
+      ['Section A: Urban issues and challenges', 30, ['g2', 'g4'], ['Urban issues'], PPP_IDS('g-urban gc-density q2-g-human q3-g-cases-human')],
+      ['Section B: The changing economic world', 30, ['g2', 'g4'], ['Changing economic world'], PPP_IDS('gc-natinc q2-g-human q3-g-cases-human')],
+      ['Section C: The challenge of resource management', 25, ['g2', 'g4'], ['Resource management'], PPP_IDS('q2-g-human q3-g-cases-human')]] }],
+  business: [{ n: 'Paper 1', t: 'Operations and human resources', mins: 105, marks: 90, qn: '3 sections', ws: .7, sec: [
+      ['Section A: multiple choice and short answers', 20, null, null, PPP_IDS('bz-profit bz-breakeven bs-enterprise bs-ops-people bs-external q2-bs-activity q2-bs-ops q2-bs-people q2-bs-external q3-bs-terms2 d-bs-terms')],
+      ['Section B: case study (Pedal & Pour)', 34, ['bs1'], null, PPP_IDS('bs-ops-people q2-bs-ops q2-bs-people q3-bs-scenarios bz-profit'), 1],
+      ['Section C: case study (Glow Skincare)', 36, ['bs2'], null, PPP_IDS('bs-ops-people bs-external q2-bs-ops q2-bs-people q2-bs-external q3-bs-scenarios'), 1]] },
+    { n: 'Paper 2', t: 'Marketing and finance', mins: 105, marks: 90, qn: '3 sections', ws: .7, sec: [
+      ['Section A: multiple choice and short answers', 20, null, null, PPP_IDS('bz-profit bz-breakeven bz-margins bz-cash bz-arr bs-marketing bs-finance q2-bs-marketing q2-bs-finance q3-bs-terms2 d-bs-terms')],
+      ['Section B: case study (Glow Skincare)', 34, ['bs2'], null, PPP_IDS('bs-marketing bs-finance q2-bs-marketing q2-bs-finance bz-margins bz-cash'), 1],
+      ['Section C: case study (Pedal & Pour)', 36, ['bs1'], null, PPP_IDS('bs-marketing bs-finance bz-breakeven bz-arr q2-bs-marketing q3-bs-scenarios'), 1]] }]
+};
+const PPP_NOTE = {
+  englang: 'Same format as the real paper: 5 questions on an unseen source. This app has one source per paper, so the questions repeat: leave a few weeks between sittings.',
+  englit: 'Same format as the real papers. The essay questions repeat, so leave a few weeks between sittings and try to beat your last mark.',
+  re: 'The 1-mark questions are new each time. The longer questions repeat once you have done them, like redoing a past paper.',
+  geography: 'Paper 3 uses AQA\'s pre-release booklet and your own fieldwork, so it cannot be generated here. Section C covers coasts and rivers.'
+};
+/* SPaG on the longest answer, as AQA marks it */
+const PPP_SPAG3 = [[3, 3, 'High: consistently accurate spelling, punctuation and grammar; a wide range of specialist terms.'], [2, 2, 'Intermediate: considerable accuracy; a good range of specialist terms.'], [1, 1, 'Threshold: reasonable accuracy; some specialist terms.']];
+const PPP_FRESH = { 'Christianity: beliefs': 'r-chr-beliefs q2-r-chr-beliefs q3-r-chr-more', 'Christianity: practices': 'r-chr-practice q2-r-chr-practice q3-r-chr-more', 'Islam: beliefs': 'r-isl-beliefs q2-r-isl-beliefs q3-r-isl-more',
+  'Islam: practices': 'r-isl-practice q2-r-isl-practice q3-r-isl-more', 'Relationships and families': 'r-themes q2-r-themes', 'Religion and life': 'r-themes q2-r-themes q3-r-themes2', 'Peace and conflict': 'r-themes q2-r-themes q3-r-themes2', 'Crime and punishment': 'r-themes q2-r-themes q3-r-themes2' };
+const PPP_CLUSTER = { 'q2-b-homeostasis': 'Homeostasis', 'q2-b-genetics': 'Inheritance and evolution', 'bc-osmosis': 'Cell biology', 'bc-mean': 'Required practicals', 'ce-name': 'Chemical changes', 'q2-c-organic-atmos': 'Organic chemistry',
+  'q2-c-energy-rates': 'Energy changes', 'q2-p-particles': 'Particle model', 'q2-p-waves-magnets': 'Waves', 'p-work': 'Forces', 'p-speed': 'Forces', 'p-momentum': 'Forces', 'p-power-ir': 'Electricity', 'p-energy-qv': 'Electricity',
+  'q3-b-practicals': 'Required practicals', 'q3-c-practicals': 'Required practicals', 'q3-p-practicals': 'Required practicals', 'q2-c-atoms': 'Atomic structure', 'q2-c-bonding': 'Bonding', 'q2-p-forces': 'Forces',
+  'q2-bs-activity': 'Business in the real world', 'q2-bs-external': 'Influences on business', 'q2-bs-ops': 'Business operations', 'q2-bs-people': 'Human resources', 'q2-bs-marketing': 'Marketing', 'q2-bs-finance': 'Finance',
+  'q3-bs-terms2': 'Business in the real world', 'q3-bs-scenarios': 'Business in the real world', 'bz-arr': 'Finance', 'bs-enterprise': 'Business in the real world' };
+const PPP_G = t => ({ biology: 'Biology', chemistry: 'Chemistry', physics: 'Physics' })[t] || trackSubj(t);
+const hrs = m => [Math.floor(m / 60) && `${Math.floor(m / 60)} hour${m >= 120 ? 's' : ''}`, m % 60 && `${m % 60} minutes`].filter(Boolean).join(' ');
+const shuf = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+const PPP_KINDS = ['mcq', 'num', 'frac', 'ratio', 'lin', 'sf', 'def', 'formula', 'coef'];
+/* a bank question in exam form: multiple choice is 1 mark; a calculation earns method marks plus the answer; a definition is any 2 of its key points */
+function pppBankQ(q, track, left) {
+  if (q.kind === 'def') { const k = arr(q.points); return k.length ? [LEARN.name(q.id), q.q, { any: k, max: Math.min(2, k.length, left) }, { tid: q.id }] : null; }
+  if (q.kind === 'mcq') return [LEARN.name(q.id), q.q, [`${'ABCD'[q.a]}: ${q.options[q.a]}`], { tid: q.id, auto: q }];
+  const steps = arr(q.steps).filter(s => !/^Calculator check/.test(s)), eq = LEARN.TOPIC[q.id].type === 'eq';
+  const m = eq ? 1 : Math.min(left, clamp(steps.length - 1, 1, track === 'maths' ? 4 : 3));
+  return [LEARN.name(q.id), q.q, m > 1 ? [...steps.slice(0, m - 1).map(s => 'Method: ' + s), 'Answer: ' + q.show] : [q.show], { tid: q.id, auto: q }];
+}
+function pppBank(ids, used, track, left) {
+  const W = ids.map(id => { const k = skill(id), acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : .5; return { id, w: (S.queue.some(x => x.id === id) ? 3 : 1) * (1.5 - acc) * (MUST4.has(id) ? 1.5 : 1) }; });
+  for (let tries = 0; tries < 12 && W.length; tries++) {
+    let r = Math.random() * W.reduce((a, b) => a + b.w, 0); const o = W.find(x => (r -= x.w) <= 0) || W[W.length - 1];
+    let q = null;
+    for (let t = 0; t < 30; t++) { const c = LEARN.gen(o.id); if (!c || !PPP_KINDS.includes(c.kind) || (track === 'maths' && c.kind === 'mcq')) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
+    o.w *= .35; /* spread a paper across topics, like a real one */
+    const bq = q && pppBankQ(q, track, left); if (bq) { used.add(qSig(q)); return bq; }
+  }
+  return null;
+}
+function pppBuild(track, k) {
+  const sp = PPP_SPEC[track][k], used = new Set(S.pused || []), g = PPP_G(track), srcFrom = new Set(), out = [];
+  let spag = (sp.spag || []).slice();
+  const spagQ = n => ['Spelling, punctuation and grammar', `Mark your answer to the question before for spelling, punctuation and grammar (${n} marks).`, { lv: n === 3 ? PPP_SPAG3 : LV.spag4, look: LOOK.spag }, { same: true }];
+  /* SPaG goes on the first long answer: once per religion on RE Paper 1, once per paper elsewhere */
+  const push = (q, grp, sec, sk = 'paper') => { out.push([q[0], q[1], q[2], Object.assign({}, q[3] || {}, { grp, sec: sec || '' })]); if (q[2].lv && qMax(q) >= 9 && spag.length && !out.some(o => o[3].sk === sk)) out.push(Object.assign(spagQ(spag.shift()), { 3: { same: true, grp, sec: sec || '', sk } })); };
+  if (sp.fixed) for (const pid of sp.fixed) {
+    const p = paperOf(pid); srcFrom.add(pid); let prev = '';
+    p.qs.forEach((q, j) => {
+      let qq = q;
+      const fresh = PPP_FRESH[q[0]];
+      if (fresh && qMax(q) === 1 && /^Which one/.test(q[1])) { const b = pppBank(PPP_IDS(fresh).filter(id => LEARN.TOPIC[id] && usable(id)), used, track, 1); if (b && b[3].auto && b[3].auto.kind === 'mcq') { b[0] = q[0]; qq = b; } }
+      const grp = qX(q).same ? prev : track === 're' ? pid + q[0] : pid + j; prev = grp;
+      if (!qX(q).same || !out.length) push(qq, grp, '', pid); else out.push([q[0], q[1], q[2], Object.assign({}, q[3], { grp })]);
+    });
+  } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
+    const pool = (wps || []).flatMap(pid => paperOf(pid).qs.map((q, j) => ({ q, pid, sig: `w|${pid}|${j}` }))).filter(o => !qX(o.q).same && (!wt || wt.includes(o.q[0])));
+    let left = marks; const items = [];
+    for (const o of [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))]) {
+      const m = qMax(o.q); if (m > left || marks - left + m > marks * (ws || sp.ws || .45) + 1) continue;
+      items.push({ q: o.q, m }); used.add(o.sig); if (o.q[3] && o.q[3].src) srcFrom.add(o.pid); left -= m;
+    }
+    /* bank parts are labelled with the paper topic they belong to (e.g. "Cell biology"), like a real paper, and results group the same way */
+    const wTopics = [...new Set(pool.map(o => o.q[0]))], link = Object.entries(EXAM_LINK).filter(([key]) => key.startsWith(g + '|'));
+    const clus = id => { const hit = link.filter(([, v]) => v.includes(id)).map(([key]) => key.split('|')[1]); return hit.find(t => wTopics.includes(t)) || PPP_CLUSTER[id] || (sp.sec.length > 1 && wTopics[0]) || hit[0] || LEARN.name(id).replace(/ \(spec.*\)$/, '').replace(/: key terms$/, ''); };
+    const ids = (bank || topicsFor(track).filter(id => LEARN.TOPIC[id].type === 'calc')).filter(id => LEARN.TOPIC[id] && usable(id));
+    for (let guard = 0; left > 0 && ids.length && guard < 200; guard++) { const bq = pppBank(ids, used, track, left); if (!bq) break; bq[0] = clus(bq[3].tid); items.push({ q: bq, m: qMax(bq) }); left -= qMax(bq); }
+    if (sp.sec.length > 1) { items.sort((a, b) => !!a.q[2].lv - !!b.q[2].lv || a.m - b.m); items.forEach(it => push(it.q, 's' + si, title)); return; }
+    /* one section: group parts into numbered questions by topic, like a real paper */
+    const byC = new Map(); for (const it of items) { const c = it.q[0]; if (!byC.has(c)) byC.set(c, []); byC.get(c).push(it); }
+    const sum = l => l.reduce((a, it) => a + it.m, 0);
+    let groups = [];
+    for (const c of [...wTopics, ...[...byC.keys()].filter(c => !wTopics.includes(c))]) {
+      const list = (byC.get(c) || []).sort((a, b) => a.m - b.m); let cur = [];
+      for (const it of list) { if (cur.length && (cur.length >= sp.parts || sum(cur) + it.m > sp.maxQ)) { groups.push(cur); cur = []; } cur.push(it); }
+      if (cur.length) groups.push(cur);
+    }
+    if (sp.minQ) groups = groups.reduce((acc, gr) => { const last = acc[acc.length - 1]; if (last && (sum(gr) < sp.minQ || sum(last) < sp.minQ) && sum(last) + sum(gr) <= sp.maxQ + 4) last.push(...gr); else acc.push(gr); return acc; }, []);
+    if (sp.easy) groups = shuf(groups).sort((a, b) => sum(a) - sum(b)); /* maths papers run from easy to hard */
+    groups.forEach((gr, gi) => gr.forEach(it => push(it.q, 'q' + gi, title)));
+  });
+  /* number it like AQA: 01, 02.1, 02.2 ... */
+  let num = 0, part = 0, last = null;
+  const sizes = {}; for (const q of out) if (!q[3].same) sizes[q[3].grp] = (sizes[q[3].grp] || 0) + 1;
+  for (const q of out) {
+    if (q[3].same) { q[3].n = last ? last[3].n : '01'; continue; }
+    if (!last || q[3].grp !== last[3].grp) { num++; part = 0; q[3].g0 = true; }
+    part++; q[3].n = String(num).padStart(2, '0') + (sizes[q[3].grp] > 1 ? '.' + part : ''); last = q;
+  }
+  S.pused = [...used].slice(-4000);
+  const qs = out.map(q => [q[0], q[1], q[2], Object.fromEntries(Object.entries(q[3]).filter(([key, v]) => key !== 'grp' && key !== 'sk' && v !== '' && v != null && v !== false))]);
+  return { id: 'ppp' + newId(), g, subj: trackSubj(track), name: `PPP ${g} ${sp.n}${sp.t ? ` (${sp.t})` : ''}`, mins: sp.mins, srcFrom: [...srcFrom], src: pppSrc([...srcFrom]), ppp: { track, k, qn: num, parts: qs.filter(q => !q[3].same).length }, qs };
+}
+const pppSrc = ids => Object.assign({}, ...ids.map(id => (paperOf(id) || {}).src || {}));
+/* a saved PPP paper, rebuilt field by field: a restored backup is untrusted */
+function normPaper(p) {
+  p = obj(p); const s = (v, n = 400) => str(v, n);
+  const sch = v => Array.isArray(v) ? v.slice(0, 20).map(x => s(x)).filter(Boolean) : obj(v).lv ? { lv: arr(v.lv).slice(0, 8).map(l => [clamp(num(arr(l)[0]), 0, 40), clamp(num(arr(l)[1]), 0, 40), s(arr(l)[2])]), look: arr(v.look).slice(0, 20).map(x => s(x)) }
+    : { any: arr(obj(v).any).slice(0, 20).map(x => s(x)).filter(Boolean), max: clamp(Math.round(num(obj(v).max, 1)), 1, 20) };
+  const prim = x => ['string', 'number', 'boolean'].includes(typeof x);
+  const plain = o => Object.fromEntries(Object.entries(obj(o)).filter(([, v]) => prim(v) || (Array.isArray(v) && v.every(prim))).map(([k, v]) => [k, typeof v === 'string' ? s(v, 600) : Array.isArray(v) ? v.slice(0, 12).map(e => typeof e === 'string' ? s(e, 300) : e) : v]));
+  const qs = arr(p.qs).slice(0, 150).map(q => { q = arr(q); const x = obj(q[3]);
+    return [s(q[0], 80), s(q[1], 4000), sch(q[2]), Object.fromEntries(Object.entries({ n: s(x.n, 8), sec: s(x.sec, 90), src: s(x.src, 4), same: !!x.same, g0: !!x.g0, tid: s(x.tid, 40), auto: x.auto ? plain(x.auto) : null }).filter(([, v]) => v))]; })
+    .filter(q => q[0] && q[1] && qMax(q) > 0);
+  const ids = arr(p.srcFrom).filter(id => EXAMS.some(e => e.id === id)), pp = obj(p.ppp);
+  return { id: s(p.id, 40) || 'ppp', g: s(p.g, 40), subj: SUBJ.includes(p.subj) ? p.subj : 'Maths', name: s(p.name, 140), mins: clamp(Math.round(num(p.mins, 60)), 5, 200), srcFrom: ids, src: pppSrc(ids), ppp: { track: s(pp.track, 20), k: num(pp.k), qn: num(pp.qn), parts: num(pp.parts) }, qs };
+}
+/* the app checks your marking on the parts it can mark itself, and your reasons for lost marks build up across papers */
+function pppCheck(p, E) {
+  const generous = [], harsh = [], why = {}; let total = 0;
+  p.qs.forEach((q, k) => {
+    const x = qX(q), m = qMax(q), got = qScore(q, E.got[k], E.lv[k]), r = arr(E.why)[k];
+    if (got < m && r) why[r] = (why[r] || 0) + 1;
+    if (!x.auto || !E.marked[k]) return; total++;
+    const a = E.ans[k], c = a ? LEARN.check(x.auto, a) : { valid: false }, ok = !!(c.valid && c.ok);
+    record(x.auto.id, ok, x.auto.key);
+    if (got === m && !ok) generous.push(x.n || k + 1); if (got < m && ok) harsh.push(x.n || k + 1);
+  });
+  for (const [k, n] of Object.entries(why)) S.why[k] = (S.why[k] || 0) + n;
+  return { agree: total - generous.length - harsh.length, total, generous, harsh, why };
+}
+function pppStart(track, k) {
+  if (S.exam && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
+  const p = pppBuild(track, k); if (!p.qs.length) return toast('All the topics for this paper are hidden in Settings');
+  S.exam = { pid: p.id, paper: p, ph: 'sit', i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), why: p.qs.map(() => ''), end: Date.now() + p.mins * 60000 };
+  EXRES = null; exOpen(0); go('examq', '#exans'); scrollTo({ top: 0 });
+}
 function vPPP() {
   if (!labOpen()) return vLab();
-  const papers = S.scores.filter(x => /^PPP /.test(x.paper)), sid = sessRank()[0], uniq = (S.pused || []).length;
+  const papers = S.scores.filter(x => /^PPP /.test(x.paper)), corrections = S.queue.length, run = S.exam && S.exam.paper;
   const bySubj = {}; for (const p of papers) (bySubj[p.subj] = bySubj[p.subj] || []).push(pctOf(p));
-  const corrections = S.queue.length;
+  const T = PPP_SPEC[DRAFT.pppT] ? DRAFT.pppT : sessRank()[0], R = EXRES && EXRES.ppp ? EXRES : null;
   return h('div', { class: 'stack narrow' },
-    subHero('Experimental', 'PPP mode', 'lab', 'Pure past papers, done properly: sit a full paper, mark it, then correct every mistake before the next one. Corrections are where the marks come from.', 'Experimental'),
+    subHero('Experimental', 'PPP mode', 'lab', 'Pure past papers, done properly: sit a paper in the real exam format, mark it against the mark scheme, then correct every mistake before the next one.', 'Experimental'),
+    R && examReport(R), R && R.self && (R.self.total > 0 || Object.keys(R.self.why).length > 0) && selfCard(R.self),
     h('ol', { class: 'ppp-loop' },
-      h('li', { class: S.mp && S.mp.ppp ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, '40 questions, every topic, under exam conditions')),
+      h('li', { class: run ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, 'Real format: the same marks, time and number of questions as the AQA paper')),
       h('li', { class: corrections ? 'on' : '' }, h('b', null, 'Correct it'), h('small', null, 'Redo each topic you got wrong until you get 3 right in a row')),
-      h('li', null, h('b', null, 'Next paper'), h('small', null, 'Brand new questions, aimed at your weakest subject'))),
+      h('li', null, h('b', null, 'Next paper'), h('small', null, 'New short questions every time, aimed at your weak spots'))),
     corrections > 0 && card('Corrections first', h('span', { class: 'pill' }, `${corrections} to fix`), h('p', { class: 'muted xs' }, 'Doing another paper before fixing these just repeats the same mistakes. Clear them, then sit the next one.'),
       B([icon('wrench'), 'Do the corrections'], 'drill', 'primary', { 'data-track': 'fix' })),
-    S.mp && S.mp.ppp ? card('Paper in progress', null, B([icon('play'), `Carry on: ${TRACK_NAME(S.mp.track)} (question ${S.mp.i + 1})`], 'mpResume', 'primary'))
-      : card('Next paper', null, h('p', { class: 'muted xs' }, `Suggested: ${SUBJ_BY[sid].name}, your biggest gap right now.`),
-        B([icon('play'), `Start a ${SUBJ_BY[sid].name} paper`], 'mpNew', corrections ? 'ghost' : 'primary', { 'data-track': sid, 'data-ppp': '1' }),
-        h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id, 'data-ppp': '1' })))),
+    run ? card('Paper in progress', null, h('p', null, h('b', null, run.name.replace(/^PPP /, '')), h('small', { class: 'muted' }, ` · ${S.exam.ph === 'mark' ? 'marking' : 'sitting'}, part ${S.exam.i + 1} of ${run.qs.length}`)),
+        h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link')))
+      : S.mp && S.mp.ppp ? card('Paper in progress', null, B([icon('play'), `Carry on: ${TRACK_NAME(S.mp.track)} (question ${S.mp.i + 1})`], 'mpResume', 'primary'))
+      : card('Sit a paper', h('span', { class: 'muted' }, 'real AQA format'),
+        h('div', { class: 'chips scroll' }, LEARN.SUBJECTS.filter(x => PPP_SPEC[x.id]).map(x => chip([icon(x.icon), x.name], x.id === T, 'pppSubj', { 'data-track': x.id }))),
+        h('ul', { class: 'list' }, PPP_SPEC[T].map((sp, k) => h('li', { class: 'xp-row' },
+          h('div', { class: 'grow' }, h('b', null, `${SUBJ_BY[T].name} ${sp.n}: ${sp.t}`), h('small', null, `${sp.marks} marks · ${hrs(sp.mins)} · ${sp.qn}`)),
+          h('div', { class: 'row' }, B([icon('play'), 'Sit it'], 'pppGo', corrections ? 'ghost sm' : 'primary sm', { 'data-track': T, 'data-k': k }))))),
+        PPP_NOTE[T] && h('p', { class: 'muted xs' }, PPP_NOTE[T])),
     Object.keys(S.why || {}).length > 0 && card('Why you lose marks', h('span', { class: 'muted' }, 'all PPP papers'), whyBars(S.why)),
     card('Your PPP record', h('span', { class: 'muted' }, `${papers.length} paper${papers.length === 1 ? '' : 's'}`),
       papers.length ? h('ul', { class: 'list' }, Object.entries(bySubj).map(([s, l]) => h('li', null, h('div', { class: 'grow' }, h('b', null, s), h('small', null, `${l.length} paper${l.length > 1 ? 's' : ''} · latest ${l[l.length - 1]}% · best ${Math.max(...l)}%`)), medal(gradeFor(s, l[l.length - 1]), 'sm'))))
-        : h('p', { class: 'muted' }, 'No PPP papers yet. Your first one sets the baseline.'),
-      h('p', { class: 'muted xs' }, `${uniq.toLocaleString('en-GB')} different questions used on papers so far. None will appear on another paper until a subject's bank runs out; then the ones you got wrong come back first.`)));
+        : h('p', { class: 'muted' }, 'No PPP papers yet. Your first one sets the baseline.')));
 }
+Object.assign(PLUSACT, {
+  pppSubj(el) { DRAFT.pppT = el.dataset.track; render(); },
+  pppGo(el) { pppStart(el.dataset.track, +el.dataset.k); }
+});
 
 /* ---------- PPP self-marking: be the examiner. Compare your answer with the mark scheme, decide the mark, say why you lost it.
    Then the app checks your marking, and your reasons for losing marks build up across papers. ---------- */
@@ -988,8 +1153,8 @@ function whyBars(why) {
     h('p', { class: 'muted xs' }, h('b', null, 'Biggest fix: '), WHY_FIX[top[0][0]])];
 }
 function selfCard(R) {
-  return card('How you marked', h('span', { class: 'pill' }, `${R.agree}/${R.total} agree with the scheme`),
-    h('p', { class: 'muted xs' }, R.generous.length || R.harsh.length ? 'Examiners mark exactly to the scheme. Look again at these:' : 'You marked exactly like an examiner. That is a real skill.'),
+  return card('How you marked', R.total ? h('span', { class: 'pill' }, `${R.agree}/${R.total} checked parts agree`) : null,
+    h('p', { class: 'muted xs' }, !R.total ? 'Every part of this paper was a written answer, so your marking is the only marking.' : R.generous.length || R.harsh.length ? 'Examiners mark exactly to the scheme. The app checked the parts it can mark itself; look again at these:' : 'On every part the app could check, you marked exactly like an examiner. That is a real skill.'),
     R.generous.length > 0 && h('p', null, h('b', null, 'Too generous on: '), R.generous.map(n => 'Q' + n).join(', '), h('small', { class: 'muted' }, ' (you gave a mark the scheme would not)')),
     R.harsh.length > 0 && h('p', null, h('b', null, 'Too harsh on: '), R.harsh.map(n => 'Q' + n).join(', '), h('small', { class: 'muted' }, ' (your answer was actually right)')),
     Object.keys(R.why).length > 0 && [h('p', { class: 'fb-h' }, 'Why you lost marks on this paper'), whyBars(R.why)]);

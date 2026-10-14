@@ -153,10 +153,11 @@ function normalize(raw) {
     score: Math.max(0, +x.score), max: +x.max,
     lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
     tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
-  const ex = obj(r.exam), paper = EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
-  if (paper) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
+  const ex = obj(r.exam), paper = ex.paper ? normPaper(ex.paper) : EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
+  if (paper && paper.qs.length) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
     got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
     lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1), end: Math.max(0, num(ex.end)) };
+  if (s.exam && ex.paper) Object.assign(s.exam, { paper, ph: ex.ph === 'mark' ? 'mark' : 'sit', why: paper.qs.map((_, k) => WHY.some(w => w[0] === arr(ex.why)[k]) ? arr(ex.why)[k] : ''), used: clamp(Math.round(num(ex.used)), 0, 300), timed: !!ex.timed });
   const rp = obj(r.plan);
   if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
     s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
@@ -767,7 +768,7 @@ function sessionRow(s, day) {
 /* Exam practice: answer exam-style questions, mark against the mark scheme, record by paper and topic.
    Schemes (exam.js, papers.js): [points] one mark each · {any, max} capped · {lv, look} levels-based. */
 let EXRES = null;
-const paperOf = id => EXAMS.find(p => p.id === id);
+const paperOf = id => (S.exam && S.exam.paper && S.exam.paper.id === id && S.exam.paper) || EXAMS.find(p => p.id === id); /* a PPP paper is built fresh and lives with its run */
 function qMax(q) { const s = q[2]; return Array.isArray(s) ? s.length : s.lv ? s.lv[0][1] : s.max; }
 function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.look; }
 const qX = q => q[3] || {};
@@ -775,7 +776,7 @@ const marksOf = p => p.qs.reduce((n, q) => n + qMax(q), 0);
 const groupOf = p => p.g || p.name.split(' ')[0];
 function qScore(q, ticks, lv) { const s = q[2]; if (s.lv) return Math.max(0, lv); const n = ticks.filter(Boolean).length; return s.any ? Math.min(n, s.max) : n; }
 const qDone = (E, k, q) => E.marked[k] && (!q[2].lv || E.lv[k] >= 0);
-const qType = q => q[2].lv ? 'Extended writing' : /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : qMax(q) >= 3 ? 'Extended writing' : 'Recall';
+const qType = q => qX(q).auto && qX(q).auto.kind !== 'mcq' ? 'Calculation' : q[2].lv ? 'Extended writing' : /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : qMax(q) >= 3 ? 'Extended writing' : 'Recall';
 const nums = (lo, hi) => Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
 function vExam() {
   const run = S.exam && paperOf(S.exam.pid), tops = {};
@@ -787,8 +788,8 @@ function vExam() {
     EXRES && examReport(EXRES),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
-    card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'A fresh paper every time, weighted to your weak topics, marked automatically. Full length covers every topic, like a real paper, and counts more towards your predicted grade.'),
-      h('div', { class: 'chips' }, chip('Quick · 20 questions', GP_LEN === 20, 'gpLen', { 'data-n': 20 }), chip('Full length · 40 questions', GP_LEN === 40, 'gpLen', { 'data-n': 40 })),
+    card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'Quick practice sets, not the real exam format: a fresh set every time, weighted to your weak topics, marked automatically. Long sets cover more topics and count more towards your predicted grade.'),
+      h('div', { class: 'chips' }, chip('Quick · 20 questions', GP_LEN === 20, 'gpLen', { 'data-n': 20 }), chip('Long · 40 questions', GP_LEN === 40, 'gpLen', { 'data-n': 40 })),
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
       h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
@@ -823,27 +824,49 @@ function markPanel(q, E, i) {
 function vExamQ() {
   const p = S.exam && paperOf(S.exam.pid);
   if (!p) return vExam();
-  const E = S.exam, i = E.i, q = p.qs[i], x = qX(q), m = qMax(q), last = i === p.qs.length - 1, show = E.marked[i] || x.same;
+  const E = S.exam, i = E.i, q = p.qs[i], x = qX(q), m = qMax(q), last = i === p.qs.length - 1;
+  const sit = !!p.ppp && E.ph !== 'mark', show = !sit && (E.marked[i] || x.same); /* PPP: sit the whole paper first, then mark it */
   const total = p.qs.reduce((n, qq, k) => n + (qDone(E, k, qq) ? qScore(qq, E.got[k], E.lv[k]) : 0), 0), done = p.qs.filter((qq, k) => qDone(E, k, qq)).length;
-  const srcs = [].concat(x.src || []).filter(k => p.src && p.src[k]), how = EXAM_HOW[groupOf(p)];
+  const srcs = [].concat(x.src || []).filter(k => p.src && p.src[k]), how = EXAM_HOW[groupOf(p)], a = x.auto;
+  const parts = p.qs.filter(qq => !qX(qq).same).length, answered = p.qs.filter((qq, k) => !qX(qq).same && E.ans[k]).length, marks = p.qs.reduce((n, qq) => n + qMax(qq), 0);
+  const yours = k => { const v = E.ans[k], aa = qX(p.qs[k]).auto; return v === '' ? '(left blank)' : aa && aa.kind === 'mcq' ? `${'ABCD'[+v]}: ${aa.options[+v]}` : v; };
+  const got = show ? qScore(q, E.got[i], E.lv[i]) : 0;
+  const opts = sit && !a ? q[1].split('\n').filter(l => /^[A-D]  /.test(l)) : []; /* a written multiple-choice question gets tick boxes too */
   return h('div', { class: 'stack narrow' },
-    subHero(p.subj, p.name, 'exam', null, 'Exam practice'),
-    h('div', { class: 'exdots', 'aria-label': `Question ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (qDone(E, k, qq) ? ' done' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    subHero(p.subj, p.name.replace(/^PPP /, ''), p.ppp ? 'ppp' : 'exam', null, p.ppp ? 'PPP mode' : 'Exam practice'),
+    h('div', { class: 'exdots', 'aria-label': `Part ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + ((sit ? E.ans[k] : qDone(E, k, qq)) ? ' done' : '') + (k && qX(qq).g0 ? ' gs' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${qX(qq).n || k + 1}` }))),
     mockBar(),
-    i === 0 && how && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'How to do this paper'), h('p', null, how))),
+    i === 0 && sit ? h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Real exam format'),
+        h('p', null, `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real AQA ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
+        p.g === 'Maths' && h('p', { class: 'muted xs' }, 'Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.')))
+      : i === 0 && how && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'How to do this paper'), h('p', null, how))),
     srcs.map(k => acc(`src-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true })),
     h('section', { class: 'card qcard exq' + (show ? ' marked' : '') },
-      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `Q${i + 1} · ${m} mark${m > 1 ? 's' : ''}${x.mins ? ` · about ${x.mins} min` : ''}`)),
-      h('p', { class: 'qtext' }, q[1]),
-      show ? [
-        h('p', { class: 'yours' }, h('b', null, x.same ? `Your answer to question ${i}: ` : 'Your answer: '), (x.same ? E.ans[i - 1] : E.ans[i]) || '(left blank)'),
+      h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `${x.n ? 'Question ' + x.n : 'Q' + (i + 1)} · ${m} mark${m > 1 ? 's' : ''}${x.mins ? ` · about ${x.mins} min` : ''}`)),
+      x.sec && h('p', { class: 'eyebrow' }, x.sec),
+      h('p', { class: 'qtext' }, opts.length ? q[1].split('\n').filter(l => !/^[A-D]  /.test(l)).join('\n') : q[1]),
+      sit ? [
+        x.same ? h('p', { class: 'muted' }, 'Nothing to write here: this is marked on your answer to the question before.')
+          : a && a.kind === 'mcq' ? [h('p', { class: 'muted xs' }, 'Tick one box.'), h('div', { class: 'mcq' }, a.options.map((o, k) => h('button', { type: 'button', class: 'opt' + (E.ans[i] === String(k) ? ' picked' : ''), 'data-act': 'exPick', 'data-o': k, disabled: mockOver(), 'aria-pressed': String(E.ans[i] === String(k)) }, h('span', { class: 'opt-k' }, 'ABCD'[k]), h('span', null, o))))]
+          : opts.length ? [h('p', { class: 'muted xs' }, 'Tick one box.'), h('div', { class: 'mcq' }, opts.map(l => h('button', { type: 'button', class: 'opt' + (E.ans[i] === l[0] ? ' picked' : ''), 'data-act': 'exPick', 'data-v': l[0], disabled: mockOver(), 'aria-pressed': String(E.ans[i] === l[0]) }, h('span', { class: 'opt-k' }, l[0]), h('span', null, l.slice(3).trim()))))]
+          : a ? h('div', { class: 'answer' }, a.pre && h('span', { class: 'adorn' }, a.pre),
+            h('input', { id: 'exans', 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 60, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: a.kind === 'num' ? 'decimal' : 'text', placeholder: 'Answer', 'aria-label': 'Your answer' }), a.suf && h('span', { class: 'adorn' }, a.suf))
+          : h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
+        a && a.hint && h('p', { class: 'muted xs' }, a.hint),
+        h('div', { class: 'row' }, i > 0 && B('Back', 'exGo', 'ghost', { 'data-i': i - 1 }), last ? B([icon('check'), 'Pens down: mark it'], 'exPppMark', 'primary grow') : B('Next', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
+      : show ? [
+        h('p', { class: 'yours' }, h('b', null, x.same ? (x.n ? 'Your answer to the question before: ' : `Your answer to question ${i}: `) : 'Your answer: '), x.same ? yours(i - 1) : yours(i)),
+        a && m > 1 && h('p', { class: 'muted xs' }, 'A correct final answer gets all the marks, even with no working. If it is wrong, give the method marks your working earned.'),
         markPanel(q, E, i),
+        p.ppp && got < m && !(q[2].lv && E.lv[i] < 0) && [h('p', { class: 'fb-h' }, `Why did you lose ${m - got > 1 ? 'those marks' : 'that mark'}?`), h('div', { class: 'chips' }, WHY.map(([k, l]) => chip(l, arr(E.why)[i] === k, 'exWhy', { 'data-r': k })))],
         examFeedback(p, q, E, i),
-        h('div', { class: 'row' }, last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
+        h('div', { class: 'row' }, i > 0 && p.ppp && B('Back', 'exGo', 'ghost', { 'data-i': i - 1 }), last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
       : [h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
         h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'), !last && B('Skip', 'exGo', 'ghost', { 'data-i': i + 1 }))]),
-    done > 0 && !(show && last) && h('div', { class: 'row center' }, B('Finish and save score', 'exFinish', 'link')),
-    h('p', { class: 'muted xs center' }, `${done} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave, and you can save a score for just part of a paper.`));
+    sit ? [!last && h('div', { class: 'row center' }, B('Pens down: finish and mark it now', 'exPppMark', 'link')),
+        h('p', { class: 'muted xs center' }, `${answered} of ${parts} answered. Your place is saved if you leave.`)]
+      : [done > 0 && !(show && last) && h('div', { class: 'row center' }, B('Finish and save score', 'exFinish', 'link')),
+        h('p', { class: 'muted xs center' }, `${done} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave${p.ppp ? '' : ', and you can save a score for just part of a paper'}.`)]);
 }
 function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
 const EXACT = {
@@ -852,6 +875,16 @@ const EXACT = {
     if (S.exam && S.exam.pid !== p.id && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
     if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), end: el.dataset.timed ? Date.now() + p.mins * 60000 : 0 };
     EXRES = null; exOpen(S.exam.i); go('examq', '#exans');
+  },
+  exPick(el) { const E = S.exam; if (mockOver()) return; E.ans[E.i] = DRAFT.ex = String(el.dataset.v || el.dataset.o); save(); render(); },
+  exWhy(el) { const E = S.exam; E.why = E.why || []; E.why[E.i] = el.dataset.r; save(); render(); },
+  /* pens down: stop the clock, then mark the whole paper against the scheme */
+  exPppMark() {
+    const E = S.exam, p = paperOf(E.pid); E.ans[E.i] = (DRAFT.ex || '').trim();
+    const blank = p.qs.filter((q, k) => !qX(q).same && !E.ans[k]).length;
+    if (blank && !mockOver() && !confirm(`${blank} part${blank > 1 ? 's are' : ' is'} blank and will score 0. Put your pen down and start marking?`)) return save();
+    if (E.end) { E.used = Math.max(1, Math.min(p.mins, Math.round((Math.min(Date.now(), E.end) - (E.end - p.mins * 60000)) / 60000))); E.timed = true; E.end = 0; }
+    E.ph = 'mark'; E.marked = E.marked.map(() => true); exOpen(0); toast('Pens down. Now mark it like an examiner.'); render(); scrollTo({ top: 0 });
   },
   exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); E.marked[E.i] = true; save(); render(); },
   exLevel(el) {
@@ -878,13 +911,16 @@ const EXACT = {
       if (m > g) { const key = q[0] + '|' + qType(q); lost[key] = lost[key] || { topic: q[0], type: qType(q), marks: 0 }; lost[key].marks += m - g; }
     });
     const tps = Object.values(tp), got = tps.reduce((a, t) => a + t.got, 0), max = tps.reduce((a, t) => a + t.max, 0), pc = Math.round(got / max * 100);
-    const name = p.name + (E.end ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
+    const timed = !!(E.end || E.timed), self = p.ppp ? pppCheck(p, E) : null;
+    const name = p.name + (timed ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25); realmEv('paper');
-    const g = groupOf(p), added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0);
+    const g = groupOf(p), lostIds = p.qs.filter((q, k) => done[k] && qX(q).tid && qScore(q, E.got[k], E.lv[k]) < qMax(q)).map(q => qX(q).tid);
+    const added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0) + (lostIds.length ? addFix([...new Set(lostIds)], `Lost marks on ${p.name}`) : 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
-    EXRES = { name, got, max, tp: tps, subj: p.subj, timed: !!E.end, mins: p.mins, used: E.end ? Math.max(1, Math.min(p.mins, Math.round((Date.now() - (E.end - p.mins * 60000)) / 60000))) : 0, marked: n, total: p.qs.length }; S.exam = null; DRAFT.ex = ''; save(); go('exam');
+    EXRES = { name, got, max, tp: tps, subj: p.subj, timed, mins: p.mins, used: E.used || (E.end ? Math.max(1, Math.min(p.mins, Math.round((Date.now() - (E.end - p.mins * 60000)) / 60000))) : 0), marked: n, total: p.qs.length, ppp: !!p.ppp, self };
+    S.exam = null; DRAFT.ex = ''; save(); go(p.ppp ? 'ppp' : 'exam');
   }
 };
 
@@ -955,7 +991,7 @@ const MPACT = {
     const len = el && el.dataset && el.dataset.ppp ? 40 : GP_LEN; S.mp = null; const qs = makePaper(track, len);
     if (!qs.length) return toast(`All ${TRACK_NAME(track)} topics are hidden in Settings`);
     S.mp = { qs, ans: qs.map(() => ''), i: 0, track, ppp: !!(el && el.dataset && el.dataset.ppp) };
-    if (len > 20) toast(`Full-length paper: ${qs.length} questions, about ${Math.round(qs.length * 1.5)} minutes`); DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
+    if (len > 20) toast(`Long set: ${qs.length} questions, about ${Math.round(qs.length * 1.5)} minutes`); DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
   },
   mpResume() { MPRES = null; DRAFT.mp = S.mp.ans[S.mp.i] || ''; go('mpaper', '#mpans'); },
   gpLen(el) { GP_LEN = +el.dataset.n; render(); },
@@ -973,7 +1009,7 @@ const MPACT = {
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ' (full length)' : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
+    S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ` (${rows.length} questions)` : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
     CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
