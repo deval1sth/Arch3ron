@@ -898,3 +898,52 @@ function setPriority(label) {
   if (tr === 'science') return Math.max(...['biology', 'chemistry', 'physics'].map(subjPriority));
   return tr && SUBJ_BY[tr] ? subjPriority(tr) : 0;
 }
+
+/* ---------- Experimental: features being tried out. Hidden behind a password; only its SHA-256 fingerprint is stored here.
+   shortcut: a static app cannot truly protect code, so this hides features from normal users, not from someone reading the source. ---------- */
+const LAB_HASH = 'c6743c006b5ff18a6003be3327a25830b367b71714bb16a5c1a99a847820bc4c';
+const labOpen = () => { try { return localStorage.getItem('archeron-lab') === LAB_HASH; } catch (e) { return false; } };
+async function labTry(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('') === LAB_HASH;
+}
+function vLab() {
+  if (!labOpen()) return h('div', { class: 'stack narrow' },
+    subHero('Toolkit', 'Experimental', 'tools', 'Features being tried out before they join the main app.'),
+    card('Locked', null, h('p', { class: 'muted xs' }, 'Enter the password to unlock experimental features on this device.'),
+      h('form', { class: 'row lab-form', 'data-lab': '1' }, h('input', { id: 'labpw', type: 'password', autocomplete: 'off', placeholder: 'Password', 'aria-label': 'Password' }), h('button', { type: 'submit', class: 'btn primary' }, 'Unlock'))));
+  return h('div', { class: 'stack narrow' },
+    subHero('Toolkit', 'Experimental', 'tools', 'Features being tried out. They may change or disappear. Tell Claude what works.'),
+    h('button', { type: 'button', class: 'card fixlink', 'data-act': 'go', 'data-tab': 'ppp' }, icon('scroll'), h('span', { class: 'grow' }, h('b', null, 'PPP mode'), h('small', null, 'Pure past papers: paper, mark, correct, repeat. No question ever repeats across papers.')), h('span', { class: 'btn primary sm' }, 'Open')),
+    B('Lock again on this device', 'labLock', 'link'));
+}
+document.addEventListener('submit', e => {
+  if (!e.target.dataset || !e.target.dataset.lab) return; e.preventDefault();
+  const pw = $('#labpw').value;
+  labTry(pw).then(ok => { if (ok) { try { localStorage.setItem('archeron-lab', LAB_HASH); } catch (err) {} toast('Experimental unlocked'); render(); } else { toast('Wrong password'); $('#labpw').value = ''; } });
+});
+PLUSACT.labLock = () => { try { localStorage.removeItem('archeron-lab'); } catch (e) {} go('tools'); };
+
+/* ---------- PPP mode: the paper → mark → correct loop, with papers that never repeat a question ---------- */
+function vPPP() {
+  if (!labOpen()) return vLab();
+  const papers = S.scores.filter(x => /^PPP /.test(x.paper)), sid = sessRank()[0], uniq = (S.pused || []).length;
+  const bySubj = {}; for (const p of papers) (bySubj[p.subj] = bySubj[p.subj] || []).push(pctOf(p));
+  const corrections = S.queue.length;
+  return h('div', { class: 'stack narrow' },
+    subHero('Experimental', 'PPP mode', 'lab', 'Pure past papers, done properly: sit a full paper, mark it, then correct every mistake before the next one. Corrections are where the marks come from.', 'Experimental'),
+    h('ol', { class: 'ppp-loop' },
+      h('li', { class: S.mp && S.mp.ppp ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, '40 questions, every topic, under exam conditions')),
+      h('li', { class: corrections ? 'on' : '' }, h('b', null, 'Correct it'), h('small', null, 'Redo each topic you got wrong until you get 3 right in a row')),
+      h('li', null, h('b', null, 'Next paper'), h('small', null, 'Brand new questions, aimed at your weakest subject'))),
+    corrections > 0 && card('Corrections first', h('span', { class: 'pill' }, `${corrections} to fix`), h('p', { class: 'muted xs' }, 'Doing another paper before fixing these just repeats the same mistakes. Clear them, then sit the next one.'),
+      B([icon('wrench'), 'Do the corrections'], 'drill', 'primary', { 'data-track': 'fix' })),
+    S.mp && S.mp.ppp ? card('Paper in progress', null, B([icon('play'), `Carry on: ${TRACK_NAME(S.mp.track)} (question ${S.mp.i + 1})`], 'mpResume', 'primary'))
+      : card('Next paper', null, h('p', { class: 'muted xs' }, `Suggested: ${SUBJ_BY[sid].name}, your biggest gap right now.`),
+        B([icon('play'), `Start a ${SUBJ_BY[sid].name} paper`], 'mpNew', corrections ? 'ghost' : 'primary', { 'data-track': sid, 'data-ppp': '1' }),
+        h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id, 'data-ppp': '1' })))),
+    card('Your PPP record', h('span', { class: 'muted' }, `${papers.length} paper${papers.length === 1 ? '' : 's'}`),
+      papers.length ? h('ul', { class: 'list' }, Object.entries(bySubj).map(([s, l]) => h('li', null, h('div', { class: 'grow' }, h('b', null, s), h('small', null, `${l.length} paper${l.length > 1 ? 's' : ''} · latest ${l[l.length - 1]}% · best ${Math.max(...l)}%`)), medal(gradeFor(s, l[l.length - 1]), 'sm'))))
+        : h('p', { class: 'muted' }, 'No PPP papers yet. Your first one sets the baseline.'),
+      h('p', { class: 'muted xs' }, `${uniq.toLocaleString('en-GB')} different questions used on papers so far. None will appear on another paper until a subject's bank runs out; then the ones you got wrong come back first.`)));
+}

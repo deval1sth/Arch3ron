@@ -920,3 +920,11 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .rprof .emb svg{width:100%;height:100%}
 .rprof .grow{display:block;min-width:0}
 #view:focus{outline:none}
+
+/* ---------- Experimental and PPP ---------- */
+.lab-form{flex-wrap:nowrap}.lab-form input{flex:1}
+.ppp-loop{list-style:none;counter-reset:p;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ppp-loop li{counter-increment:p;padding:12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card)}
+.ppp-loop li::before{content:counter(p);display:grid;place-items:center;width:26px;height:26px;margin-bottom:6px;border-radius:50%;font-family:var(--serif);color:var(--y-ink);background:linear-gradient(180deg,var(--y2),var(--y))}
+.ppp-loop li.on{border-color:var(--y)}
+.ppp-loop b{display:block;font-size:14px}.ppp-loop small{color:var(--m);font-size:11.5px;line-height:1.35;display:block}
