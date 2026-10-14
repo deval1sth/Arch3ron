@@ -784,7 +784,8 @@ function vExam() {
     EXRES && examReport(EXRES),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
-    card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'A fresh 20-question paper every time, weighted to your weak topics, marked automatically. The score counts towards your predicted grade.'),
+    card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'A fresh paper every time, weighted to your weak topics, marked automatically. Full length covers every topic, like a real paper, and counts more towards your predicted grade.'),
+      h('div', { class: 'chips' }, chip('Quick · 20 questions', GP_LEN === 20, 'gpLen', { 'data-n': 20 }), chip('Full length · 40 questions', GP_LEN === 40, 'gpLen', { 'data-n': 40 })),
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
       h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
@@ -888,7 +889,7 @@ const EXACT = {
 
 /* Generated Maths paper: a fresh paper from the question generators, no feedback until the end, then marked automatically */
 const MUST4 = new Set(['pct-of', 'pct-incdec', 'frac-of', 'ratio-share', 'solve-1', 'expand', 'substitute', 'area', 'angles', 'averages', 'prob', 'rounding', 'negatives', 'bidmas', 'sdt', 'nth-term', 'pythag', 'circles']);
-let MPRES = null;
+let MPRES = null, GP_LEN = 40; /* generated paper length: full length by default, since more questions make the grade more reliable */
 const trackSubj = t => (LEARN.SUBJECTS.find(x => x.id === t) || { subj: 'Maths' }).subj;
 const makeMathsPaper = (n = 20) => makePaper('maths', n);
 /* a fresh auto-marked paper for any subject: Maths is calculations only; others skip definitions (those are self-marked) */
@@ -938,11 +939,13 @@ const MPACT = {
   mpNew(el) {
     if (S.mp && !MPRES && !confirm('Start a new paper? The one in progress will be lost.')) return;
     const track = (el && el.dataset && el.dataset.track) || 'maths';
-    S.mp = null; const qs = makePaper(track);
+    const len = GP_LEN; S.mp = null; const qs = makePaper(track, len);
     if (!qs.length) return toast(`All ${TRACK_NAME(track)} topics are hidden in Settings`);
-    S.mp = { qs, ans: qs.map(() => ''), i: 0, track }; DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
+    S.mp = { qs, ans: qs.map(() => ''), i: 0, track };
+    if (len > 20) toast(`Full-length paper: ${qs.length} questions, about ${Math.round(qs.length * 1.5)} minutes`); DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
   },
   mpResume() { MPRES = null; DRAFT.mp = S.mp.ans[S.mp.i] || ''; go('mpaper', '#mpans'); },
+  gpLen(el) { GP_LEN = +el.dataset.n; render(); },
   mpPick(el) { S.mp.ans[S.mp.i] = String(el.dataset.o); save(); render(); },
   mpGo(el) { const M = S.mp; if (M.qs[M.i].kind !== 'mcq') M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40); M.i = +el.dataset.i; DRAFT.mp = M.ans[M.i] || ''; save(); render({ focus: '#mpans' }); },
   mpQuit() { if (!confirm('Abandon this paper? Nothing will be saved.')) return; S.mp = null; save(); go('exam'); },
@@ -956,7 +959,7 @@ const MPACT = {
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj, paper: `Generated ${tn} paper`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
+    S.scores.push({ id: newId(), date: dkey(), subj, paper: `Generated ${tn} paper${rows.length > 20 ? ' (full length)' : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
     CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });

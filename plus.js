@@ -14,7 +14,7 @@ const boundFor = (subj, g) => { const b = boundsOf(subj), x = b.find(([gg]) => g
 function predict(subj) {
   const all = subjPts(subj), pts = all.slice(-3);
   if (!pts.length) return null;
-  const w = x => /^Generated/.test(x.paper) ? .5 : 1; /* a 20-question generated paper is half the evidence of a real paper */
+  const w = x => !/^Generated/.test(x.paper) ? 1 : x.max >= 40 ? .8 : .5; /* generated papers count less than real ones; full-length ones nearly as much */
   const pc = Math.round(pts.reduce((a, s) => a + pctOf(s) * w(s), 0) / pts.reduce((a, s) => a + w(s), 0)), nx = boundsOf(subj).slice().reverse().find(([, p]) => p > pc);
   const last = all.length >= 2 ? pctOf(all[all.length - 1]) - pctOf(all[all.length - 2]) : null;
   return { pc, g: gradeFor(subj, pc), n: all.length, used: pts.length, next: nx && { g: nx[0], need: nx[1] - pc }, last };
