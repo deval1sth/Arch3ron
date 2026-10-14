@@ -184,7 +184,7 @@ function normalize(raw) {
   s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() }));
   const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
   if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
-    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1) };
+    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
   return s;
 }
 
@@ -264,7 +264,8 @@ function pickTopic(track, avoid) {
   const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
   const w = pool.map(id => {
-    const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 : 1; if (!k.n) return 3 * boost;
+    const core = LEARN.TOPIC[id].type === 'eq' ? .3 : 1; /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
+    const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 * core : core; if (!k.n) return 3 * boost;
     const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
     return (k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3) * boost;
   });
@@ -582,7 +583,7 @@ function vSubject() {
     : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'physics' || s.id === 'maths' ? [B([icon('cards'), 'Formula flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })] : [];
   if (EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase()))) extras.push(B([icon('scroll'), 'Exam practice'], 'go', 'ghost', { 'data-tab': 'exam' }));
-  if (s.id === 'maths') extras.push(B([icon('sparkle'), 'Generated paper'], S.mp ? 'mpResume' : 'mpNew', 'ghost'));
+  extras.push(B([icon('sparkle'), 'Generated paper'], S.mp && (S.mp.track || 'maths') === s.id ? 'mpResume' : 'mpNew', 'ghost', { 'data-track': s.id }));
   return h('div', { class: 'stack narrow' },
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
@@ -783,6 +784,9 @@ function vExam() {
     EXRES && examReport(EXRES),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
+    card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'A fresh 20-question paper every time, weighted to your weak topics, marked automatically. The score counts towards your predicted grade.'),
+      S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
+      h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
       g === 'Maths' && h('div', { class: 'gen' }, S.mp ? B([icon('play'), `Resume generated paper (Q${S.mp.i + 1})`], 'mpResume', 'primary') : B([icon('sparkle'), 'Generate a fresh paper'], 'mpNew', 'primary'),
         h('small', { class: 'muted' }, 'A new 20-question paper every time, weighted to grade 4 topics and your weak spots. Marked automatically at the end.')),
@@ -885,27 +889,31 @@ const EXACT = {
 /* Generated Maths paper: a fresh paper from the question generators, no feedback until the end, then marked automatically */
 const MUST4 = new Set(['pct-of', 'pct-incdec', 'frac-of', 'ratio-share', 'solve-1', 'expand', 'substitute', 'area', 'angles', 'averages', 'prob', 'rounding', 'negatives', 'bidmas', 'sdt', 'nth-term', 'pythag', 'circles']);
 let MPRES = null;
-function makeMathsPaper(n = 20) {
-  const ids = topicsFor('maths').filter(id => LEARN.TOPIC[id].type === 'calc'); /* auto-marked, so calculations only */
+const trackSubj = t => (LEARN.SUBJECTS.find(x => x.id === t) || { subj: 'Maths' }).subj;
+const makeMathsPaper = (n = 20) => makePaper('maths', n);
+/* a fresh auto-marked paper for any subject: Maths is calculations only; others skip definitions (those are self-marked) */
+function makePaper(track = 'maths', n = 20) {
+  const ids = topicsFor(track).filter(id => track === 'maths' ? LEARN.TOPIC[id].type === 'calc' : LEARN.TOPIC[id].type !== 'def');
   const pool = ids.map(id => { const k = skill(id), acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : .5;
     return { id, w: (MUST4.has(id) ? 1.5 : 1) * (S.queue.some(x => x.id === id) ? 3 : 1) * (1.5 - acc) }; });
   const chosen = [];
   while (chosen.length < n && pool.length) { let r = Math.random() * pool.reduce((a, b) => a + b.w, 0); const i = pool.findIndex(x => (r -= x.w) <= 0); chosen.push(pool.splice(i < 0 ? pool.length - 1 : i, 1)[0].id); }
   while (chosen.length < n && ids.length) chosen.push(pick(ids)); /* fewer topics than questions */
   chosen.sort((a, b) => ids.indexOf(a) - ids.indexOf(b)); /* generator order runs roughly easy to hard */
-  return chosen.map(id => LEARN.gen(id)).filter(q => q && q.kind !== 'mcq');
+  return chosen.map(id => LEARN.gen(id)).filter(q => q && (track === 'maths' ? q.kind !== 'mcq' : q.kind !== 'def'));
 }
 function vMPaper() {
   if (MPRES) return mpResults();
   const M = S.mp; if (!M) return vExam();
   const i = M.i, q = M.qs[i], last = i === M.qs.length - 1;
   return h('div', { class: 'stack narrow' },
-    subHero('Maths', 'Generated paper', 'exam', null, 'Exam practice'),
+    subHero(TRACK_NAME(M.track || 'maths'), 'Generated paper', 'exam', null, 'Exam practice'),
     h('div', { class: 'exdots' }, M.qs.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + (M.ans[k] ? ' done' : ''), 'data-act': 'mpGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
-    i === 0 && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Exam conditions'), h('p', null, 'No feedback until the end, like the real thing. Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.'))),
+    i === 0 && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Exam conditions'), h('p', null, (M.track || 'maths') === 'maths' ? 'No feedback until the end, like the real thing. Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.' : 'No feedback until the end, like the real thing. Answer from memory, then it is marked automatically.'))),
     h('section', { class: 'card qcard exq' },
       h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, LEARN.name(q.id)), h('span', null, `Question ${i + 1} of ${M.qs.length}`)),
       h('p', { class: 'qtext' }, q.q),
+      q.kind === 'mcq' ? h('div', { class: 'mcq' }, q.options.map((o, k) => h('button', { type: 'button', class: 'opt' + (M.ans[i] === String(k) ? ' picked' : ''), 'data-act': 'mpPick', 'data-o': k, 'aria-pressed': String(M.ans[i] === String(k)) }, h('span', { class: 'opt-k' }, String(k + 1)), h('span', null, o)))) :
       h('div', { class: 'answer' }, q.pre && h('span', { class: 'adorn' }, q.pre),
         h('input', { id: 'mpans', 'data-draft': 'mp', value: DRAFT.mp || '', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: last ? 'done' : 'next', 'aria-label': 'Your answer' }),
         q.suf && h('span', { class: 'adorn' }, q.suf)),
@@ -917,38 +925,41 @@ function vMPaper() {
 function mpResults() {
   const R = MPRES;
   return h('div', { class: 'stack narrow' },
-    subHero('Maths', 'Generated paper marked', 'exam', null, 'Exam practice'),
-    card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}% · about a grade ${gradeFor('Maths', Math.round(R.score / R.rows.length * 100))}`)),
+    subHero(TRACK_NAME(R.track || 'maths'), 'Generated paper marked', 'exam', null, 'Exam practice'),
+    card(null, null, h('p', { class: 'big-score' }, `${R.score} / ${R.rows.length}`, h('small', null, ` · ${Math.round(R.score / R.rows.length * 100)}% · about a grade ${gradeFor(trackSubj(R.track || 'maths'), Math.round(R.score / R.rows.length * 100))}`)),
       h('p', { class: 'muted' }, R.added ? `${R.added} topic${R.added > 1 ? 's' : ''} you got wrong ${R.added > 1 ? 'are' : 'is'} now in your fix queue.` : R.score === R.rows.length ? 'Full marks. Generate another; it will be different.' : 'Saved to Past papers.'),
-      h('div', { class: 'row' }, B([icon('sparkle'), 'New paper'], 'mpNew', 'primary'), B('Done', 'mpDone', 'ghost'))),
+      h('div', { class: 'row' }, B([icon('sparkle'), 'New paper'], 'mpNew', 'primary', { 'data-track': R.track || 'maths' }), B('Done', 'mpDone', 'ghost'))),
     card('Question by question', null, h('ul', { class: 'mpres' }, R.rows.map((r, k) => h('li', { class: r.ok ? 'ok' : 'no' },
       h('p', null, h('b', null, `${k + 1}. ${r.ok ? '✓' : '✗'} `), r.q.q),
-      h('p', { class: 'muted xs' }, `Your answer: ${r.a || '(blank)'}${r.ok ? '' : ` · Correct: ${r.q.show}`}${r.msg ? ` · ${r.msg}` : ''}`),
+      h('p', { class: 'muted xs' }, `Your answer: ${(r.q.kind === 'mcq' && r.a ? r.q.options[+r.a] : r.a) || '(blank)'}${r.ok ? '' : ` · Correct: ${r.q.show}`}${r.msg ? ` · ${r.msg}` : ''}`),
       !r.ok && acc('mp' + k, h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, r.q.steps.map(x => h('li', null, x))), { cls: '' }))))));
 }
 const MPACT = {
-  mpNew() {
+  mpNew(el) {
     if (S.mp && !MPRES && !confirm('Start a new paper? The one in progress will be lost.')) return;
-    S.mp = null; const qs = makeMathsPaper();
-    if (!qs.length) return toast('All Maths topics are hidden in Settings');
-    S.mp = { qs, ans: qs.map(() => ''), i: 0 }; DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
+    const track = (el && el.dataset && el.dataset.track) || 'maths';
+    S.mp = null; const qs = makePaper(track);
+    if (!qs.length) return toast(`All ${TRACK_NAME(track)} topics are hidden in Settings`);
+    S.mp = { qs, ans: qs.map(() => ''), i: 0, track }; DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
   },
   mpResume() { MPRES = null; DRAFT.mp = S.mp.ans[S.mp.i] || ''; go('mpaper', '#mpans'); },
-  mpGo(el) { const M = S.mp; M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40); M.i = +el.dataset.i; DRAFT.mp = M.ans[M.i] || ''; save(); render({ focus: '#mpans' }); },
+  mpPick(el) { S.mp.ans[S.mp.i] = String(el.dataset.o); save(); render(); },
+  mpGo(el) { const M = S.mp; if (M.qs[M.i].kind !== 'mcq') M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40); M.i = +el.dataset.i; DRAFT.mp = M.ans[M.i] || ''; save(); render({ focus: '#mpans' }); },
   mpQuit() { if (!confirm('Abandon this paper? Nothing will be saved.')) return; S.mp = null; save(); go('exam'); },
   mpDone() { MPRES = null; go('exam'); },
   mpFinish() {
-    const M = S.mp; M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40);
+    const M = S.mp; if (M.qs[M.i].kind !== 'mcq') M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40);
+    const track = M.track || 'maths', subj = trackSubj(track), tn = TRACK_NAME(track);
     const blank = M.ans.filter(a => !a).length;
     if (blank && !confirm(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
-    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
+    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
     const tp = {}, lost = {};
-    for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: 'Calculation', marks: 0 }; l.marks++; } }
-    const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts('Maths').map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj: 'Maths', paper: 'Generated Maths paper', score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
-    const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), 'Wrong on a generated Maths paper');
-    if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in Maths!`, 'big'); } else toast(`${pc}% saved.`);
-    CHART.add('Maths'); xp(25); realmEv('paper'); MPRES = { rows, score, added }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
+    for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
+    const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
+    S.scores.push({ id: newId(), date: dkey(), subj, paper: `Generated ${tn} paper`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
+    const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
+    if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
+    CHART.add(subj); xp(25); realmEv('paper'); MPRES = { rows, score, added, track }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
   }
 };
 
