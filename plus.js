@@ -917,7 +917,7 @@ PLUSACT.labLock = () => { try { localStorage.removeItem('archeron-lab'); } catch
 /* ---------- PPP mode: the paper → mark → correct loop. Papers follow the real AQA format: the same marks, time and number of questions.
    Short parts are fresh every paper (generated, or unused bank questions); longer written parts come from the practice papers, unused ones first. ---------- */
 const PPP_IDS = s => s.split(' ');
-const PPP_SCI = (n, t, w, ids) => ({ n, t, mins: 75, marks: 70, qn: 'about 7 questions in parts', ws: .45, parts: 8, maxQ: 12, minQ: 6, sec: [[null, 70, [w], null, PPP_IDS(ids)]] });
+const PPP_SCI = (n, t, w, ids) => ({ n, t, mins: 75, marks: 70, qn: 'about 7 questions in parts', ws: .45, parts: 8, maxQ: 12, minQ: 6, long: 2, sec: [[null, 70, [w, w + 'x'], null, PPP_IDS(ids)]] }); /* real papers have one or two 6-mark questions */
 const PPP_SPEC = {
   maths: [['Paper 1', 'Non-calculator', 'm1'], ['Paper 2', 'Calculator', 'm2'], ['Paper 3', 'Calculator', 'm2']].map(([n, t, w]) => ({ n, t, mins: 90, marks: 80, qn: 'about 25 to 30 questions', ws: .3, parts: 2, maxQ: 6, easy: true, sec: [[null, 80, [w], null, null]] })),
   biology: [PPP_SCI('Paper 1', 'Cells, organisation, infection, bioenergetics', 'b1', 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-heart b-plants b-disease b-immune b-energy q2-b-cells q2-b-organisation q2-b-infection q2-b-bioenergetics q3-b-practicals d-b-cells d-b-organisation d-b-disease d-b-energy'),
@@ -1002,7 +1002,9 @@ function pppBuild(track, k) {
   } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
     const pool = (wps || []).flatMap(pid => paperOf(pid).qs.map((q, j) => ({ q, pid, sig: `w|${pid}|${j}` }))).filter(o => !qX(o.q).same && (!wt || wt.includes(o.q[0])));
     let left = marks; const items = [];
-    for (const o of [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))]) {
+    const order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))], isLong = o => o.q[2].lv && qMax(o.q) >= 6;
+    const longs = order.filter(isLong).slice(0, sp.long || 0);
+    for (const o of [...longs, ...order.filter(o => !longs.includes(o) && !(sp.long && isLong(o)))]) {
       const m = qMax(o.q); if (m > left || marks - left + m > marks * (ws || sp.ws || .45) + 1) continue;
       items.push({ q: o.q, m }); used.add(o.sig); if (o.q[3] && o.q[3].src) srcFrom.add(o.pid); left -= m;
     }
@@ -1199,7 +1201,7 @@ function weekStats(mon) {
   const sum = f => per.reduce((a, d) => a + f(d), 0), subj = {};
   for (const d of per) for (const [t, n] of Object.entries(d.t)) subj[t] = (subj[t] || 0) + n;
   const papers = S.scores.filter(x => x.date >= mon && x.date <= end);
-  return { mon, end, per, sets: sum(d => d.sets), qa: sum(d => d.qa), qr: sum(d => d.qr), fix: sum(d => d.ev.fix || 0), run: Math.max(0, ...per.map(d => d.ev.run || 0)),
+  return { mon, end, per, sets: sum(d => d.sets), qa: sum(d => d.qa), qr: sum(d => d.qr), fix: sum(d => d.ev.fix || 0), rescue: sum(d => d.ev.rescue || 0), run: Math.max(0, ...per.map(d => d.ev.run || 0)),
     active: per.filter(d => d.sets || d.qa >= 20).length, subj: Object.entries(subj).filter(([t]) => SUBJ_BY[t]).sort((a, b) => b[1] - a[1]), papers, best: per.slice().sort((a, b) => b.qa - a.qa)[0] };
 }
 const WRAP_SEB = [
@@ -1216,7 +1218,8 @@ function wrapSlides(W, P) {
   if (!W.qa && !W.sets && !W.papers.length) out.push({ big: 0, title: 'sets this week', sub: 'Everyone has a quiet week. One 25-minute set on Monday restarts everything.' });
   else {
     out.push({ big: `${W.active}/7`, title: 'days you showed up', dots: W.per.map(d => !!(d.sets || d.qa >= 20)), sub: W.active >= 5 ? 'That is a proper habit.' : W.active >= 3 ? 'Solid. One more day next week makes a real difference.' : 'Little and often beats one big day. Aim for 3 days next week.' });
-    if (W.sets) out.push({ big: W.sets, title: pl(W.sets, 'focus set'), sub: `${fmtHours(W.sets * S.timer.focus)} of real focus.${vs(W.sets, P.sets)}` });
+    if (W.sets) out.push({ big: W.sets, title: pl(W.sets, 'focus set'), sub: `${fmtHours((W.sets - W.rescue) * S.timer.focus + W.rescue * 10)} of real focus.${vs(W.sets, P.sets)}` });
+    if (W.rescue) out.push({ big: W.rescue, title: pl(W.rescue, 'rescue set'), sub: 'Days you nearly skipped, but did not. That is what stops the forgetting.' });
     if (W.qa) out.push({ big: W.qa, title: pl(W.qa, 'question') + ' answered', sub: `${pc}% right.${ppc == null ? '' : pc >= ppc ? ` Up from ${ppc}% the week before.` : ` Down from ${ppc}%, which usually means harder topics. Good.`}` });
     if (W.subj.length) out.push({ big: TRACK_NAME(W.subj[0][0]), title: 'was your main subject', bars: W.subj.slice(0, 4).map(([t, n]) => [TRACK_NAME(t), Math.round(n / Math.max(1, W.qa) * 100)]), sub: W.subj.length < 3 ? 'Only a couple of subjects got time. Spread it out a bit next week.' : `${W.subj.length} subjects got some time this week.` });
     if (W.best && W.best.qa >= 10) out.push({ big: DAYFULL[parseKey(W.best.k).getDay()], title: 'was your biggest day', sub: `${W.best.qa} questions${W.best.sets ? ` and ${W.best.sets} ${pl(W.best.sets, 'set')}` : ''}.` });

@@ -2,7 +2,7 @@
    Each version caches one consistent set of files, fetched fresh (bypassing the browser's HTTP cache, which on
    GitHub Pages holds files for 10 minutes). Files are never refreshed one by one: mixing old and new files is
    what broke the app after an update. */
-const VERSION = 'archeron-8.0.1';
+const VERSION = 'archeron-8.1.0';
 const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'vocab.js', 'data.js', 'content.js', 'bank2.js', 'bank3.js', 'defs.js', 'defs2.js', 'chem.js', 'exam.js', 'papers.js', 'fx.js', 'learn.js', 'guides.js', 'study.js', 'plus.js', 'app.js', 'manifest.json', 'icon.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 

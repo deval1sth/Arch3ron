@@ -916,3 +916,4 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .wrap-share span i{display:block;height:100%;border-radius:99px;background:var(--y)}.wrap-share small{text-align:right;color:var(--m)}
 .wrap-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
 .m-swap{margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:var(--y-soft);font-size:13.5px;line-height:1.45}
+.rescue-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;color:var(--t);font:inherit;cursor:pointer;border-color:rgba(var(--y-rgb),.4)}.rescue-cta b{display:block;font-size:16px}.rescue-cta small{display:block;color:var(--m);font-size:12.5px}

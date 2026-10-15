@@ -328,10 +328,10 @@ LEARN.setQuoteSource(deck => cardsOf(deck));
 
 /* ---------- timer (wall-clock based, survives reload and phone sleep) ---------- */
 const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-const tTotal = (m = T.mode) => (m === 'focus' ? S.timer.focus : S.timer.brk) * 60;
+const tTotal = (m = T.mode) => m === 'focus' && T && T.len ? T.len : (m === 'focus' ? S.timer.focus : S.timer.brk) * 60; /* T.len: a one-off length, e.g. the 10-minute rescue set */
 let T;
 (function loadTimer() {
-  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), sid: t.sid ? str(t.sid, 30) : null }; } catch (e) {}
+  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), sid: t.sid ? str(t.sid, 30) : null, len: clamp(Math.round(num(t.len)), 0, 7200), rescue: !!t.rescue }; } catch (e) {}
   if (!T) T = { mode: 'focus', left: S.timer.focus * 60, run: false, end: 0, sid: null };
 })();
 const saveT = () => store(TK, JSON.stringify(T));
@@ -353,12 +353,12 @@ function timerTick() {
 function timerDone() {
   T.run = false; beep();
   if (T.mode === 'focus') {
-    S.focusSets++; S.focusMin += S.timer.focus; dayEv('sets');
+    S.focusSets++; S.focusMin += T.len ? T.len / 60 : S.timer.focus; dayEv('sets'); if (T.rescue) dayEv('rescue');
     const now = new Date(), hr = now.getHours(), wd = now.getDay();
     if (hr >= 20 || hr < 4) S.stat.night++; else if (hr < 9) S.stat.early++;
     if (wd === 0 || wd === 6) S.stat.weekend++;
     const d = ensureDay(dkey()), s = T.sid && S.plan[wd].find(x => x.id === T.sid && x.kind === 'train');
-    let sub = `Rest ${S.timer.brk} minutes. Stand up and look away from the screen.`;
+    let sub = T.rescue ? 'Rescue set done. A bad day that still counts.' : `Rest ${S.timer.brk} minutes. Stand up and look away from the screen.`;
     if (s) {
       const n = target(s), a = d.s[s.id] = d.s[s.id] || [];
       const j = Array.from({ length: n }, (_, i) => i).find(i => !a[i]);
@@ -367,7 +367,7 @@ function timerDone() {
     } else (d.s.free = d.s.free || []).push(true);
     /* rest starts by itself, timed from when the set actually ended (correct even if the phone was locked) */
     const ended = T.end || Date.now();
-    T.mode = 'break'; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
+    T.mode = 'break'; T.len = 0; T.rescue = false; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
     saveT(); save();
     FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub);
   } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); }
@@ -392,6 +392,7 @@ const DRAFT = { mp: '', ex: '', score: blankScore(), mis: { subj: 'Maths', topic
 function setPath(o, path, v) { const p = path.split('.'); for (let i = 0; i < p.length - 1; i++) { o = o[p[i]]; if (!o) return; } o[p[p.length - 1]] = v; }
 
 /* ---------- missions: what to actually do in each set ---------- */
+const RESCUE_M = { id: 'rescue', title: 'Rescue set', steps: ['These are the facts and skills you are closest to forgetting', 'Your score does not matter today. Turning up does', 'Ten minutes, then you are done. It counts as a set'] };
 const PRACTISE_STEPS = ['Answer each question from memory, no notes', 'Wrong? Read the method, then hit "Try a similar one"', 'Anything that keeps tripping you up: add it to your fix list'];
 /* A planned subject you are already well above your aim in hands its set to your biggest gap, where extra marks are worth more.
    Found by the 10-student simulation: fixed Maths sessions kept piling into Maths at 90%+ while Science sat just under a 4. */
@@ -444,7 +445,7 @@ function vHome() {
   const cur = active && T.mode === 'focus' ? (T.sid || 'free') : currentSid(), item = list.find(x => x.s.id === cur);
   const restState = !active && T.mode === 'focus' && !open.length && SEL !== 'free';
   const label = item ? item.s.label : '';
-  const M = missionFor(label);
+  const RES = active && T.mode === 'focus' && T.rescue, M = RES ? RESCUE_M : missionFor(label);
 
   if (T.mode === 'break' && active) return h('div', { class: 'stack home' },
     h('section', { class: 'focus brk' + (T.run ? ' live' : '') },
@@ -465,8 +466,8 @@ function vHome() {
       h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('flame'), 'Mocks'], 'go', 'ghost', { 'data-tab': 'mocks' }))),
     todayBar());
 
-  const title = item ? (M.swap ? TRACK_NAME(M.subj) : item.s.label) : list.length && !open.length ? 'Bonus set' : 'Free study';
-  const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} in this block · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
+  const title = RES ? 'Rescue set' : item ? (M.swap ? TRACK_NAME(M.subj) : item.s.label) : list.length && !open.length ? 'Bonus set' : 'Free study';
+  const meta = RES ? '10 minutes · what you are closest to forgetting' : item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} in this block · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
   const HT = M.subj && M.subj !== 'science' ? M.subj : { lit: 'englit', lang: 'englang', re: 're' }[M.id] || null; /* the subject the next set is about */
 
   if (active) return h('div', { class: 'stack home working' },
@@ -476,8 +477,11 @@ function vHome() {
       h('div', { class: 'fb-ctl' }, B(T.run ? icon('pause') : icon('play'), 'tgl', 'primary icon-only', { 'aria-label': T.run ? 'Pause' : 'Resume' }), B('End', 'rst', 'ghost sm'))),
     missionCard(M, true));
 
+  const rough = hr >= 18 && list.length > 0 && !todayN && !((S.days[dkey()] || {}).ev || {}).sets; /* evening, sets planned, none done */
   return h('div', { class: 'stack home' },
     resumeCard(),
+    rough && h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'rescue' }, h('span', { class: 'wc-ic' }, icon('shield')),
+      h('span', { class: 'grow' }, h('b', null, 'Rough day?'), h('small', null, 'Do the 10-minute rescue set instead of nothing. It still counts, and it stops you forgetting.')), h('span', { class: 'btn primary sm' }, 'Start')),
     h('section', { class: 'focus hero' },
       h('p', { class: 'eyebrow' }, `${part} · next up`),
       h('h1', { class: 'focus-title' }, title),
@@ -505,6 +509,7 @@ function missionCard(M, live) {
   return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
 }
 function missionPanel(M) {
+  if (M.id === 'rescue') return h('div', { class: 'm-panel' }, drillZone('all'));
   if (M.id === 'fixes') {
     const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey());
     if (due.length) return h('div', { class: 'm-panel' }, h('h3', null, `${due.length} ready to redo`), fixList(due));
@@ -530,6 +535,7 @@ function motionHint() {
 function quickWins() {
   const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
   const items = [
+    h('button', { type: 'button', class: 'qw', 'data-act': 'rescue' }, icon('shield'), h('span', null, h('b', null, 'Bad day? Rescue set'), h('small', null, '10 minutes of what you are closest to forgetting. Still counts.'))),
     h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
     dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} due · even 10 helps`))),
     dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
@@ -1423,9 +1429,14 @@ const ACT = {
     else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.left = tTotal(); T.sid = null; saveT(); render(); },
-  skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.left = tTotal(); saveT(); render(); },
-  pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.left = tTotal(); saveT(); } render(); },
+  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
+  pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); } render(); },
+  /* bad day: 10 minutes of what you are closest to forgetting, instead of a zero day */
+  rescue() {
+    if (timerActive() && !(T.mode === 'focus' && !T.run && T.rescue)) return toast('Finish or end the set you are on first.');
+    T = { mode: 'focus', left: 600, run: true, end: Date.now() + 600000, sid: null, len: 600, rescue: true }; DR = null; saveT(); go('home');
+  },
   choose() { CHOOSE = !CHOOSE; render(); },
   freeTrack(el) { FREE_TRACK = el.dataset.track; DR = null; render(); },
   preset(el) { S.timer = { focus: +el.dataset.f, brk: +el.dataset.b }; save(); if (!T.run) { T.left = tTotal(); saveT(); } render(); },
