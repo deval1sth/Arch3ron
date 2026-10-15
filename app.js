@@ -393,7 +393,18 @@ function setPath(o, path, v) { const p = path.split('.'); for (let i = 0; i < p.
 
 /* ---------- missions: what to actually do in each set ---------- */
 const PRACTISE_STEPS = ['Answer each question from memory, no notes', 'Wrong? Read the method, then hit "Try a similar one"', 'Anything that keeps tripping you up: add it to your fix list'];
+/* A planned subject you are already well above your aim in hands its set to your biggest gap, where extra marks are worth more.
+   Found by the 10-student simulation: fixed Maths sessions kept piling into Maths at 90%+ while Science sat just under a 4. */
 function missionFor(label) {
+  const M = missionPlan(label), tr = M.id === 'drill' ? M.subj : null;
+  if (!tr) return M;
+  const subj = trackSubj(tr === 'science' ? 'biology' : tr), p = typeof predict === 'function' ? predict(subj) : null;
+  if (!p || p.n < 2) return M;
+  const need = boundFor(subj, aimOf(subj)); if (p.pc < need + 12) return M;
+  const to = sessRank().find(t => trackSubj(t) !== subj); if (!to) return M;
+  return { id: 'drill', subj: to, title: `${TRACK_NAME(to)} practice`, steps: PRACTISE_STEPS, swap: `${subj} is safe for now: ${p.pc}% on recent papers, and your aim needs about ${need}%. This set goes to ${TRACK_NAME(to)}, where the marks are.` };
+}
+function missionPlan(label) {
   const L = (label || '').toLowerCase();
   const subj = /math/.test(L) ? 'maths' : /biolog/.test(L) ? 'biology' : /chemi/.test(L) ? 'chemistry' : /physic/.test(L) ? 'physics' : /scien/.test(L) ? 'science'
     : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : null;
@@ -454,7 +465,7 @@ function vHome() {
       h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('flame'), 'Mocks'], 'go', 'ghost', { 'data-tab': 'mocks' }))),
     todayBar());
 
-  const title = item ? item.s.label : list.length && !open.length ? 'Bonus set' : 'Free study';
+  const title = item ? (M.swap ? TRACK_NAME(M.subj) : item.s.label) : list.length && !open.length ? 'Bonus set' : 'Free study';
   const meta = item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} in this block · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
   const HT = M.subj && M.subj !== 'science' ? M.subj : { lit: 'englit', lang: 'englang', re: 're' }[M.id] || null; /* the subject the next set is about */
 
@@ -489,7 +500,7 @@ function vHome() {
 function missionCard(M, live) {
   const head = h('div', { class: 'm-head' }, h('span', { class: 'lc-ic' }, icon(M.id === 'fixes' ? 'wrench' : M.id === 'paper' ? 'scroll' : M.id === 'lit' ? 'feather' : M.id === 'lang' ? 'book' : M.id === 're' ? 'sparkle' : 'target')),
     h('div', null, h('p', { class: 'eyebrow' }, live ? 'Your mission' : 'In this set you will'), h('h2', null, M.title)));
-  const steps = h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)));
+  const steps = [M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)))];
   if (!live) return h('section', { class: 'card mission' }, head, steps, M.why || null, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
   return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
 }
