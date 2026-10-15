@@ -1451,10 +1451,11 @@ function vStudy() {
 function vGuide() {
   const g = STUDY_BY[GUIDE_SEL]; if (!g) return vStudy();
   const same = STUDY.filter(x => x.subj === g.subj), i = same.indexOf(g), next = same[i + 1];
-  return h('div', { class: 'stack narrow guide-v' },
+  const side = typeof guideSide === 'function' ? guideSide(g) : null; /* on a computer, practise beside the guide */
+  return h('div', { class: 'stack narrow guide-v' + (side ? ' gsplit' : '') },
     subHero(SUBJ_BY[g.subj].name, g.title, GUIDE_BACK, null, GUIDE_BACK === 'session' ? 'Back to your session' : 'Study'),
     h('p', { class: 'lede' }, g.lead),
-    h('article', { class: 'card guide-body' }, guideBody(g.body)),
+    side ? h('div', { class: 'gs-row' }, h('article', { class: 'card guide-body' }, guideBody(g.body)), side) : h('article', { class: 'card guide-body' }, guideBody(g.body)),
     sebFactCard(`${g.title} ${g.topics.map(LEARN.name).join(' ')}`, g.subj, 'g' + g.id),
     g.topics.length > 0 && card('Practise this now', null, h('p', { class: 'muted xs' }, 'Questions are generated fresh, and wrong ones come back until they stick.'),
       h('div', { class: 'chips' }, g.topics.map(t => chip([icon('play'), LEARN.name(t)], false, 'guideDrill', { 'data-topic': t })))),

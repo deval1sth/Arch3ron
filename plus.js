@@ -75,7 +75,7 @@ function vMockStart() {
 const mockLeftS = E => Math.round((E.end - Date.now()) / 1000);
 function mockBar() {
   const E = S.exam; if (!E || !E.end) return null;
-  return h('div', { id: 'mockbar', class: 'mockbar' }, h('div', { class: 'mb-row' }, h('span', { class: 'mb-l' }, icon('flame'), 'Mock'), h('b', { class: 'mb-t', role: 'timer' }, ''), h('span', { class: 'mb-r muted xs' }, '')),
+  return h('div', { id: 'mockbar', class: 'mockbar' }, h('div', { class: 'mb-row' }, h('span', { class: 'mb-l' }, icon('flame'), 'Mock'), h('b', { class: 'mb-t', role: 'timer' }, ''), h('span', { class: 'mb-r muted xs' }, ''), typeof hallBtn === 'function' && hallBtn()),
     h('div', { class: 'mb-trk' }, h('i')), (setTimeout(paintMock), null));
 }
 function paintMock() {
@@ -168,7 +168,7 @@ function vWeek() {
     S.queue.length ? [`Clear ${Math.min(5, S.queue.length)} topics from your fix queue`, `${S.queue.length} waiting. Each one is marks you have already lost once.`, B([icon('wrench'), 'Open'], 'go', 'ghost sm', { 'data-tab': 'fix' })]
       : [`Answer ${Math.max(100, wk.n + 20)} questions`, `This week: ${wk.n}.`, null]].filter(Boolean);
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'This week', 'tools', verdict),
+    subHero('Progress', 'This week', 'mocks', verdict),
     h('section', { class: 'card week' },
       h('div', { class: 'card-h' }, h('h2', null, 'Last 7 days'), h('span', { class: 'muted' }, `${fmtDate(from)} to today`)),
       h('div', { class: 'wk-chart', role: 'img', 'aria-label': days.map(d => `${d.d}: ${d.done} of ${d.plan} sets`).join(', ') }, days.map((d, i) => h('div', { class: 'wk-col' + (i === 6 ? ' today' : '') + (d === best && d.done ? ' best' : '') },
@@ -261,7 +261,7 @@ function vReady() {
   const R = readiness(), wk = readyAgo(7), d = wk == null ? null : R.pct - wk, days = daysToMocks();
   const log = Array.from({ length: 28 }, (_, i) => S.readyLog[addDays(i - 27)]), have = log.filter(v => v != null);
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'Mock readiness', 'tools', null, 'Toolkit'),
+    subHero('Progress', 'Mock readiness', 'mocks', null, 'Mocks'),
     h('section', { class: 'card rd-hero' },
       h('div', { class: 'rd-ring', style: `--p:${R.pct}`, role: 'img', 'aria-label': `${R.pct}% ready` }, h('div', null, h('b', null, R.pct + '%'), h('small', null, 'ready'))),
       h('h2', null, readyTier(R.pct)),
@@ -771,7 +771,7 @@ const fixCount = () => S.queue.length + S.mistakes.filter(m => !m.fixed && m.red
 function vFixAll() {
   const open = S.mistakes.filter(m => !m.fixed).sort((a, b) => a.redo < b.redo ? -1 : 1), M = DRAFT.mis, due = open.filter(m => m.redo <= dkey()).length;
   return h('div', { class: 'stack narrow' },
-    subHero('Toolkit', 'Fix', 'tools', 'Everything you have got wrong, in one place. Each thing you fix is a mark you take back on the day.'),
+    subHero('Mocks', 'Fix', 'mocks', 'Everything you have got wrong, in one place. Each thing you fix is a mark you take back on the day.'),
     h('div', { class: 'tiles fix-tiles' },
       h('div', { class: 'tile' }, h('b', null, String(S.queue.length)), h('span', null, 'topics to retrain')),
       h('div', { class: 'tile' }, h('b', null, String(due)), h('span', null, 'mistakes to redo today')),
@@ -792,7 +792,7 @@ function vFixAll() {
 /* ---------- One Progress area: Readiness, Learned, This week, Papers ---------- */
 const PROG_TABS = [['ready', 'Readiness'], ['stats', 'Learned'], ['week', 'This week'], ['papers', 'Papers']];
 const tabRow = (list, cur, label) => h('div', { class: 'chips scroll ptabs', role: 'tablist', 'aria-label': label }, list.map(([t, l]) => chip(l, t === cur, 'go', { 'data-tab': t, role: 'tab', 'aria-selected': String(t === cur) })));
-const withTabs = (list, label) => (id, fn) => () => { const v = fn(); v.classList.add('narrow'); /* same width on every tab, so switching tabs does not jump */ const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
+const withTabs = (list, label) => (id, fn) => () => { const v = fn(); v.classList.add('dash'); /* one layout on every tab, so switching tabs does not jump; a card grid on a computer */ const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
 const progView = withTabs(PROG_TABS, 'Progress');
 const planView = withTabs([['today', 'Today'], ['plan', 'Your week']], 'Plan');
 
@@ -848,7 +848,7 @@ function vFeedback() {
     card('Your answer', null,
       h('div', { class: 'grid2 g-wl' }, field('Subject', selectSubj('fbf.subj', F.subj)), field('Marks available', h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 60, 'data-draft': 'fbf.max', value: F.max, placeholder: 'e.g. 12' }))),
       field('The question', h('textarea', { rows: 2, 'data-draft': 'fbf.question', value: F.question, maxlength: 1500 })),
-      field('Your answer', h('textarea', { rows: 8, 'data-draft': 'fbf.answer', value: F.answer, maxlength: 12000, placeholder: 'Type it, or paste it from your notes' })),
+      field('Your answer', h('textarea', { rows: 8, class: 'long', 'data-draft': 'fbf.answer', value: F.answer, maxlength: 12000, placeholder: 'Type it, or paste it from your notes' })),
       field('Mark scheme or what the question wants (optional)', h('textarea', { rows: 2, 'data-draft': 'fbf.scheme', value: F.scheme, maxlength: 3000, placeholder: 'Paste the mark scheme if you have it: it makes the mark more accurate' })),
       B('Get it ready for Claude', 'fbReady', 'primary wide')),
     ready && FB_FREE && fbBox('free', { subj: F.subj, question: F.question, answer: F.answer, scheme: F.scheme, max: +F.max || 0, aim: aimOf(F.subj) }),
@@ -1059,7 +1059,7 @@ function pppCheck(p, E) {
   p.qs.forEach((q, k) => {
     const x = qX(q), m = qMax(q), got = qScore(q, E.got[k], E.lv[k]), r = arr(E.why)[k];
     if (got < m && r) why[r] = (why[r] || 0) + 1;
-    if (!x.auto || !E.marked[k]) return; total++;
+    if (!x.auto || !E.marked[k] || E.printed) return; total++; /* a paper sat in pen: the app has no typed answer to check */
     const a = E.ans[k], c = a ? LEARN.check(x.auto, a) : { valid: false }, ok = !!(c.valid && c.ok);
     record(x.auto.id, ok, x.auto.key);
     if (got === m && !ok) generous.push(x.n || k + 1); if (got < m && ok) harsh.push(x.n || k + 1);
@@ -1067,10 +1067,10 @@ function pppCheck(p, E) {
   for (const [k, n] of Object.entries(why)) S.why[k] = (S.why[k] || 0) + n;
   return { agree: total - generous.length - harsh.length, total, generous, harsh, why };
 }
-function pppStart(track, k) {
-  if (S.exam && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
-  const p = pppBuild(track, k); if (!p.qs.length) return toast('All the topics for this paper are hidden in Settings');
-  S.exam = { pid: p.id, paper: p, ph: 'sit', i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), why: p.qs.map(() => ''), end: Date.now() + p.mins * 60000 };
+function pppStart(track, k, printed) {
+  if (S.exam && !confirm('You have another paper in progress. Abandon it and start this one?')) return false;
+  const p = pppBuild(track, k); if (!p.qs.length) { toast('All the topics for this paper are hidden in Settings'); return false; }
+  S.exam = { pid: p.id, paper: p, ph: 'sit', i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), why: p.qs.map(() => ''), end: printed ? 0 : Date.now() + p.mins * 60000, printed: !!printed };
   EXRES = null; exOpen(0); go('examq', '#exans'); scrollTo({ top: 0 });
 }
 function vPPP() {
@@ -1088,13 +1088,13 @@ function vPPP() {
     corrections > 0 && card('Corrections first', h('span', { class: 'pill' }, `${corrections} to fix`), h('p', { class: 'muted xs' }, 'Doing another paper before fixing these just repeats the same mistakes. Clear them, then sit the next one.'),
       B([icon('wrench'), 'Do the corrections'], 'drill', 'primary', { 'data-track': 'fix' })),
     run ? card('Paper in progress', null, h('p', null, h('b', null, run.name.replace(/^PPP /, '')), h('small', { class: 'muted' }, ` · ${S.exam.ph === 'mark' ? 'marking' : 'sitting'}, part ${S.exam.i + 1} of ${run.qs.length}`)),
-        h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link')))
+        h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B([icon('scroll'), 'Print'], 'printRun', 'ghost desk-only'), B('Abandon', 'exQuit', 'link')))
       : S.mp && S.mp.ppp ? card('Paper in progress', null, B([icon('play'), `Carry on: ${TRACK_NAME(S.mp.track)} (question ${S.mp.i + 1})`], 'mpResume', 'primary'))
       : card('Sit a paper', h('span', { class: 'muted' }, 'real AQA format'),
         h('div', { class: 'chips scroll' }, LEARN.SUBJECTS.filter(x => PPP_SPEC[x.id]).map(x => chip([icon(x.icon), x.name], x.id === T, 'pppSubj', { 'data-track': x.id }))),
         h('ul', { class: 'list' }, PPP_SPEC[T].map((sp, k) => h('li', { class: 'xp-row' },
           h('div', { class: 'grow' }, h('b', null, `${SUBJ_BY[T].name} ${sp.n}: ${sp.t}`), h('small', null, `${sp.marks} marks · ${hrs(sp.mins)} · ${sp.qn}`)),
-          h('div', { class: 'row' }, B([icon('play'), 'Sit it'], 'pppGo', corrections ? 'ghost sm' : 'primary sm', { 'data-track': T, 'data-k': k }))))),
+          h('div', { class: 'row' }, B([icon('play'), 'Sit it'], 'pppGo', corrections ? 'ghost sm' : 'primary sm', { 'data-track': T, 'data-k': k }), B([icon('scroll'), 'Print it'], 'pppPrint', 'ghost sm desk-only', { 'data-track': T, 'data-k': k }))))),
         PPP_NOTE[T] && h('p', { class: 'muted xs' }, PPP_NOTE[T])),
     Object.keys(S.why || {}).length > 0 && card('Why you lose marks', h('span', { class: 'muted' }, 'all PPP papers'), whyBars(S.why)),
     card('Your PPP record', h('span', { class: 'muted' }, `${papers.length} paper${papers.length === 1 ? '' : 's'}`),
@@ -1176,7 +1176,7 @@ function vMocks() {
     : fx >= 5 ? [h('p', null, `${fx} things to fix first. Clear them before the next paper, or the same mistakes cost you marks again.`), B([icon('wrench'), 'Do the corrections'], 'go', 'primary', { 'data-tab': 'fix' })]
     : [h('p', null, nm.p ? `${nm.s}: you average ${nm.p.pc}%, and grade ${nm.aim} needs about ${boundFor(nm.s, nm.aim)}%.` : `${nm.s}: no paper yet, so you cannot know where you stand. One timed paper fixes that.`),
       B([icon('flame'), `Sit a timed ${nm.s} paper`], 'mockGo', 'primary', { 'data-subj': nm.s })];
-  return h('div', { class: 'stack' },
+  return h('div', { class: 'stack dash mockhub' },
     hero('Mocks', days > 0 ? `${days} day${days === 1 ? '' : 's'} to go` : days === 0 ? 'Mocks start today' : 'Mock season', `Your mocks start on ${fmtDate(S.mock)}. You are ${R.pct}% ready.`),
     card('Do this next', h('span', { class: 'pill' }, 'moves your grades most'), ...doNext, h('div', { class: 'row' }, B('Choose a different paper', 'go', 'link', { 'data-tab': 'exam' }))),
     wrapCard(),

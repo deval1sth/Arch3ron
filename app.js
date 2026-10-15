@@ -155,7 +155,7 @@ function normalize(raw) {
   if (paper && paper.qs.length) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
     got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
     lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1), end: Math.max(0, num(ex.end)) };
-  if (s.exam && ex.paper) Object.assign(s.exam, { paper, ph: ex.ph === 'mark' ? 'mark' : 'sit', why: paper.qs.map((_, k) => WHY.some(w => w[0] === arr(ex.why)[k]) ? arr(ex.why)[k] : ''), used: clamp(Math.round(num(ex.used)), 0, 300), timed: !!ex.timed });
+  if (s.exam && ex.paper) Object.assign(s.exam, { paper, ph: ex.ph === 'mark' ? 'mark' : 'sit', why: paper.qs.map((_, k) => WHY.some(w => w[0] === arr(ex.why)[k]) ? arr(ex.why)[k] : ''), used: clamp(Math.round(num(ex.used)), 0, 300), timed: !!ex.timed, printed: !!ex.printed });
   const rp = obj(r.plan);
   if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
     s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
@@ -342,6 +342,7 @@ function paintTimer() {
   if (m) m.textContent = fmt(L);
   if (r) r.style.strokeDashoffset = String(RING * (T.left / tTotal()));
   if (mini) mini.textContent = fmt(L);
+  const st = $('#st'); if (st) st.textContent = fmt(L);
   document.title = T.run ? fmt(L) + ' · Archeron' : 'Archeron';
   document.body.classList.toggle('focusing', T.run && T.mode === 'focus' && TAB === 'home');
 }
@@ -786,7 +787,7 @@ function vExam() {
   const topics = Object.values(tops).sort((a, b) => a.got / a.max - b.got / b.max);
   const groups = [...new Set(EXAMS.map(groupOf))];
   return h('div', { class: 'stack narrow' },
-    subHero('Learn', 'Exam practice', 'learn', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
+    subHero('Mocks', 'Exam practice', 'mocks', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
     EXRES && examReport(EXRES),
     run && card('In progress', null, h('p', null, h('b', null, run.name), h('small', { class: 'muted' }, ` · question ${S.exam.i + 1} of ${run.qs.length}`)),
       h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B('Abandon', 'exQuit', 'link'))),
@@ -799,7 +800,7 @@ function vExam() {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
-        h('div', { class: 'row' }, B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }), !(run && run.id === p.id) && B([icon('flame'), 'Mock'], 'mockGo', 'ghost sm', { 'data-id': p.id, 'aria-label': `Timed mock, ${p.mins} minutes` })));
+        h('div', { class: 'row' }, B(run && run.id === p.id ? 'Resume' : 'Start', 'exStart', 'ghost sm', { 'data-id': p.id }), !(run && run.id === p.id) && B([icon('flame'), 'Mock'], 'mockGo', 'ghost sm', { 'data-id': p.id, 'aria-label': `Timed mock, ${p.mins} minutes` }), B(icon('scroll'), 'printPaper', 'ghost icon-only desk-only', { 'data-id': p.id, 'aria-label': `Print ${p.name}` })));
     })))),
     card('Results by topic', h('span', { class: 'muted' }, 'weakest first'), topics.length
       ? h('ul', { class: 'hbars' }, topics.map(t => h('li', null, h('div', { class: 'hb-l' }, h('b', null, t.topic), h('small', null, t.subj)),
@@ -831,18 +832,22 @@ function vExamQ() {
   const total = p.qs.reduce((n, qq, k) => n + (qDone(E, k, qq) ? qScore(qq, E.got[k], E.lv[k]) : 0), 0), done = p.qs.filter((qq, k) => qDone(E, k, qq)).length;
   const srcs = [].concat(x.src || []).filter(k => p.src && p.src[k]), how = EXAM_HOW[groupOf(p)], a = x.auto;
   const parts = p.qs.filter(qq => !qX(qq).same).length, answered = p.qs.filter((qq, k) => !qX(qq).same && E.ans[k]).length, marks = p.qs.reduce((n, qq) => n + qMax(qq), 0);
-  const yours = k => { const v = E.ans[k], aa = qX(p.qs[k]).auto; return v === '' ? '(left blank)' : aa && aa.kind === 'mcq' ? `${'ABCD'[+v]}: ${aa.options[+v]}` : v; };
+  const yours = k => { const v = E.ans[k], aa = qX(p.qs[k]).auto; return v === '' ? (E.printed ? '(written on paper)' : '(left blank)') : aa && aa.kind === 'mcq' ? `${'ABCD'[+v]}: ${aa.options[+v]}` : v; };
   const got = show ? qScore(q, E.got[i], E.lv[i]) : 0;
   const opts = sit && !a ? q[1].split('\n').filter(l => /^[A-D]  /.test(l)) : []; /* a written multiple-choice question gets tick boxes too */
   return h('div', { class: 'stack narrow' },
     subHero(p.subj, p.name.replace(/^PPP /, ''), p.ppp ? 'ppp' : 'exam', null, p.ppp ? 'PPP mode' : 'Exam practice'),
     h('div', { class: 'exdots', 'aria-label': `Part ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + ((sit ? E.ans[k] : qDone(E, k, qq)) ? ' done' : '') + (k && qX(qq).g0 ? ' gs' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${qX(qq).n || k + 1}` }))),
     mockBar(),
+    !E.end && hallBtn() && h('div', { class: 'row end' }, hallBtn()),
     i === 0 && sit ? h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Real exam format'),
         h('p', null, `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real AQA ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
-        p.g === 'Maths' && h('p', { class: 'muted xs' }, 'Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.')))
+        E.printed ? h('p', { class: 'muted xs' }, 'Sitting it on paper? Write your answers there. When you finish, press Pens down and mark each part here.')
+          : p.g === 'Maths' && h('p', { class: 'muted xs' }, 'Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.'),
+        isDesk() && B([icon('scroll'), 'Print this paper'], 'printRun', 'link')))
       : i === 0 && how && h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'How to do this paper'), h('p', null, how))),
-    srcs.map(k => acc(`src-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true })),
+    h('div', { class: 'exsplit' + (srcs.length ? ' has-src' : '') }, srcs.length > 0 && h('div', { class: 'ex-src' }, srcs.map(k => acc(`src-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true }))),
+    h('div', { class: 'ex-main' },
     h('section', { class: 'card qcard exq' + (show ? ' marked' : '') },
       h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `${x.n ? 'Question ' + x.n : 'Q' + (i + 1)} · ${m} mark${m > 1 ? 's' : ''}${x.mins ? ` · about ${x.mins} min` : ''}`)),
       x.sec && h('p', { class: 'eyebrow' }, x.sec),
@@ -853,7 +858,7 @@ function vExamQ() {
           : opts.length ? [h('p', { class: 'muted xs' }, 'Tick one box.'), h('div', { class: 'mcq' }, opts.map(l => h('button', { type: 'button', class: 'opt' + (E.ans[i] === l[0] ? ' picked' : ''), 'data-act': 'exPick', 'data-v': l[0], disabled: mockOver(), 'aria-pressed': String(E.ans[i] === l[0]) }, h('span', { class: 'opt-k' }, l[0]), h('span', null, l.slice(3).trim()))))]
           : a ? h('div', { class: 'answer' }, a.pre && h('span', { class: 'adorn' }, a.pre),
             h('input', { id: 'exans', 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 60, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: a.kind === 'num' ? 'decimal' : 'text', placeholder: 'Answer', 'aria-label': 'Your answer' }), a.suf && h('span', { class: 'adorn' }, a.suf))
-          : h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
+          : h('textarea', { id: 'exans', class: m >= 9 ? 'long' : '', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
         a && a.hint && h('p', { class: 'muted xs' }, a.hint),
         h('div', { class: 'row' }, i > 0 && B('Back', 'exGo', 'ghost', { 'data-i': i - 1 }), last ? B([icon('check'), 'Pens down: mark it'], 'exPppMark', 'primary grow') : B('Next', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
       : show ? [
@@ -863,12 +868,12 @@ function vExamQ() {
         p.ppp && got < m && !(q[2].lv && E.lv[i] < 0) && [h('p', { class: 'fb-h' }, `Why did you lose ${m - got > 1 ? 'those marks' : 'that mark'}?`), h('div', { class: 'chips' }, WHY.map(([k, l]) => chip(l, arr(E.why)[i] === k, 'exWhy', { 'data-r': k })))],
         examFeedback(p, q, E, i),
         h('div', { class: 'row' }, i > 0 && p.ppp && B('Back', 'exGo', 'ghost', { 'data-i': i - 1 }), last ? B('Finish and save score', 'exFinish', 'primary grow') : B('Next question', 'exGo', 'primary grow', { 'data-i': i + 1 }))]
-      : [h('textarea', { id: 'exans', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
+      : [h('textarea', { id: 'exans', class: m >= 9 ? 'long' : '', rows: Math.min(14, 2 + m), 'data-draft': 'ex', value: DRAFT.ex || '', disabled: mockOver(), maxlength: 12000, placeholder: m >= 20 ? 'Write your answer here, or on paper and paste in a summary' : 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
         h('div', { class: 'row' }, B('Mark it', 'exMark', 'primary grow'), !last && B('Skip', 'exGo', 'ghost', { 'data-i': i + 1 }))]),
     sit ? [!last && h('div', { class: 'row center' }, B('Pens down: finish and mark it now', 'exPppMark', 'link')),
         h('p', { class: 'muted xs center' }, `${answered} of ${parts} answered. Your place is saved if you leave.`)]
       : [done > 0 && !(show && last) && h('div', { class: 'row center' }, B('Finish and save score', 'exFinish', 'link')),
-        h('p', { class: 'muted xs center' }, `${done} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave${p.ppp ? '' : ', and you can save a score for just part of a paper'}.`)]);
+        h('p', { class: 'muted xs center' }, `${done} of ${p.qs.length} marked · ${total} marks so far. Your place is saved if you leave${p.ppp ? '' : ', and you can save a score for just part of a paper'}.`)])));
 }
 function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
 const EXACT = {
@@ -1037,7 +1042,7 @@ function vStats() {
     .filter(x => x[1] < .7).sort((a, b) => a[1] - b[1]).slice(0, 6);
   const tile = (v, l, sub) => h('div', { class: 'tile' }, h('b', null, v), h('span', null, l), sub && h('small', null, sub));
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'What you have learned', 'tools', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
+    subHero('Progress', 'What you have learned', 'mocks', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
     card('Overall', h('span', { class: 'pill' }, `${allT ? Math.round(allL / allT * 100) : 0}% learned`), bar(allT ? allL / allT * 100 : 0),
       h('p', { class: 'muted xs' }, `${allL.toLocaleString('en-GB')} of ${allT.toLocaleString('en-GB')} facts, definitions, equations and skills learned. In each subject, the faint bar shows what you have tried; the bright bar shows what you have learned.`),
       h('div', { class: 'tiles' },
@@ -1058,7 +1063,7 @@ function vStats() {
 
 /* Past papers */
 function vPapers() {
-  return h('div', { class: 'stack' }, subHero('Progress', 'Past papers', 'tools'), chartCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
+  return h('div', { class: 'stack' }, subHero('Progress', 'Past papers', 'mocks'), chartCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
 }
 function trend(pts) {
   if (pts.length < 2) return null;
@@ -1373,6 +1378,7 @@ function render(o = {}) {
     FXS.countUp(view);
     if (!REDUCED && !HAS_VT) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; const show = () => el.classList.add('is-shown'); requestAnimationFrame(show); setTimeout(show, 120); }
   }
+  if (typeof paintSide === 'function') paintSide();
   const panels = view.querySelectorAll('.t-panel-slide[data-open="false"]');
   if (panels.length) { const open = () => panels.forEach(p => p.setAttribute('data-open', 'true')); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 150); }
 }
@@ -1597,7 +1603,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
-  if (DR && ['drill', 'home'].includes(TAB) && DR.q) {
+  if (DR && ['drill', 'home', 'guide'].includes(TAB) && DR.q) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
     if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
   }

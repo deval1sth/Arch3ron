@@ -917,3 +917,106 @@ html.rm .seb-rat *,html.rm .seb-rat{animation:none!important}
 .wrap-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
 .m-swap{margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:var(--y-soft);font-size:13.5px;line-height:1.45}
 .rescue-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;color:var(--t);font:inherit;cursor:pointer;border-color:rgba(var(--y-rgb),.4)}.rescue-cta b{display:block;font-size:16px}.rescue-cta small{display:block;color:var(--m);font-size:12.5px}
+
+/* ================= Computer layouts (phones are unchanged) ================= */
+.desk-only{display:none}
+@media (min-width:900px){.desk-only{display:inline-flex}}
+@media (min-width:900px){textarea.long{min-height:360px;font-size:16.5px;line-height:1.65}}
+
+/* papers: the source or case study stays beside the question */
+.exsplit,.ex-main,.ex-src{display:contents}
+@media (min-width:1100px){
+  .stack.narrow:has(.exsplit.has-src){max-width:1120px}
+  .exsplit.has-src{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  .exsplit.has-src .ex-src{display:flex;flex-direction:column;gap:12px;position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;padding-right:4px}
+  .exsplit.has-src .ex-main{display:flex;flex-direction:column;gap:var(--gap)}
+}
+
+/* Focus as a desk: the mission on the left, the questions on the right */
+@media (min-width:1100px){
+  .home.working{max-width:1120px}
+  .mission.live{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);column-gap:28px;align-items:start}
+  .mission.live>.m-head,.mission.live>.m-swap,.mission.live>.m-steps{grid-column:1}
+  .mission.live>.m-panel{grid-column:2;grid-row:1/span 6;margin-top:0;border-top:0;padding-top:0}
+}
+
+/* Mocks and Progress as a dashboard */
+@media (min-width:1100px){
+  .stack.dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;max-width:1120px;margin-inline:auto}
+  .dash>.hero,.dash>.ptabs,.dash>.tools,.dash>.report,.dash>.card:has(#ch),.dash>.ppp-loop{grid-column:1/-1}
+  .mockhub>:nth-child(2),.mockhub>:nth-child(3){grid-column:1}.mockhub>:nth-child(4){grid-column:2;grid-row:2/span 2}
+  .dash>.tools{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+/* Study: the guide beside its questions */
+.gs-row{display:contents}
+@media (min-width:1100px){
+  .guide-v.gsplit{max-width:1120px}
+  .gs-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+  .gside{position:sticky;top:84px}
+}
+
+/* Today panel */
+#side{display:none}
+@media (min-width:1360px){
+  body.has-side{padding-right:300px}
+  #side{display:flex;flex-direction:column;gap:14px;position:fixed;top:84px;right:20px;width:262px;max-height:calc(100vh - 104px);overflow:auto;padding:18px;border-radius:var(--r);border:1px solid var(--line);background:rgba(14,13,19,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);z-index:9}
+}
+#side .eyebrow{margin:0}
+.sd-timer b{display:block;font-family:var(--serif);font-size:44px;line-height:1;font-variant-numeric:tabular-nums;color:var(--y2)}
+.sd-timer.live b{text-shadow:0 0 22px rgba(var(--y-rgb),.45)}
+.sd-timer small{color:var(--m);font-size:12.5px}.sd-timer .row{margin-top:10px}
+.sd-next small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--m)}.sd-next b{font-size:15px}
+.sd-sets{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.sd-sets li{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.035)}
+.sd-sets li.done{opacity:.55}.sd-sets li.done span{text-decoration:line-through}.sd-sets small{color:var(--m);font-variant-numeric:tabular-nums}
+.sd-links{display:flex;flex-wrap:wrap;gap:2px 14px}
+
+/* keyboard shortcuts sheet */
+#keys{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#keys .card{width:min(480px,92vw)}#keys h2{margin-top:0}
+#keys ul{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}#keys li{display:flex;gap:14px;align-items:center}
+kbd{flex:none;min-width:72px;text-align:center;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);font:600 12.5px var(--font)}
+
+/* Exam hall */
+body.hall{padding-left:0;padding-right:0}
+body.hall header,body.hall nav,body.hall #side,body.hall .seb,body.hall .backlink{display:none !important}
+body.hall main{max-width:1180px;padding-top:30px}
+#hall-bg{position:fixed;inset:0;z-index:0;opacity:.16;pointer-events:none;filter:blur(1.5px);-webkit-mask-image:linear-gradient(to bottom,transparent 30%,#000 62%);mask-image:linear-gradient(to bottom,transparent 30%,#000 62%)} /* the students and your desk at the edges, never behind the questions' text */
+body.hall main{position:relative;z-index:1}
+#hall-bg .hall-svg,#hall-intro .hall-svg{display:block;width:100%;height:100%}
+#hall-intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#08070b;cursor:pointer;transition:opacity .7s var(--ease)}
+#hall-intro .hi-scene{position:absolute;inset:0;animation:hallzoom 6s cubic-bezier(.2,.7,.2,1) both}
+@keyframes hallzoom{from{transform:scale(1.14);filter:brightness(.35)}to{transform:scale(1);filter:brightness(.9)}}
+#hall-intro .hi-txt{position:relative;max-width:640px;margin:0 20px;padding:26px 34px;text-align:center;border-radius:20px;background:rgba(8,7,11,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#hall-intro h1{font-family:var(--serif);font-size:clamp(28px,4vw,44px);line-height:1.1;margin:6px 0 10px}
+.hi-time{font-size:18px;color:var(--y2);margin:0 0 14px}
+.hi-go{font-family:var(--serif);font-size:22px;margin:0 0 12px;opacity:0;transform:translateY(8px);transition:opacity .9s,transform .9s}
+#hall-intro.go .hi-go{opacity:1;transform:none}#hall-intro small{color:var(--m)}
+#hall-intro.out{opacity:0;pointer-events:none}
+html.rm #hall-intro .hi-scene{animation:none}
+
+/* printable papers */
+#print{display:none}
+@media print{
+  @page{margin:16mm}
+  body.printing{background:#fff !important;color:#000 !important;padding:0 !important}
+  body.printing>*:not(#print){display:none !important}
+  body.printing #print{display:block;color:#000;font:11.5pt/1.5 Georgia,'Times New Roman',serif}
+  .pp-cover,.pp-src{break-after:page}
+  .pp-brand{font:600 9pt Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#555;margin:0}
+  .pp-cover h1{font-size:26pt;margin:8mm 0 2mm}.pp-cover h2{font-size:15pt;font-weight:normal;margin:0 0 8mm}
+  .pp-meta{border-collapse:collapse;margin:0 0 8mm}.pp-meta td{border:1px solid #000;padding:6px 10px;min-width:42mm}.pp-meta td.pp-fill{min-width:95mm}
+  .pp-ins{border:1px solid #000;padding:8px 14px}.pp-ins ul{margin:4px 0 10px;padding-left:18px}
+  .pp-note{font-size:9pt;color:#555;margin-top:10mm}
+  .pp-src h3{font:700 12pt Arial,sans-serif}.pp-srct{font-style:italic;color:#444}.pp-srcx{white-space:pre-wrap}
+  .pp-sec{font:700 11pt Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #000;margin:8mm 0 4mm;padding-bottom:2mm}
+  .pp-q{break-inside:avoid;margin:0 0 7mm}
+  .pp-qh{margin:0;font:700 10.5pt Arial,sans-serif}.pp-qh span{font-weight:400;color:#666;margin-left:6px}
+  .pp-qt{white-space:pre-wrap;margin:2mm 0}
+  .pp-ln{height:8.5mm;border-bottom:1px solid #999}
+  .pp-mcq{list-style:none;padding:0;margin:2mm 0}.pp-mcq li{display:flex;gap:8px;align-items:center;margin:1.6mm 0}
+  .pp-box{display:inline-block;flex:none;width:5mm;height:5mm;border:1px solid #000}
+  .pp-ans,.pp-tick{margin:3mm 0 0}.pp-mk{text-align:right;font:700 10pt Arial,sans-serif;margin:1mm 0 0}
+  .pp-end{text-align:center;font:700 10pt Arial,sans-serif;margin-top:10mm}
+}
