@@ -1378,7 +1378,8 @@ function render(o = {}) {
 }
 /* After answering, the feedback and Next button render below the fold, often under the fixed nav, where a tap lands on the nav instead. Bring them into clear view. */
 function revealAboveNav(e) {
-  const nav = $('#nav').getBoundingClientRect().top, r = e.getBoundingClientRect(), fb = e.closest('.fb') || e, top = fb.getBoundingClientRect().top;
+  const n = $('#nav').getBoundingClientRect(), nav = n.width > n.height ? n.top : innerHeight; /* on a computer the nav is a side rail, not a bar along the bottom */
+  const r = e.getBoundingClientRect(), fb = e.closest('.fb') || e, top = fb.getBoundingClientRect().top;
   if (r.bottom > nav - 12 || r.top < 70) scrollBy({ top: Math.min(r.bottom - nav + 24, top - 80), behavior: REDUCED ? 'auto' : 'smooth' });
 }
 /* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
