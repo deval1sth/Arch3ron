@@ -89,7 +89,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Progress', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
+const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -1049,7 +1049,7 @@ function vStats() {
     .filter(x => x[1] < .7).sort((a, b) => a[1] - b[1]).slice(0, 6);
   const tile = (v, l, sub) => h('div', { class: 'tile' }, h('b', null, v), h('span', null, l), sub && h('small', null, sub));
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'What you have learned', 'mocks', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
+    hero('Stats', 'What you have learned', 'Learned means right at least twice in a row, and right the last time you saw it. Calculation topics count once mastered (5 in a row).'),
     card('Overall', h('span', { class: 'pill' }, `${allT ? Math.round(allL / allT * 100) : 0}% learned`), bar(allT ? allL / allT * 100 : 0),
       h('p', { class: 'muted xs' }, `${allL.toLocaleString('en-GB')} of ${allT.toLocaleString('en-GB')} facts, definitions, equations and skills learned. In each subject, the faint bar shows what you have tried; the bright bar shows what you have learned.`),
       h('div', { class: 'tiles' },
@@ -1070,7 +1070,7 @@ function vStats() {
 
 /* Past papers */
 function vPapers() {
-  return h('div', { class: 'stack' }, subHero('Progress', 'Past papers', 'mocks'), chartCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
+  return h('div', { class: 'stack' }, hero('Stats', 'Past papers'), chartCard(), h('div', { class: 'cols' }, logCard(), gradesCard()), scoresCard());
 }
 function trend(pts) {
   if (pts.length < 2) return null;
@@ -1333,9 +1333,9 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['mocks', 'scroll', 'Mocks'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'mocks', ready: 'mocks', week: 'mocks', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'mocks', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
-const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 

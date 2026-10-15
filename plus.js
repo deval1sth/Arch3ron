@@ -168,7 +168,7 @@ function vWeek() {
     S.queue.length ? [`Clear ${Math.min(5, S.queue.length)} topics from your fix queue`, `${S.queue.length} waiting. Each one is marks you have already lost once.`, B([icon('wrench'), 'Open'], 'go', 'ghost sm', { 'data-tab': 'fix' })]
       : [`Answer ${Math.max(100, wk.n + 20)} questions`, `This week: ${wk.n}.`, null]].filter(Boolean);
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'This week', 'mocks', verdict),
+    hero('Stats', 'Weekly review', verdict),
     h('section', { class: 'card week' },
       h('div', { class: 'card-h' }, h('h2', null, 'Last 7 days'), h('span', { class: 'muted' }, `${fmtDate(from)} to today`)),
       h('div', { class: 'wk-chart', role: 'img', 'aria-label': days.map(d => `${d.d}: ${d.done} of ${d.plan} sets`).join(', ') }, days.map((d, i) => h('div', { class: 'wk-col' + (i === 6 ? ' today' : '') + (d === best && d.done ? ' best' : '') },
@@ -261,7 +261,7 @@ function vReady() {
   const R = readiness(), wk = readyAgo(7), d = wk == null ? null : R.pct - wk, days = daysToMocks();
   const log = Array.from({ length: 28 }, (_, i) => S.readyLog[addDays(i - 27)]), have = log.filter(v => v != null);
   return h('div', { class: 'stack narrow' },
-    subHero('Progress', 'Mock readiness', 'mocks', null, 'Mocks'),
+    hero('Stats', 'Mock readiness'),
     h('section', { class: 'card rd-hero' },
       h('div', { class: 'rd-ring', style: `--p:${R.pct}`, role: 'img', 'aria-label': `${R.pct}% ready` }, h('div', null, h('b', null, R.pct + '%'), h('small', null, 'ready'))),
       h('h2', null, readyTier(R.pct)),
@@ -789,11 +789,11 @@ function vFixAll() {
     lostCard());
 }
 
-/* ---------- One Progress area: Readiness, Learned, This week, Papers ---------- */
-const PROG_TABS = [['ready', 'Readiness'], ['stats', 'Learned'], ['week', 'This week'], ['papers', 'Papers']];
+/* ---------- Stats tab: Overview, Readiness, Learned, This week, Papers ---------- */
+const PROG_TABS = [['numbers', 'Overview'], ['ready', 'Readiness'], ['stats', 'Learned'], ['week', 'Weekly review'], ['papers', 'Papers']];
 const tabRow = (list, cur, label) => h('div', { class: 'chips scroll ptabs', role: 'tablist', 'aria-label': label }, list.map(([t, l]) => chip(l, t === cur, 'go', { 'data-tab': t, role: 'tab', 'aria-selected': String(t === cur) })));
 const withTabs = (list, label) => (id, fn) => () => { const v = fn(); v.classList.add('dash'); /* one layout on every tab, so switching tabs does not jump; a card grid on a computer */ const top = v.firstElementChild; if (top) top.after(tabRow(list, id, label)); return v; };
-const progView = withTabs(PROG_TABS, 'Progress');
+const progView = withTabs(PROG_TABS, 'Stats');
 const planView = withTabs([['today', 'Today'], ['plan', 'Your week']], 'Plan');
 
 
@@ -1187,7 +1187,7 @@ function vMocks() {
       h('p', { class: 'muted xs' }, 'From your last 3 papers in each subject. The line on each bar is roughly where your aim grade starts.')),
     h('div', { class: 'tools' },
       hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
-      hubTool('ready', 'chart', 'Progress', `${R.pct}% ready · learned, this week, papers`),
+      hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades, marks and streaks`),
       hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
       labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')));
 }

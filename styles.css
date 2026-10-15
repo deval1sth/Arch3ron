@@ -1002,3 +1002,42 @@ html.rm #hall-intro .hi-scene{animation:none}
 }
 /* on Night the swipe sits under the words, so white text never lands on the highlighter */
 :root[data-mode="night"] :is(.hl-swipe,.hero h1,.focus-title,.rv-in h2,#intro .w1){text-underline-offset:.06em;text-decoration-thickness:.15em}
+
+/* ---------- Stats tab ---------- */
+.st-seg{display:flex;gap:4px;padding:4px;border-radius:99px;background:var(--card);border:1px solid var(--line2);box-shadow:var(--shadow)}
+.st-seg button{flex:1;min-width:0;min-height:40px;padding:6px 8px;border:0;border-radius:99px;background:none;color:var(--m);font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .2s,color .2s}
+.st-seg button:hover{color:var(--t)}
+.st-seg button.on{background:var(--y);color:var(--on-y)}
+@media (max-width:380px){.st-seg button{font-size:13px;padding:6px 4px}}
+.st-head>.muted{margin:0 0 12px}
+.st-tiles{margin-top:0;grid-template-columns:repeat(2,1fr)}
+@media (min-width:640px){.st-tiles{grid-template-columns:repeat(4,1fr)}}
+.st-tiles .tile small{font-size:11.5px}
+.st-chart{display:flex;align-items:stretch;gap:6px;height:150px;margin-top:6px}
+.st-chart.dense{gap:2px}
+.st-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.st-bar{position:relative;flex:1;width:100%;max-width:34px;border-radius:7px;background:rgba(var(--fg-rgb),.05)}
+.st-chart.dense .st-bar{border-radius:4px}
+.st-bar i{position:absolute;left:0;right:0;bottom:0;border-radius:inherit}
+.st-bar .plan{border:1.5px dashed rgba(var(--y-rgb),.45)}
+.st-bar .done{background:var(--y)}
+.st-col.now .st-bar{box-shadow:0 0 0 2px var(--hl)}
+.st-col.future .st-bar{opacity:.45}
+.st-col small{height:14px;font-size:11px;line-height:14px;color:var(--m);white-space:nowrap}
+.st-col.now small{color:var(--y);font-weight:700}
+.st-grades th,.st-grades td{white-space:nowrap}
+.st-grades td:first-child{white-space:normal}
+.st-sn{display:inline-flex;align-items:center;gap:8px}.st-sn .sw{margin:0} /* the dot stays beside the name when it wraps */
+.st-grades tr.ok td:nth-child(3) b{color:var(--g)}
+.st-grades small{color:var(--m)}
+.st-papers li{gap:10px}
+.st-pc{display:flex;flex-direction:column;align-items:flex-end;font-family:var(--head);font-weight:800;font-size:18px;line-height:1.1;color:var(--y2)}
+.st-pc small{font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--m)}
+.st-recs{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:640px){.st-recs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.st-recs li{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px;border-radius:12px;background:var(--sunk)}
+.st-recs b{font-family:var(--head);font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--y2)}
+.st-recs span{font-size:13px;font-weight:700}
+.st-recs small{font-size:11.5px;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:1100px){.dash>.st-seg,.dash>.st-head{grid-column:1/-1}}
+.tiles.st-two{grid-template-columns:repeat(2,1fr)}
