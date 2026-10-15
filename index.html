@@ -3,29 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0b10">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#f4f6fb">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Archeron">
 <meta name="description" content="Archeron: an offline GCSE mocks training programme.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/bricolage.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/atkinson-400.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="transitions.css">
 <title>Archeron</title>
+<script>/* apply the saved page and highlighter before first paint (app.js applyTheme writes this) */
+try { var L = (localStorage.getItem('archeron-look') || '').split(' '), R = document.documentElement, N = L[0] === 'night' || (L[0] === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  if (N) { R.setAttribute('data-mode', 'night'); document.querySelector('meta[name=theme-color]').setAttribute('content', '#121735'); }
+  if (L[1] && L[1] !== 'lime') R.setAttribute('data-hl', L[1]); } catch (e) {}</script>
 </head>
 <body>
 <div id="intro" aria-hidden="true">
   <svg class="bat" viewBox="0 0 200 100"><g class="w"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></g></svg>
-  <div class="txt">ARCHERON</div>
-  <div class="welcome" id="welcome"><span class="w1">Welcome, Magus</span><span class="w2"></span></div>
+  <div class="txt">Archeron</div>
+  <div class="welcome" id="welcome"><span class="w1">Welcome to Archeron</span><span class="w2"></span></div>
 </div>
 <a class="skip-link" href="#view">Skip to content</a>
 <header>
-  <div class="logo"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></svg><span>ARCHERON</span></div>
+  <div class="logo"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></svg><span>Archeron</span></div>
   <div class="cd" id="cd" aria-live="polite"></div>
 </header>
 <nav id="nav" aria-label="Sections"></nav>
@@ -38,8 +44,8 @@
 setTimeout(function () {
   if (window.ARCHERON_OK) return;
   var d = document.createElement('div');
-  d.setAttribute('style', 'position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:24px;background:#0a0b10;color:#eee;font:16px system-ui,sans-serif;text-align:center');
-  d.innerHTML = '<div><p style="font-size:20px;margin:0 0 8px">Archeron did not start properly</p><p style="opacity:.7;margin:0 0 18px">Usually a half-finished update. Your progress is safe.</p><button style="font:inherit;font-weight:600;padding:12px 22px;border-radius:99px;border:0;background:#e8c06a;color:#111">Repair the app</button></div>';
+  d.setAttribute('style', 'position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;color:#1c2033;font:16px system-ui,sans-serif;text-align:center');
+  d.innerHTML = '<div><p style="font-size:20px;margin:0 0 8px">Archeron did not start properly</p><p style="opacity:.7;margin:0 0 18px">Usually a half-finished update. Your progress is safe.</p><button style="font:inherit;font-weight:600;padding:12px 22px;border-radius:99px;border:0;background:#2f55e4;color:#fff">Repair the app</button></div>';
   d.querySelector('button').onclick = function () {
     var jobs = [];
     if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); }));

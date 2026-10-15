@@ -35,8 +35,9 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `papers.js`: English, Geography, Business and RE papers with levels-based marking, original sources and per-subject method tips
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
 - `study.js`: Study tab (49 in-depth guides) and the revision-session planner
-- `realm.js`: The Realm
-- `fx.js`: embers, sparks, reveal overlays
+- `desk.js`: computer layouts, exam hall mode, keyboard shortcuts, printable papers
+- `fx.js`: confetti bursts, count-ups, reveal overlays
+- `fonts/`: self-hosted Bricolage Grotesque and Atkinson Hyperlegible Next (OFL)
 - `app.js`: state, migration, views, actions
 - `sw.js`: offline cache. **Bump `VERSION` on every release.**
 

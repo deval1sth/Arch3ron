@@ -16,14 +16,19 @@ function applyMotion() {
   document.documentElement.classList.toggle('rm', REDUCED); document.documentElement.classList.toggle('vt', HAS_VT);
   if (FXS.setReduced) FXS.setReduced(REDUCED);
 }
-const THEMES = [['ember', 'Ember Gold', '#e8c06a', '#ff8a3d'], ['amethyst', 'Amethyst', '#c9a2ff', '#ff7ac1'], ['abyss', 'Abyss', '#5fe0d0', '#4fb3ff'], ['verdant', 'Verdant', '#86de8f', '#e8d06a'], ['frost', 'Frost', '#a9c9ff', '#d7e6ff']];
+/* Look: the page (Paper, Night or match the phone) and your highlighter colour. index.html applies the same choice before first paint. */
+const THEMES = [['lime', 'Lime', '#b6ef4f'], ['pink', 'Pink', '#ff9fd4'], ['orange', 'Orange', '#ffb65c'], ['sky', 'Sky', '#85d5ff'], ['lilac', 'Lilac', '#c8b4ff']];
+const MODES = [['paper', 'Paper'], ['night', 'Night'], ['auto', 'Match my phone']];
+const MQ_DARK = matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
-  const t = (S && S.theme) || 'ember', root = document.documentElement;
-  if (t === 'ember') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+  const root = document.documentElement, mode = (S && S.mode) || 'paper', hl = (S && S.theme) || 'lime';
+  if (mode === 'night' || (mode === 'auto' && MQ_DARK.matches)) root.dataset.mode = 'night'; else delete root.dataset.mode;
+  if (hl === 'lime') delete root.dataset.hl; else root.dataset.hl = hl;
   root.dataset.text = (S && S.text) || 'normal';
-  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#07070b');
-  if (FXS.refresh) FXS.refresh();
+  try { localStorage.setItem('archeron-look', mode + ' ' + hl); } catch (e) {}
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#f4f6fb');
 }
+(MQ_DARK.addEventListener ? MQ_DARK.addEventListener.bind(MQ_DARK, 'change') : MQ_DARK.addListener.bind(MQ_DARK))(() => { if (S && S.mode === 'auto') applyTheme(); });
 const daysToMocks = () => Math.ceil((new Date(S.mock + 'T09:00') - new Date()) / 864e5);
 
 /* ---------- dates ---------- */
@@ -100,7 +105,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, notes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'ember', achV: 2, wrapSeen: '',
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
 const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -114,7 +119,9 @@ function normalize(raw) {
   const r = obj(raw), s = freshState();
   s.xp = Math.max(0, Math.round(num(r.xp)));
   s.mock = isKey(r.mock) && r.mock !== '2027-01-11' ? r.mock : s.mock; /* old placeholder date → real first mock */
-  s.theme = ['ember', 'amethyst', 'abyss', 'verdant', 'frost'].includes(r.theme) ? r.theme : 'ember'; s.achV = num(r.achV);
+  const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
+  s.theme = THEMES.some(t => t[0] === r.theme) ? r.theme : OLD_HL[r.theme] || 'lime'; s.achV = num(r.achV);
+  s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
   for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
   s.deload = !!r.deload;
   s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
@@ -1307,8 +1314,9 @@ function vMe() {
           h('div', { class: 'grid2', style: 'margin-top:12px' },
             field('Focus minutes', h('input', { type: 'number', min: 1, max: 120, value: S.timer.focus, 'data-act': 'tlen', 'data-k': 'focus' })),
             field('Rest minutes', h('input', { type: 'number', min: 1, max: 60, value: S.timer.brk, 'data-act': 'tlen', 'data-k': 'brk' })))),
-        card('Colour scheme', null, h('div', { class: 'themes' }, THEMES.map(([id, name, a, b]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a};--tb:${b}` },
-          h('span', { class: 'th-sw' }, h('i'), h('i'), h('i')), h('b', null, name))))),
+        card('Look', null, h('h3', null, 'Page'), h('div', { class: 'chips' }, MODES.map(([v, l]) => chip(l, S.mode === v, 'mode', { 'data-v': v }))),
+          h('h3', null, 'Highlighter'), h('div', { class: 'themes' }, THEMES.map(([id, name, a]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a}` },
+          h('span', { class: 'th-sw' }), h('b', null, name))))),
         card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
@@ -1486,7 +1494,8 @@ const ACT = {
   },
   pbDel(el) { if (!confirm('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
   emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
-  theme(el) { S.theme = el.dataset.v; save(); applyTheme(); render(); toast('Colour scheme: ' + (THEMES.find(t => t[0] === S.theme) || ['', 'Ember Gold'])[1]); },
+  theme(el) { const t = THEMES.find(x => x[0] === el.dataset.v); if (!t) return; S.theme = t[0]; save(); applyTheme(); render(); toast(t[1] + ' highlighter'); },
+  mode(el) { const m = MODES.find(x => x[0] === el.dataset.v); if (!m) return; S.mode = m[0]; save(); applyTheme(); render(); toast('Page: ' + m[1]); },
   motion(el) { S.motion = el.dataset.v; S.motionHint = true; save(); applyMotion(); render({ enter: true }); if (!REDUCED) toast('Full motion on', 'big'); },
   achCat(el) { ACH_CAT = el.dataset.k; render(); },
   chart(el) { const s = el.dataset.subj; CHART.has(s) ? CHART.delete(s) : CHART.add(s); render(); },
@@ -1639,7 +1648,7 @@ applyMotion(); applyTheme();
   const i = $('#intro'); if (!i) return;
   const end = () => { if (!i.isConnected) return; i.classList.add('out'); setTimeout(() => i.remove(), 600); };
   const w = $('#welcome'), name = S.profile.name;
-  if (w) { w.querySelector('.w1').textContent = name ? `Welcome, Magus ${name}` : 'Welcome, Magus'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} set${lifeSets() === 1 ? '' : 's'} done · ${Math.max(0, daysToMocks())} days to mocks` : 'Your journey begins'; }
+  if (w) { w.querySelector('.w1').textContent = name ? `Welcome back, ${name}` : 'Welcome to Archeron'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} set${lifeSets() === 1 ? '' : 's'} done · ${Math.max(0, daysToMocks())} days to mocks` : 'Your mocks start here'; }
   if (REDUCED) { i.remove(); return; }
   i.addEventListener('click', end); setTimeout(end, 4000);
 })();

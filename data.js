@@ -3,8 +3,8 @@
 
 const SUBJ = ['Maths', 'Science', 'English Language', 'English Literature', 'RE', 'Geography', 'Business'];
 const SUBJ_COLOR = {
-  'Maths': '#ffc83d', 'Science': '#4ade80', 'English Language': '#7aa2ff',
-  'English Literature': '#c49bff', 'RE': '#f9a8d4', 'Geography': '#2dd4bf', 'Business': '#fb923c'
+  'Maths': '#f06418', 'Science': '#1f9d55', 'English Language': '#2f6fe4',
+  'English Literature': '#8a4fe0', 'RE': '#e0457f', 'Geography': '#0f9a94', 'Business': '#d93a3a'
 };
 
 /* Starting plan, keyed by weekday (0 = Sun). [time, label, sets, kind] — kind: train | rest | other */

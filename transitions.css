@@ -6,8 +6,7 @@
 /* Transitions.dev — Tabs sliding (pill follows the active nav tab; JS writes transform + size) */
 :root{--tabs-dur:300ms;--tabs-ease:cubic-bezier(0.22,1,0.36,1)}
 .t-tabs-pill{position:absolute;top:0;left:0;width:0;height:0;border-radius:16px;
-  background:radial-gradient(90% 120% at 50% 0%,rgba(var(--y2-rgb),.22),rgba(var(--y-rgb),.08));
-  box-shadow:inset 0 0 0 1px rgba(var(--y-rgb),.28),0 0 22px -6px rgba(var(--y-rgb),.45);
+  background:var(--hl);
   transition:transform var(--tabs-dur) var(--tabs-ease),width var(--tabs-dur) var(--tabs-ease),height var(--tabs-dur) var(--tabs-ease);
   will-change:transform,width;z-index:0;pointer-events:none}
 
@@ -69,11 +68,11 @@
 /* Transitions.dev — Checkbox check (checklists and daily extras; the native input stays for accessibility) */
 :root{--check-box:150ms;--check-draw:350ms;--check-uncheck:150ms;--check-ease:cubic-bezier(0.22,1,0.36,1)}
 .chk input{position:absolute;opacity:0;width:24px;height:24px;margin:0;cursor:pointer}
-.t-check{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;border:1.5px solid rgba(var(--y-rgb),.55);background:transparent;color:var(--y-ink);
+.t-check{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;border:2px solid rgba(var(--y-rgb),.55);background:var(--card);color:var(--on-y);
   transition:background var(--check-box) var(--check-ease),box-shadow var(--check-box) var(--check-ease),border-color var(--check-box) var(--check-ease)}
 .t-check svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
 .t-check svg path{stroke-dasharray:var(--check-len,15);stroke-dashoffset:var(--check-len,15);transition:stroke-dashoffset var(--check-uncheck) var(--check-ease)}
-.chk.d .t-check{background:linear-gradient(180deg,var(--y2),var(--y));border-color:transparent;box-shadow:0 0 12px rgba(var(--y-rgb),.45)}
+.chk.d .t-check{background:var(--y);border-color:var(--y)}
 .chk.d .t-check svg path{stroke-dashoffset:0;transition:stroke-dashoffset var(--check-draw) var(--check-ease)}
 .chk input:focus-visible+.t-check{outline:2px solid var(--y);outline-offset:3px}
 
@@ -93,8 +92,8 @@
   transition:transform var(--tilt-return) var(--tilt-return-ease),border-color .3s,box-shadow .3s;will-change:transform}
 .t-tilt-card.is-tilting{transition:transform var(--tilt-follow) var(--tilt-follow-ease),border-color .3s,box-shadow .3s}
 .t-tilt-glare{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;border-radius:inherit;
-  background:radial-gradient(circle 95px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(var(--y2-rgb),.48),rgba(var(--y2-rgb),.06) 52%,rgba(var(--y2-rgb),0) 84%),
-    radial-gradient(circle 220px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(var(--y2-rgb),.2),rgba(var(--y2-rgb),0) 78%);
+  background:radial-gradient(circle 95px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,255,255,.48),rgba(255,255,255,.06) 52%,rgba(255,255,255,0) 84%),
+    radial-gradient(circle 220px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,255,255,.2),rgba(255,255,255,0) 78%);
   transition:opacity var(--tilt-glare-fade) var(--tilt-follow-ease)}
 .t-tilt.is-hover .t-tilt-glare{opacity:var(--tilt-glare-opacity)}
 
