@@ -93,11 +93,58 @@ function hallExit() {
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && HALL) hallExit(); }); /* Esc in full screen is handled by the browser first */
 const hallBtn = () => isDesk() && TAB === 'examq' && S.exam && B([icon('flame'), HALL ? 'Leave the exam hall' : 'Exam hall (F)'], HALL ? 'hallOut' : 'hallGo', 'ghost sm');
 
+/* ---------- Study desk: on a computer a set is three columns: session | question | board and notes ---------- */
+const deskMode = () => isDesk() && !HALL;
+function deskWorking(M, title, meta) {
+  const list = todayTrain(), cur = T.sid;
+  return h('div', { class: 'desk' },
+    h('aside', { class: 'card desk-s', 'aria-label': 'This set' },
+      h('div', { class: 'ds-timer' }, ringEl(true), h('div', null, h('p', { class: 'eyebrow' }, T.run ? 'In the zone' : 'Paused'), h('b', null, title), h('small', null, meta))),
+      h('div', { class: 'row' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'primary sm'), B('End', 'rst', 'ghost sm')),
+      h('div', { class: 'ds-m' }, h('p', { class: 'eyebrow' }, 'Your mission'), h('h2', null, M.title), M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)))),
+      list.length > 0 && h('div', { class: 'ds-up' }, h('p', { class: 'eyebrow' }, 'Today'),
+        h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: (x.left ? '' : 'done') + (x.s.id === cur ? ' now' : '') }, h('span', null, x.s.id === cur ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`)))))),
+    h('section', { class: 'card desk-q' }, missionPanel(M)));
+}
+/* The dock lives outside #view, so the board keeps playing while the question re-renders around it. */
+let DOCK_Q = null, dockSaveT = 0;
+function paintDock() {
+  const want = deskMode() && !!document.querySelector('#view .qcard');
+  let el = document.getElementById('dock');
+  document.body.classList.toggle('has-dock', want);
+  if (!want) { if (BOARD.isInline()) BOARD.close(true); el?.remove(); DOCK_Q = null; return; }
+  if (!el) { el = h('aside', { id: 'dock', 'aria-label': 'Board and notes' }, h('div', { class: 'dock-board' }), h('section', { class: 'card dock-notes' })); document.body.append(el); }
+  const q = DR && DR.q, t = q ? q.id : null;
+  if (q !== DOCK_Q && BOARD.isInline()) BOARD.close(true); /* a new question clears the old worked solution */
+  DOCK_Q = q;
+  if (!BOARD.isInline()) {
+    const mis = t ? S.mistakes.filter(m => !m.fixed && m.topic === LEARN.name(t)).slice(-3).reverse() : [];
+    el.querySelector('.dock-board').replaceChildren(h('section', { class: 'card dock-empty' },
+      h('div', { class: 'card-h' }, h('h2', null, 'The board'), h('span', { class: 'muted' }, 'worked solutions play here')),
+      h('p', { class: 'muted' }, 'Stuck? Press Show me and the method is written out here, step by step, while your question stays where it is.'),
+      mis.length > 0 && [h('p', { class: 'eyebrow' }, 'Your recent mistakes on this topic'), h('ul', { class: 'dock-mis' }, mis.map(m => h('li', null, m.note)))]));
+  }
+  const notes = el.querySelector('.dock-notes');
+  if (notes.dataset.t !== (t || '')) {
+    notes.dataset.t = t || '';
+    const ta = h('textarea', { id: 'tnote', rows: '5', placeholder: t ? 'Your notes for this topic: rules, tricks, what you keep forgetting…' : 'Notes appear here for the topic you are on.', 'aria-label': 'Notes for this topic', disabled: !t, value: t ? S.tnotes[t] || '' : '' });
+    ta.addEventListener('input', () => { const v = ta.value.slice(0, 4000); if (v.trim()) S.tnotes[t] = v; else delete S.tnotes[t]; clearTimeout(dockSaveT); dockSaveT = setTimeout(save, 500); });
+    notes.replaceChildren(h('div', { class: 'card-h' }, h('h2', null, 'Notes'), h('span', { class: 'muted' }, t ? LEARN.name(t) : '')), ta, h('small', { class: 'muted' }, 'Saved on this device with your progress.'));
+  }
+}
+/* Show me on the desk plays in the dock; on a phone it is a pop-up */
+function playBoard(d, similar) {
+  const m = document.querySelector('#dock .dock-board');
+  return BOARD.open(d, { mount: m, onSimilar: similar ? () => runAct('similar') : null, onClose: m ? () => paintDock() : null });
+}
+
 /* ---------- Today panel: timer, today's sets and what is next, on every page of a wide screen ---------- */
 function paintSide() {
   if (HALL && TAB !== 'examq') { hallExit(); return; } /* leaving the paper leaves the hall */
+  paintDock();
   let el = document.getElementById('side');
-  const want = !HALL && matchMedia('(min-width: 1360px)').matches;
+  /* the dock and the desk's own session column replace the Today panel, so the timer is never on screen twice */
+  const want = !HALL && matchMedia('(min-width: 1360px)').matches && !document.body.classList.contains('has-dock') && !document.querySelector('#view .desk');
   document.body.classList.toggle('has-side', want);
   if (!want) { el?.remove(); return; }
   if (!el) { el = h('aside', { id: 'side', 'aria-label': 'Today' }); document.body.append(el); }
@@ -108,8 +155,8 @@ function paintSide() {
     h('div', { class: 'sd-timer' + (act && T.run ? ' live' : '') }, h('b', { id: 'st' }, fmt(Math.ceil(T.left))), h('small', null, status),
       h('div', { class: 'row' }, act ? [B(T.run ? icon('pause') : icon('play'), 'tgl', 'primary icon-only', { 'aria-label': T.run ? 'Pause' : 'Resume' }), B('End', 'rst', 'ghost sm')]
         : B([icon('play'), 'Begin'], 'sideBegin', 'primary sm'))),
-    h('div', { class: 'sd-next' }, h('small', null, act && T.mode === 'focus' ? 'Now' : 'Next up'), h('b', null, act && T.rescue ? 'Rescue set' : item ? item.s.label : list.length ? 'Bonus set' : 'Free study')),
-    list.length ? h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: x.left ? '' : 'done' }, h('span', null, x.s.label), h('small', null, `${x.c}/${x.n}`))))
+    h('div', { class: 'sd-next' }, h('small', null, act && T.mode === 'focus' ? 'Now' : 'Next up'), h('b', null, act && T.rescue ? 'Rescue set' : item ? setTitle(item.s.label) : list.length ? 'Bonus set' : 'Free study')),
+    list.length ? h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: x.left ? '' : 'done' }, h('span', null, x.s.id === cur && act ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`))))
       : h('p', { class: 'muted xs' }, 'No sets planned today.'),
     h('p', { class: 'muted xs' }, `${done} ${done === 1 ? 'set' : 'sets'} done today · mocks in ${daysToMocks()} days`),
     h('div', { class: 'sd-links' }, B("Today's plan", 'go', 'link', { 'data-tab': 'today' }), !act && B('Rescue set', 'rescue', 'link'), B('Shortcuts (?)', 'keysHelp', 'link')));

@@ -1125,3 +1125,35 @@ html.rm .bd,html.rm .bd-scrim{animation:none}
 .bd-board{position:relative}
 .bd-pen{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -2px;border-radius:50% 50% 50% 0;background:var(--y);box-shadow:0 0 0 3px rgba(var(--y-rgb),.18),0 0 14px rgba(var(--y-rgb),.55);pointer-events:none;z-index:2;opacity:0;will-change:transform}
 html.rm .bd-pen{display:none}
+
+/* ---------- Study desk (desk.js): session | question on the page, board and notes docked on the right ---------- */
+#dock{display:none}
+@media (min-width:1100px){
+  :root{--dock-w:clamp(320px,27vw,460px)}
+  body.has-dock{padding-right:calc(var(--dock-w) + 32px)}
+  body.has-dock main{max-width:none}
+  #dock{display:flex;flex-direction:column;gap:14px;position:fixed;top:84px;right:20px;bottom:20px;width:var(--dock-w);z-index:9}
+  .dock-board{flex:1;min-height:0;display:flex;flex-direction:column}
+  .dock-board>.card,.dock-board>.bd-inline{flex:1;min-height:0}
+  .dock-empty{display:flex;flex-direction:column;gap:10px;overflow:auto}
+  .dock-empty .card-h{margin:0}
+  .dock-mis{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--m)}
+  .dock-notes{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+  .dock-notes .card-h{margin:0}
+  .dock-notes textarea{width:100%;min-height:120px;max-height:30vh;resize:vertical;font:inherit;font-size:15px;line-height:1.5;padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--field);color:var(--t)}
+  .bd-inline{display:flex}
+  .bd-inline .bd{width:100%;max-height:none;border-radius:var(--r);border:1px solid var(--line2);box-shadow:var(--shadow);animation:bdFade .3s var(--ease) both}
+  .bd-inline .bd-board{min-height:120px}
+  .bd-inline .bd-end{display:none}
+  .bd-inline .bd-ctl .btn{min-height:40px;padding:6px 11px;font-size:14px}
+  .bd-inline .bd-ctl [data-bd="play"]{min-width:88px}
+  .desk{display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr);gap:var(--gap);align-items:start;width:100%}
+  .desk-s{position:sticky;top:84px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 104px);overflow:auto}
+  .ds-timer{display:flex;align-items:center;gap:14px}
+  .ds-timer b{display:block;font-size:17px}.ds-timer small{color:var(--m);font-size:13px}.ds-timer .eyebrow{margin:0}
+  .ds-m h2{margin:2px 0 8px;font-size:20px}.ds-m .eyebrow,.ds-up .eyebrow{margin:0 0 6px}
+  .ds-m .m-steps{margin:0;padding-left:20px;font-size:14px;color:var(--m);display:flex;flex-direction:column;gap:6px}
+  .ds-up .sd-sets li.now{box-shadow:inset 0 0 0 1.5px var(--y);background:var(--y-soft)}
+  .desk-q{min-width:0}
+  .desk-q .m-panel{margin:0;border:0;padding:0}
+}

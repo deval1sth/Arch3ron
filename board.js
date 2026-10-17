@@ -187,13 +187,17 @@ const BOARD = (() => {
     close: () => close(),
     similar: () => { const f = opts.onSimilar; close(); if (f) f(); }
   };
+  /* Two modes: a pop-up over the page (phones), or inline in a page column (o.mount, the computer study desk).
+     Inline it never traps focus or steals keys from the question; its keys only work while focus is inside it. */
+  const inline = () => !!(opts && opts.mount);
   function onKey(e) {
     if (!root) return;
+    if (inline() && (!root.contains(e.target) || e.target.matches('input, textarea'))) return;
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); ACT.next(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); ACT.prev(); }
     else if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); ACT.play(); }
-    else if (e.key === 'Tab') { /* keep focus inside the board while it is open */
+    else if (e.key === 'Tab' && !inline()) { /* keep focus inside the pop-up while it is open */
       const f = [...root.querySelectorAll('button:not([disabled]):not([hidden])')].filter(b => b.offsetParent), a = f[0], z = f[f.length - 1];
       if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
     }
@@ -205,10 +209,10 @@ const BOARD = (() => {
     D = demo; opts = o; i = 0; playing = true; ended = false; waiting = false; back = document.activeElement;
     const checked = demo.source === 'verified' ? el('span', 'bd-ok', '✓ Every step checked') : demo.source === 'sums' ? el('span', 'bd-ok', '✓ Every sum checked') : el('span', 'bd-ok soft', 'Worked steps');
     if (demo.source !== 'steps') checked.title = demo.checks.map(c => c[0]).join(' · ');
-    root = el('div', 'bd-scrim',
+    root = el('div', inline() ? 'bd-inline' : 'bd-scrim',
       el('section', 'bd',
         el('header', 'bd-top', el('div', null, el('p', 'bd-kick', demo.subject ? demo.subject + ' · ' + demo.topic : demo.topic), checked), btn('✕', 'close', 'ghost icon-only', 'Close the board')),
-        el('p', 'bd-q', demo.question),
+        !inline() && el('p', 'bd-q', demo.question),
         el('div', 'bd-board'),
         el('div', 'bd-think', el('p', null, 'What would you write next? Have a go in your head or on paper, then tap Show step.')),
         el('div', 'bd-end', el('p', null, 'Now try one on your own.'), el('div', 'row', o.onSimilar && btn('Try a similar one', 'similar', 'primary'), btn('Watch again', 'replay', 'ghost'), btn('Close', 'close', 'ghost'))),
@@ -217,20 +221,23 @@ const BOARD = (() => {
           el('div', 'bd-ctl', btn('‹', 'prev', 'ghost icon-only', 'Previous step'), btn('Play', 'play', 'primary'), btn('›', 'next', 'ghost icon-only', 'Next step'),
             btn('↺', 'replay', 'ghost icon-only', 'Replay from the start'), btn('Steady', 'speed', 'ghost', 'Change speed'), btn('Show all', 'full', 'ghost'), btn('Let me try first', 'try', 'ghost')))));
     const sec = root.querySelector('.bd');
-    sec.setAttribute('role', 'dialog'); sec.setAttribute('aria-modal', 'true'); sec.setAttribute('aria-label', 'Worked on the board: ' + demo.topic);
+    if (!inline()) { sec.setAttribute('role', 'dialog'); sec.setAttribute('aria-modal', 'true'); } else sec.setAttribute('role', 'region');
+    sec.setAttribute('aria-label', 'Worked on the board: ' + demo.topic);
     root.querySelector('.bd-board').setAttribute('aria-live', 'polite');
-    root.addEventListener('click', e => { if (e.target === root) return close(); const b = e.target.closest('[data-bd]'); if (b && !b.disabled) ACT[b.dataset.bd](b); });
+    root.addEventListener('click', e => { if (e.target === root && !inline()) return close(); const b = e.target.closest('[data-bd]'); if (b && !b.disabled) ACT[b.dataset.bd](b); });
     document.addEventListener('keydown', onKey, true);
-    document.body.append(root); document.documentElement.classList.add('bd-open');
+    if (inline()) o.mount.replaceChildren(root); else { document.body.append(root); document.documentElement.classList.add('bd-open'); }
     rebuild(true);
-    root.querySelector('[data-bd="play"]').focus({ preventScroll: true });
+    if (!inline()) root.querySelector('[data-bd="play"]').focus({ preventScroll: true });
     return true;
   }
   function close(silent) {
     if (!root) return;
+    const done = opts && opts.onClose;
     clearTimeout(timer); stopAnims(); document.removeEventListener('keydown', onKey, true);
     root.remove(); root = null; D = null; playing = false; document.documentElement.classList.remove('bd-open');
-    if (!silent && back && back.isConnected) back.focus({ preventScroll: true });
+    if (!silent && back && back.isConnected && !inline()) back.focus({ preventScroll: true });
+    if (!silent && done) done();
   }
 
   /* Run from the console: drives a real board through every control and checks what is on screen. */
@@ -256,5 +263,5 @@ const BOARD = (() => {
     close(); T('closes cleanly', !document.querySelector('.bd-scrim'));
     return { passed: res.filter(r => r[1]).length, failed: res.filter(r => !r[1]).map(r => r[0]) };
   }
-  return { open, close, selfTest, isOpen: () => !!root };
+  return { open, close, selfTest, isOpen: () => !!root, isInline: () => !!root && inline() };
 })();

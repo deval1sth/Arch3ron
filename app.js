@@ -110,7 +110,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -153,6 +153,7 @@ function normalize(raw) {
   { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; }
   for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
   for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
+  for (const [k, v] of Object.entries(obj(r.tnotes))) if (/^[a-z0-9-]{1,40}$/.test(k) && typeof v === 'string' && v.trim()) s.tnotes[k] = str(v, 4000);
   s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
   for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
     s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
@@ -345,7 +346,7 @@ const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math
 const tTotal = (m = T.mode) => m === 'focus' && T && T.len ? T.len : (m === 'focus' ? S.timer.focus : S.timer.brk) * 60; /* T.len: a one-off length, e.g. the 10-minute rescue set */
 let T;
 (function loadTimer() {
-  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), sid: t.sid ? str(t.sid, 30) : null, len: clamp(Math.round(num(t.len)), 0, 7200), rescue: !!t.rescue }; } catch (e) {}
+  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), sid: t.sid ? str(t.sid, 30) : null, len: clamp(Math.round(num(t.len)), 0, 7200), rescue: !!t.rescue, swap: t.swap === false ? false : t.swap && typeof t.swap.to === 'string' ? { to: str(t.swap.to, 20), msg: str(t.swap.msg, 300) } : null }; } catch (e) {}
   if (!T) T = { mode: 'focus', left: S.timer.focus * 60, run: false, end: 0, sid: null };
 })();
 const saveT = () => store(TK, JSON.stringify(T));
@@ -382,7 +383,7 @@ function timerDone() {
     } else (d.s.free = d.s.free || []).push(true);
     /* rest starts by itself, timed from when the set actually ended (correct even if the phone was locked) */
     const ended = T.end || Date.now();
-    T.mode = 'break'; T.len = 0; T.rescue = false; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
+    T.mode = 'break'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
     saveT(); save();
     FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub);
   } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); }
@@ -412,13 +413,21 @@ const PRACTISE_STEPS = ['Answer each question from memory, no notes', 'Wrong? Re
 /* A planned subject you are already well above your aim in hands its set to your biggest gap, where extra marks are worth more.
    Found by the 10-student simulation: fixed Maths sessions kept piling into Maths at 90%+ while Science sat just under a 4. */
 function missionFor(label) {
-  const M = missionPlan(label), tr = M.id === 'drill' ? M.subj : null;
-  if (!tr) return M;
+  const M = missionPlan(label);
+  if (M.id !== 'drill') return M;
+  /* decided once when a set starts and kept on the timer, so the subject never changes halfway through a set */
+  const lock = timerActive() && T.mode === 'focus', sw = lock && T.swap != null ? T.swap : swapFor(M.subj);
+  if (lock && T.swap == null) { T.swap = sw || false; saveT(); }
+  return sw ? { id: 'drill', subj: sw.to, title: `${TRACK_NAME(sw.to)} practice`, steps: PRACTISE_STEPS, swap: sw.msg } : M;
+}
+/* the name of what a set is actually about once any swap is applied; every screen uses this, so they agree */
+const setTitle = label => { const M = missionFor(label); return M.swap ? TRACK_NAME(M.subj) : label; };
+function swapFor(tr) {
   const subj = trackSubj(tr === 'science' ? 'biology' : tr), p = typeof predict === 'function' ? predict(subj) : null;
-  if (!p || p.n < 2) return M;
-  const need = boundFor(subj, aimOf(subj)); if (p.pc < need + 12) return M;
-  const to = sessRank().find(t => trackSubj(t) !== subj); if (!to) return M;
-  return { id: 'drill', subj: to, title: `${TRACK_NAME(to)} practice`, steps: PRACTISE_STEPS, swap: `${subj} is safe for now: ${p.pc}% on recent papers, and your aim needs about ${need}%. This set goes to ${TRACK_NAME(to)}, where the marks are.` };
+  if (!p || p.n < 2) return null;
+  const need = boundFor(subj, aimOf(subj)); if (p.pc < need + 12) return null;
+  const to = sessRank().find(t => trackSubj(t) !== subj); if (!to) return null;
+  return { to, msg: `${subj} is safe for now: ${p.pc}% on recent papers, and your aim needs about ${need}%. This set goes to ${TRACK_NAME(to)}, where the marks are.` };
 }
 function missionPlan(label) {
   const L = (label || '').toLowerCase();
@@ -481,10 +490,11 @@ function vHome() {
       h('div', { class: 'row center' }, B([icon('play'), 'Bonus set'], 'pick', 'ghost', { 'data-sid': 'free' }), B([icon('flame'), 'Mocks'], 'go', 'ghost', { 'data-tab': 'mocks' }))),
     todayBar());
 
-  const title = RES ? 'Rescue set' : item ? (M.swap ? TRACK_NAME(M.subj) : item.s.label) : list.length && !open.length ? 'Bonus set' : 'Free study';
+  const title = RES ? 'Rescue set' : item ? setTitle(item.s.label) : list.length && !open.length ? 'Bonus set' : 'Free study';
   const meta = RES ? '10 minutes · what you are closest to forgetting' : item ? `Set ${Math.min(item.c + 1, item.n)} of ${item.n} in this block · ${S.timer.focus} minutes` : `${S.timer.focus} minutes · anything you choose`;
   const HT = M.subj && M.subj !== 'science' ? M.subj : { lit: 'englit', lang: 'englang', re: 're' }[M.id] || null; /* the subject the next set is about */
 
+  if (active && typeof deskMode === 'function' && deskMode() && T.mode === 'focus') return deskWorking(M, title, meta);
   if (active) return h('div', { class: 'stack home working' },
     h('section', { class: 'focus-bar' + (T.run ? ' live' : '') },
       ringEl(true),
@@ -1450,10 +1460,10 @@ const ACT = {
   },
   tgl() {
     if (T.run) { T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; }
-    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
+    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
   skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); } render(); },
   /* bad day: 10 minutes of what you are closest to forgetting, instead of a zero day */
@@ -1489,9 +1499,9 @@ const ACT = {
     if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
     /* Show me plays the board straight away when the demo is fully checked; the written method stays underneath */
     const d = typeof DEMO !== 'undefined' && DEMO.build(DR.q);
-    if (d && d.ok && d.source === 'verified') BOARD.open(d, { onSimilar: () => runAct('similar') });
+    if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
-  board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) BOARD.open(d, { onSimilar: el.dataset.sim && DR && DR.q ? () => runAct('similar') : null }); },
+  board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
