@@ -1125,7 +1125,7 @@ function vSelfMark(M) {
       h('div', { class: 'sm-cols' },
         h('div', { class: 'sm-box mine' }, h('small', null, 'Your answer'), h('b', null, answerText(q, M.ans[i]))),
         h('div', { class: 'sm-box scheme' }, h('small', null, 'Mark scheme'), h('b', null, q.show || String(q.a)),
-          q.steps && q.steps.length > 0 && h('ol', { class: 'steps' }, q.steps.map(x => h('li', null, x))))),
+          q.steps && q.steps.length > 0 && h('ol', { class: 'steps' }, q.steps.map(x => h('li', null, x))), boardBtn(q, 'link'))),
       h('div', { class: 'row' }, B([icon('check'), 'I got the mark'], 'smMark', 'ghost grow' + (SM.my[i] === true ? ' on' : ''), { 'data-v': '1' }), B([icon('x'), 'I lost the mark'], 'smMark', 'ghost grow' + (SM.my[i] === false ? ' on' : ''), { 'data-v': '0' })),
       SM.my[i] === false && [h('p', { class: 'fb-h' }, 'Why did you lose it?'), h('div', { class: 'chips' }, WHY.map(([k, l]) => chip(l, SM.why[i] === k, 'smWhy', { 'data-r': k })))]),
     h('div', { class: 'row' }, i > 0 && B('Back', 'smGo', 'ghost', { 'data-i': i - 1 }),

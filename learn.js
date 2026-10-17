@@ -30,7 +30,7 @@ const LEARN = (() => {
     if (five) steps.push(`5% = half of 10% = ${n(a / 2)}`);
     if (five && tens) steps.push(`${p}% = ${n(tens * a)} + ${n(a / 2)} = ${n(ans)}`);
     steps.push(`Calculator check: ${p / 100} × ${amt} = ${n(ans)}`);
-    return { q: `Find ${p}% of ${amt}.`, kind: 'num', v: ans, show: n(ans), steps };
+    return { q: `Find ${p}% of ${amt}.`, kind: 'num', v: ans, dm: { p, amt }, show: n(ans), steps };
   });
   T('pct-incdec', 'Increase or decrease by a %', () => {
     const p = pick([5, 10, 15, 20, 25, 30, 40, 50, 60, 75]), up = Math.random() < .5, amt = ri(4, 60) * 10, pc = 100 + (up ? p : -p), m = pc / 100, ans = clean(amt * pc / 100);
@@ -57,7 +57,7 @@ const LEARN = (() => {
     const L = lcm(a[1], b[1]), an = a[0] * L / a[1], bn = b[0] * L / b[1], rn = sub ? an - bn : an + bn, [sn, sd] = simp(rn, L), op = sub ? '−' : '+';
     const steps = [`Common denominator: ${L}`, `${a[0]}/${a[1]} = ${an}/${L}   and   ${b[0]}/${b[1]} = ${bn}/${L}`, `${an}/${L} ${op} ${bn}/${L} = ${rn}/${L}`];
     if (sd !== L) steps.push(`Simplify: ${rn}/${L} = ${fs(sn, sd)}`);
-    return { q: `Work out ${a[0]}/${a[1]} ${op} ${b[0]}/${b[1]}. Give your answer in its simplest form.`, kind: 'frac', n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 7/12', steps };
+    return { q: `Work out ${a[0]}/${a[1]} ${op} ${b[0]}/${b[1]}. Give your answer in its simplest form.`, kind: 'frac', dm: { a, b, sub }, n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 7/12', steps };
   });
   T('frac-mul', 'Multiplying and dividing fractions', () => {
     const a = frac(), b = frac(), div = Math.random() < .5, bb = div ? [b[1], b[0]] : b, rn = a[0] * bb[0], rd = a[1] * bb[1], [sn, sd] = simp(rn, rd);
@@ -65,12 +65,12 @@ const LEARN = (() => {
     if (div) steps.push(`Keep, change, flip: ${a[0]}/${a[1]} ÷ ${b[0]}/${b[1]} = ${a[0]}/${a[1]} × ${bb[0]}/${bb[1]}`);
     steps.push(`Multiply the tops and the bottoms: (${a[0]} × ${bb[0]})/(${a[1]} × ${bb[1]}) = ${rn}/${rd}`);
     if (sd !== rd) steps.push(`Simplify: ${rn}/${rd} = ${fs(sn, sd)}`);
-    return { q: `Work out ${a[0]}/${a[1]} ${div ? '÷' : '×'} ${b[0]}/${b[1]}. Give your answer in its simplest form.`, kind: 'frac', n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 5/8', steps };
+    return { q: `Work out ${a[0]}/${a[1]} ${div ? '÷' : '×'} ${b[0]}/${b[1]}. Give your answer in its simplest form.`, kind: 'frac', dm: { a, b, div }, n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 5/8', steps };
   });
   T('ratio-share', 'Sharing in a ratio', () => {
     let a, b; do { a = ri(1, 7); b = ri(1, 7); } while (a === b || gcd(a, b) !== 1);
     const k = ri(2, 20), tot = (a + b) * k, who = pick([['Amy', 'Ben'], ['Sam', 'Priya'], ['Jay', 'Mo'], ['Leah', 'Tom']]), w = ri(0, 1), part = w ? b : a, ans = part * k;
-    return { q: `£${tot} is shared between ${who[0]} and ${who[1]} in the ratio ${a}:${b}. How much does ${who[w]} get?`, kind: 'num', v: ans, pre: '£', show: '£' + ans,
+    return { q: `£${tot} is shared between ${who[0]} and ${who[1]} in the ratio ${a}:${b}. How much does ${who[w]} get?`, kind: 'num', v: ans, dm: { a, b, tot, part, name: who[w] }, pre: '£', show: '£' + ans,
       steps: [`Total parts: ${a} + ${b} = ${a + b}`, `One part: £${tot} ÷ ${a + b} = £${k}`, `${who[w]} gets ${part} part${part === 1 ? '' : 's'}: ${part} × £${k} = £${ans}`] };
   });
   T('ratio-simp', 'Simplifying ratios', () => {
@@ -96,14 +96,14 @@ const LEARN = (() => {
   T('solve-1', 'Solving equations', () => {
     const a = ri(2, 9); let x, b; do x = ri(-5, 12); while (!x); do b = ri(-20, 20); while (!b);
     const c = a * x + b;
-    return { q: `Solve ${a}x${sg(b)} = ${n(c)}`, kind: 'num', v: x, pre: 'x =', show: 'x = ' + n(x),
+    return { q: `Solve ${a}x${sg(b)} = ${n(c)}`, kind: 'num', v: x, dm: { a, b, c }, pre: 'x =', show: 'x = ' + n(x),
       steps: [`${b < 0 ? 'Add' : 'Subtract'} ${Math.abs(b)} on both sides: ${a}x = ${n(c - b)}`, `Divide both sides by ${a}: x = ${n(c - b)} ÷ ${a} = ${n(x)}`] };
   });
   T('solve-2', 'Unknowns on both sides', () => {
     const c = ri(1, 5), a = c + ri(1, 6); let x, b, d; do x = ri(-6, 10); while (!x); do b = ri(-15, 15); while (!b);
     d = (a - c) * x + b; if (!d) d = 0;
     const rhs = (c === 1 ? '' : c) + 'x' + (d ? sg(d) : '');
-    return { q: `Solve ${a}x${sg(b)} = ${rhs}`, kind: 'num', v: x, pre: 'x =', show: 'x = ' + n(x),
+    return { q: `Solve ${a}x${sg(b)} = ${rhs}`, kind: 'num', v: x, dm: { a, b, c, d }, pre: 'x =', show: 'x = ' + n(x),
       steps: [`Subtract ${c === 1 ? '' : c}x from both sides: ${a - c === 1 ? '' : a - c}x${sg(b)} = ${n(d)}`, `${b < 0 ? 'Add' : 'Subtract'} ${Math.abs(b)}: ${a - c === 1 ? '' : a - c}x = ${n(d - b)}`,
         a - c === 1 ? `x = ${n(x)}` : `Divide by ${a - c}: x = ${n(d - b)} ÷ ${a - c} = ${n(x)}`] };
   });
@@ -120,12 +120,12 @@ const LEARN = (() => {
   });
   T('expand', 'Expanding brackets', () => {
     const k = ri(2, 9), p = ri(1, 5), m = ri(1, 12), neg = Math.random() < .5, A = k * p, B = k * (neg ? -m : m), px = (p === 1 ? '' : p) + 'x';
-    return { q: `Expand ${k}(${px} ${neg ? '−' : '+'} ${m})`, kind: 'lin', v: 'x', a: A, b: B, show: lin(A, B, 'x'), hint: 'Type it like 6x + 15',
+    return { q: `Expand ${k}(${px} ${neg ? '−' : '+'} ${m})`, kind: 'lin', dm: { k, p, m: neg ? -m : m }, v: 'x', a: A, b: B, show: lin(A, B, 'x'), hint: 'Type it like 6x + 15',
       steps: [`Multiply everything inside the bracket by ${k}`, `${k} × ${px} = ${A}x`, `${k} × ${neg ? '−' : ''}${m} = ${n(B)}`, `Answer: ${lin(A, B, 'x')}`] };
   });
   T('nth-term', 'nth term of a sequence', () => {
     let d; do d = ri(-5, 9); while (d >= -1 && d <= 1); const c = ri(-8, 10), t = [1, 2, 3, 4].map(i => d * i + c);
-    return { q: `Find the nth term of: ${t.map(n).join(', ')}, …`, kind: 'lin', v: 'n', a: d, b: c, show: lin(d, c, 'n'), hint: 'Type it like 3n + 2',
+    return { q: `Find the nth term of: ${t.map(n).join(', ')}, …`, kind: 'lin', dm: { d, c }, v: 'n', a: d, b: c, show: lin(d, c, 'n'), hint: 'Type it like 3n + 2',
       steps: [`The terms change by ${n(d)} each time, so it starts ${lin(d, 0, 'n')}`, `${lin(d, 0, 'n')} gives ${[1, 2, 3, 4].map(i => n(d * i)).join(', ')}`,
         c ? `To match the sequence, ${c > 0 ? 'add' : 'subtract'} ${Math.abs(c)}` : 'That already matches the sequence', `nth term = ${lin(d, c, 'n')}`] };
   });
@@ -150,12 +150,12 @@ const LEARN = (() => {
     const tri = pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [9, 12, 15], [7, 24, 25], null, null, null]);
     if (Math.random() < .6) {
       const [a, b] = tri || [ri(3, 12), ri(3, 14)], s = a * a + b * b, c = Math.sqrt(s), exact = Number.isInteger(c), ans = exact ? c : Math.round(c * 10) / 10;
-      return { q: `A right-angled triangle has shorter sides ${a} cm and ${b} cm. Find the hypotenuse${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
+      return { q: `A right-angled triangle has shorter sides ${a} cm and ${b} cm. Find the hypotenuse${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, b, hyp: true }, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
         steps: ['Hypotenuse² = a² + b²', `= ${a}² + ${b}² = ${a * a} + ${b * b} = ${s}`, `Hypotenuse = √${s} = ${exact ? c : c.toFixed(3) + '… = ' + ans} cm`] };
     }
     let a, c; if (tri) { a = tri[0]; c = tri[2]; } else { c = ri(8, 20); a = ri(3, c - 2); }
     const s = c * c - a * a, b = Math.sqrt(s), exact = Number.isInteger(b), ans = exact ? b : Math.round(b * 10) / 10;
-    return { q: `A right-angled triangle has hypotenuse ${c} cm and one shorter side ${a} cm. Find the other side${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
+    return { q: `A right-angled triangle has hypotenuse ${c} cm and one shorter side ${a} cm. Find the other side${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, c, hyp: false }, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
       steps: ['Shorter side² = hypotenuse² − other side²', `= ${c}² − ${a}² = ${c * c} − ${a * a} = ${s}`, `Side = √${s} = ${exact ? b : b.toFixed(3) + '… = ' + ans} cm`] };
   });
   T('angles', 'Angles', () => {
@@ -221,7 +221,7 @@ const LEARN = (() => {
 
   /* ---------- Physics: AQA equations to recall, forwards and rearranged ---------- */
   const P = {};
-  const E = (id, name, eq, out, ins, sub, re, f) => { P[id] = { name, eq, out, ins, sub, re, f }; };
+  const E = (id, name, eq, out, ins, sub, re, f) => { P[id] = { id, name, eq, out, ins, sub, re, f }; };
   E('weight', 'Weight', 'W = m × g', ['W', 'W', 'weight', 'N'], [['m', 'm', 'mass', 'kg', [2, 5, 8, 10, 15, 20, 50, 60, 75]], ['g', 'g', 'gravitational field strength', 'N/kg', [9.8]]], '{m} × {g}', { m: ['m = W ÷ g', '{W} ÷ {g}'] }, v => v.m * v.g);
   E('work', 'Work done', 'W = F × s', ['W', 'W', 'work done', 'J'], [['F', 'F', 'force', 'N', [5, 10, 20, 25, 40, 50, 100, 250]], ['s', 's', 'distance', 'm', [2, 3, 4, 5, 8, 10, 12, 20]]], '{F} × {s}', { F: ['F = W ÷ s', '{W} ÷ {s}'], s: ['s = W ÷ F', '{W} ÷ {F}'] }, v => v.F * v.s);
   E('spring', 'Spring force', 'F = k × e', ['F', 'F', 'force', 'N'], [['k', 'k', 'spring constant', 'N/m', [20, 25, 40, 50, 100, 200]], ['e', 'e', 'extension', 'm', [.02, .05, .1, .15, .2, .3]]], '{k} × {e}', { k: ['k = F ÷ e', '{F} ÷ {e}'], e: ['e = F ÷ k', '{F} ÷ {k}'] }, v => v.k * v.e);
@@ -247,10 +247,10 @@ const LEARN = (() => {
     const [ok, osym, oname, ounit] = e.out; v[ok] = clean(e.f(v));
     const keys = Object.keys(e.re), desc = list => list.map(i => `${i[1]} = ${n(v[i[0]])} ${i[3]}`).join(', ');
     if (!keys.length || Math.random() < .5)
-      return { q: `Find the ${oname} when ${desc(e.ins)}.`, sub: e.name, kind: 'num', v: v[ok], rel: .005, suf: ounit, show: `${n(v[ok])} ${ounit}`,
+      return { q: `Find the ${oname} when ${desc(e.ins)}.`, sub: e.name, kind: 'num', v: v[ok], dm: { pid: e.id, v, find: ok }, rel: .005, suf: ounit, show: `${n(v[ok])} ${ounit}`,
         steps: [`Equation: ${e.eq}`, `${osym} = ${fill(e.sub, v)}`, `= ${n(v[ok])} ${ounit}`] };
     const k = pick(keys), inn = e.ins.find(i => i[0] === k), known = [[ok, osym, oname, ounit], ...e.ins.filter(i => i[0] !== k)];
-    return { q: `Find the ${inn[2]} when ${desc(known)}.`, sub: e.name + ' · rearranging', kind: 'num', v: v[k], rel: .005, suf: inn[3], show: `${n(v[k])} ${inn[3]}`,
+    return { q: `Find the ${inn[2]} when ${desc(known)}.`, sub: e.name + ' · rearranging', kind: 'num', v: v[k], dm: { pid: e.id, v, find: k }, rel: .005, suf: inn[3], show: `${n(v[k])} ${inn[3]}`,
       steps: [`Equation: ${e.eq}`, `Rearrange: ${e.re[k][0]}`, `${inn[1]} = ${fill(e.re[k][1], v)}`, `= ${n(v[k])} ${inn[3]}`] };
   }
 
@@ -588,5 +588,5 @@ const LEARN = (() => {
     for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
-  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
+  return { MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();

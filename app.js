@@ -76,6 +76,13 @@ const selectSubj = (path, val) => h('select', { 'data-draft': path, value: val }
 
 /* Transitions.dev-based helpers (styles in transitions.css) */
 const ACC = {};
+/* "Watch it on the board" for any question whose demo builds and passes its checks; the demo is kept by key for ACT.board */
+const BOARD_Q = new Map(); let boardN = 0;
+function boardBtn(q, cls = 'ghost', similar = false) {
+  const d = typeof DEMO !== 'undefined' && DEMO.build(q); if (!d || !d.ok) return null;
+  const k = String(boardN++ % 300); BOARD_Q.set(k, d);
+  return B([icon('play'), 'Watch it on the board'], 'board', cls, { 'data-k': k, 'data-sim': similar ? '1' : null });
+}
 function acc(key, head, body, { open = false, cls = 'card' } = {}) {
   const isOpen = ACC[key] != null ? ACC[key] : open;
   const panel = h('div', { class: 't-acc-panel' }, h('div', { class: 't-acc-panel-inner' }, h('div', { class: 't-acc-gap' }), body));
@@ -659,11 +666,13 @@ function drillPanel() {
       : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
         h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
         !mcq && acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
+        !mcq && boardBtn(q, 'link', true),
         B('Next question', 'next', 'primary wide', { id: 'nextq' }))
       : h('div', { class: 'fb no t-panel-slide', 'data-open': 'false' },
         h('p', { class: 'fb-h' }, st === 'shown' ? 'Here is how it works.' : 'Not quite.', DR.msg && h('span', null, ' ' + DR.msg)),
         h('p', null, 'Answer: ', h('b', null, q.show)),
         !mcq && h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))),
+        !mcq && boardBtn(q, 'ghost', true),
         h('div', { class: 'row' }, B('Try a similar one', 'similar', 'primary grow', { id: 'nextq' }), B('Next', 'next', 'ghost')),
         B([icon('plus'), 'Add to fix list'], 'drillFix', 'link')));
 }
@@ -996,7 +1005,7 @@ function mpResults() {
     card('Question by question', null, h('ul', { class: 'mpres' }, R.rows.map((r, k) => h('li', { class: r.ok ? 'ok' : 'no' },
       h('p', null, h('b', null, `${k + 1}. ${r.ok ? '✓' : '✗'} `), r.q.q),
       h('p', { class: 'muted xs' }, `Your answer: ${(r.q.kind === 'mcq' && r.a ? r.q.options[+r.a] : r.a) || '(blank)'}${r.ok ? '' : ` · Correct: ${r.q.show}`}${r.msg ? ` · ${r.msg}` : ''}`),
-      !r.ok && acc('mp' + k, h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, r.q.steps.map(x => h('li', null, x))), { cls: '' }))))));
+      !r.ok && acc('mp' + k, h('span', { class: 'btn link' }, 'See the method'), h('div', null, h('ol', { class: 'steps' }, r.q.steps.map(x => h('li', null, x))), boardBtn(r.q, 'link')), { cls: '' }))))));
 }
 const MPACT = {
   mpNew(el) {
@@ -1476,7 +1485,13 @@ const ACT = {
     const n = DR.ticks.filter(Boolean).length, all = DR.q.points.length;
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
-  reveal() { if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' }); },
+  reveal() {
+    if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
+    /* Show me plays the board straight away when the demo is fully checked; the written method stays underneath */
+    const d = typeof DEMO !== 'undefined' && DEMO.build(DR.q);
+    if (d && d.ok && d.source === 'verified') BOARD.open(d, { onSimilar: () => runAct('similar') });
+  },
+  board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) BOARD.open(d, { onSimilar: el.dataset.sim && DR && DR.q ? () => runAct('similar') : null }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {
