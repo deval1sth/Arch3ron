@@ -21,7 +21,7 @@ const LEARN = (() => {
   /* ---------- Maths: AQA Foundation, weighted to what secures a grade 4 ---------- */
   const M = {};
   const T = (id, name, gen) => { M[id] = { name, gen }; };
-  const work = (expr, v, steps) => ({ q: `Work out ${expr}`, kind: 'num', v, show: n(v), steps });
+  const work = (expr, v, steps, dm) => ({ q: `Work out ${expr}`, kind: 'num', v, show: n(v), steps, dm });
 
   T('pct-of', 'Percentage of an amount', () => {
     const p = pick([5, 10, 15, 20, 25, 30, 35, 40, 45, 60, 65, 70, 75, 80, 90]), amt = ri(2, 30) * 20, a = amt / 10, ans = amt * p / 100;
@@ -34,7 +34,7 @@ const LEARN = (() => {
   });
   T('pct-incdec', 'Increase or decrease by a %', () => {
     const p = pick([5, 10, 15, 20, 25, 30, 40, 50, 60, 75]), up = Math.random() < .5, amt = ri(4, 60) * 10, pc = 100 + (up ? p : -p), m = pc / 100, ans = clean(amt * pc / 100);
-    return { q: `${up ? 'Increase' : 'Decrease'} £${amt} by ${p}%.`, kind: 'num', v: ans, pre: '£', show: '£' + money(ans), tol: .005,
+    return { q: `${up ? 'Increase' : 'Decrease'} £${amt} by ${p}%.`, kind: 'num', v: ans, dm: { p, up, amt }, pre: '£', show: '£' + money(ans), tol: .005,
       steps: [`Multiplier: 100% ${up ? '+' : '−'} ${p}% = ${pc}% = ${n(m)}`, `£${amt} × ${n(m)} = £${money(ans)}`] };
   });
   T('pct-change', 'Percentage change', () => {
@@ -42,14 +42,14 @@ const LEARN = (() => {
       const o = pick([20, 25, 40, 50, 60, 80, 120, 160, 200, 250, 400]), p = pick([5, 10, 20, 25, 30, 40, 50, 60, 75]), up = Math.random() < .6, c = o * p / 100;
       if (!Number.isInteger(c)) continue;
       const nw = up ? o + c : o - c;
-      return { q: `A price ${up ? 'rises' : 'falls'} from £${o} to £${nw}. Find the percentage ${up ? 'increase' : 'decrease'}.`, kind: 'num', v: p, suf: '%', show: p + '%',
+      return { q: `A price ${up ? 'rises' : 'falls'} from £${o} to £${nw}. Find the percentage ${up ? 'increase' : 'decrease'}.`, kind: 'num', v: p, dm: { o, nw, up }, suf: '%', show: p + '%',
         steps: [`Change = ${up ? nw + ' − ' + o : o + ' − ' + nw} = ${c}`, 'Percentage change = change ÷ original × 100', `= ${c} ÷ ${o} × 100 = ${p}%`] };
     }
   });
   T('frac-of', 'Fraction of an amount', () => {
     const [k, d] = (() => { const d = pick([3, 4, 5, 6, 8, 10]); let k; do k = ri(1, d - 1); while (gcd(k, d) !== 1); return [k, d]; })();
     const amt = d * ri(3, 15), one = amt / d, ans = one * k;
-    return { q: `Find ${k}/${d} of ${amt}.`, kind: 'num', v: ans, show: n(ans), steps: [`Divide by the bottom: ${amt} ÷ ${d} = ${one}`, `Multiply by the top: ${one} × ${k} = ${ans}`] };
+    return { q: `Find ${k}/${d} of ${amt}.`, kind: 'num', v: ans, dm: { k, d, amt }, show: n(ans), steps: [`Divide by the bottom: ${amt} ÷ ${d} = ${one}`, `Multiply by the top: ${one} × ${k} = ${ans}`] };
   });
   T('frac-add', 'Adding and subtracting fractions', () => {
     let a = frac(), b = frac(); while (a[1] === b[1]) b = frac();
@@ -76,7 +76,7 @@ const LEARN = (() => {
   T('ratio-simp', 'Simplifying ratios', () => {
     let p, q; do { p = ri(1, 9); q = ri(1, 9); } while (p === q || gcd(p, q) !== 1);
     const k = ri(2, 12);
-    return { q: `Simplify ${p * k}:${q * k}`, kind: 'ratio', parts: [p, q], show: `${p}:${q}`, hint: 'Type it like 2:3',
+    return { q: `Simplify ${p * k}:${q * k}`, kind: 'ratio', dm: { p, q, k }, parts: [p, q], show: `${p}:${q}`, hint: 'Type it like 2:3',
       steps: [`Highest common factor of ${p * k} and ${q * k} is ${k}`, `${p * k} ÷ ${k} = ${p}   and   ${q * k} ÷ ${k} = ${q}`, `Answer: ${p}:${q}`] };
   });
   T('bidmas', 'Order of operations (BIDMAS)', () => {
@@ -88,8 +88,8 @@ const LEARN = (() => {
   });
   T('negatives', 'Negative numbers', () => {
     const a = ri(2, 12), b = ri(2, 12), f = ri(0, 3);
-    if (f === 0) return work(`−${a} + ${b}`, b - a, [`Start at −${a} on the number line and go up ${b}`, `Answer: ${n(b - a)}`]);
-    if (f === 1) return work(`${a} − (−${b})`, a + b, ['Subtracting a negative is the same as adding', `${a} + ${b} = ${a + b}`]);
+    if (f === 0) return work(`−${a} + ${b}`, b - a, [`Start at −${a} on the number line and go up ${b}`, `Answer: ${n(b - a)}`], { line: [-a, b] });
+    if (f === 1) return work(`${a} − (−${b})`, a + b, ['Subtracting a negative is the same as adding', `${a} + ${b} = ${a + b}`], { line: [a, b] });
     if (f === 2) return work(`−${a} × ${b}`, -a * b, ['Negative × positive = negative', `${a} × ${b} = ${a * b}, so the answer is ${n(-a * b)}`]);
     return work(`−${a} × −${b}`, a * b, ['Negative × negative = positive', `${a} × ${b} = ${a * b}`]);
   });
@@ -111,11 +111,11 @@ const LEARN = (() => {
     const a = ri(-5, 6) || 2, b = ri(-5, 6) || -3, p = ri(2, 6), q = ri(2, 6);
     if (Math.random() < .5) {
       const v = p * a + q * b;
-      return { q: `If a = ${n(a)} and b = ${n(b)}, work out ${p}a + ${q}b.`, kind: 'num', v, show: n(v),
+      return { q: `If a = ${n(a)} and b = ${n(b)}, work out ${p}a + ${q}b.`, kind: 'num', v, dm: { a, b, p, q, sq: false }, show: n(v),
         steps: [`Replace the letters: ${p} × ${par(a)} + ${q} × ${par(b)}`, `= ${n(p * a)} + ${par(q * b)}`, `= ${n(v)}`] };
     }
     const v = a * a + q * b;
-    return { q: `If a = ${n(a)} and b = ${n(b)}, work out a² + ${q}b.`, kind: 'num', v, show: n(v),
+    return { q: `If a = ${n(a)} and b = ${n(b)}, work out a² + ${q}b.`, kind: 'num', v, dm: { a, b, q, sq: true }, show: n(v),
       steps: [`${par(a)}² = ${a * a}${a < 0 ? ' (a negative squared is positive)' : ''}`, `${q} × ${par(b)} = ${n(q * b)}`, `${a * a} + ${par(q * b)} = ${n(v)}`] };
   });
   T('expand', 'Expanding brackets', () => {
@@ -132,11 +132,11 @@ const LEARN = (() => {
   T('area', 'Area of triangles and trapeziums', () => {
     if (Math.random() < .5) {
       const b = ri(3, 20), h = ri(2, 15), v = b * h / 2;
-      return { q: `A triangle has base ${b} cm and perpendicular height ${h} cm. Find its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²',
+      return { q: `A triangle has base ${b} cm and perpendicular height ${h} cm. Find its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²', dm: { shape: 'tri', b, h },
         steps: ['Area of a triangle = ½ × base × height', `= ½ × ${b} × ${h}`, `= ${n(v)} cm²`] };
     }
     const a = ri(3, 12), b = a + ri(1, 8), h = ri(2, 10), v = (a + b) * h / 2;
-    return { q: `A trapezium has parallel sides ${a} cm and ${b} cm, and height ${h} cm. Find its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²',
+    return { q: `A trapezium has parallel sides ${a} cm and ${b} cm, and height ${h} cm. Find its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²', dm: { shape: 'trap', a, b, h },
       steps: ['Area of a trapezium = ½ × (a + b) × h', `= ½ × (${a} + ${b}) × ${h} = ½ × ${a + b} × ${h}`, `= ${n(v)} cm²`] };
   });
   T('circles', 'Circles: area and circumference', () => {
@@ -144,7 +144,7 @@ const LEARN = (() => {
     const steps = []; if (useD && area) steps.push(`Radius = diameter ÷ 2 = ${2 * r} ÷ 2 = ${r} cm`);
     if (area) steps.push('Area = π × r²', `= π × ${r}² = π × ${r * r}`, `= ${v.toFixed(3)}… = ${ans} cm² (1 d.p.)`);
     else steps.push('Circumference = π × diameter', useD ? `= π × ${2 * r}` : `Diameter = 2 × ${r} = ${2 * r}, so π × ${2 * r}`, `= ${v.toFixed(3)}… = ${ans} cm (1 d.p.)`);
-    return { q: `A circle has ${useD ? 'diameter ' + 2 * r : 'radius ' + r} cm. Find its ${area ? 'area' : 'circumference'} to 1 decimal place.`, kind: 'num', v: ans, tol: .051, suf: area ? 'cm²' : 'cm', show: ans + (area ? ' cm²' : ' cm'), steps };
+    return { q: `A circle has ${useD ? 'diameter ' + 2 * r : 'radius ' + r} cm. Find its ${area ? 'area' : 'circumference'} to 1 decimal place.`, kind: 'num', v: ans, dm: { r, useD, area }, tol: .051, suf: area ? 'cm²' : 'cm', show: ans + (area ? ' cm²' : ' cm'), steps };
   });
   T('pythag', 'Pythagoras', () => {
     const tri = pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [9, 12, 15], [7, 24, 25], null, null, null]);
@@ -160,11 +160,11 @@ const LEARN = (() => {
   });
   T('angles', 'Angles', () => {
     const f = ri(0, 3);
-    if (f === 0) { const a = ri(20, 90), b = ri(20, 160 - a), v = 180 - a - b; return { q: `Two angles in a triangle are ${a}° and ${b}°. Find the third angle.`, kind: 'num', v, suf: '°', show: v + '°', steps: ['Angles in a triangle add up to 180°', `180 − ${a} − ${b} = ${v}°`] }; }
-    if (f === 1) { const a = ri(15, 165), v = 180 - a; return { q: `Two angles sit on a straight line. One is ${a}°. Find the other.`, kind: 'num', v, suf: '°', show: v + '°', steps: ['Angles on a straight line add up to 180°', `180 − ${a} = ${v}°`] }; }
-    if (f === 2) { const a = ri(40, 130), b = ri(40, 120), c = ri(30, 300 - a - b), v = 360 - a - b - c; return { q: `Four angles meet at a point. Three are ${a}°, ${b}° and ${c}°. Find the fourth.`, kind: 'num', v, suf: '°', show: v + '°', steps: ['Angles around a point add up to 360°', `360 − ${a} − ${b} − ${c} = ${v}°`] }; }
+    if (f === 0) { const a = ri(20, 90), b = ri(20, 160 - a), v = 180 - a - b; return { q: `Two angles in a triangle are ${a}° and ${b}°. Find the third angle.`, kind: 'num', v, dm: { f: 'tri', a, b }, suf: '°', show: v + '°', steps: ['Angles in a triangle add up to 180°', `180 − ${a} − ${b} = ${v}°`] }; }
+    if (f === 1) { const a = ri(15, 165), v = 180 - a; return { q: `Two angles sit on a straight line. One is ${a}°. Find the other.`, kind: 'num', v, dm: { f: 'line', a }, suf: '°', show: v + '°', steps: ['Angles on a straight line add up to 180°', `180 − ${a} = ${v}°`] }; }
+    if (f === 2) { const a = ri(40, 130), b = ri(40, 120), c = ri(30, 300 - a - b), v = 360 - a - b - c; return { q: `Four angles meet at a point. Three are ${a}°, ${b}° and ${c}°. Find the fourth.`, kind: 'num', v, dm: { f: 'point', a, b, c }, suf: '°', show: v + '°', steps: ['Angles around a point add up to 360°', `360 − ${a} − ${b} − ${c} = ${v}°`] }; }
     const N = { 5: 'pentagon', 6: 'hexagon', 8: 'octagon', 9: 'nonagon', 10: 'decagon', 12: 'dodecagon' }, k = pick([5, 6, 8, 9, 10, 12]), ext = 360 / k, inner = Math.random() < .5;
-    return { q: `Find the ${inner ? 'interior' : 'exterior'} angle of a regular ${N[k]} (${k} sides).`, kind: 'num', v: inner ? 180 - ext : ext, suf: '°', show: (inner ? 180 - ext : ext) + '°',
+    return { q: `Find the ${inner ? 'interior' : 'exterior'} angle of a regular ${N[k]} (${k} sides).`, kind: 'num', v: inner ? 180 - ext : ext, dm: { f: 'poly', k, inner, name: N[k] }, suf: '°', show: (inner ? 180 - ext : ext) + '°',
       steps: ['Exterior angles of any polygon add up to 360°', `Exterior angle = 360 ÷ ${k} = ${ext}°`].concat(inner ? ['Interior + exterior = 180°', `Interior angle = 180 − ${ext} = ${180 - ext}°`] : []) };
   });
   T('averages', 'Mean, median, mode, range', () => {
@@ -177,32 +177,32 @@ const LEARN = (() => {
       median: [sorted[(sorted.length - 1) / 2], [`Put them in order: ${sorted.join(', ')}`, `The middle value is ${sorted[(sorted.length - 1) / 2]}`]],
       range: [sorted[sorted.length - 1] - sorted[0], [`Biggest − smallest = ${sorted[sorted.length - 1]} − ${sorted[0]} = ${sorted[sorted.length - 1] - sorted[0]}`]],
       mode: [xs.find(v => xs.filter(w => w === v).length === 3), ['The mode is the value that appears most often', `${xs.find(v => xs.filter(w => w === v).length === 3)} appears 3 times`]] }[k];
-    return { q: `Find the ${k} of: ${xs.join(', ')}`, kind: 'num', v: out[0], show: n(out[0]), steps: out[1] };
+    return { q: `Find the ${k} of: ${xs.join(', ')}`, kind: 'num', v: out[0], dm: { k, xs }, show: n(out[0]), steps: out[1] };
   });
   T('sdt', 'Speed, distance, time', () => {
     const s = pick([20, 30, 40, 45, 50, 60, 70, 80]), t = pick([.5, 1.5, 2, 2.5, 3, 4]), d = s * t, f = ri(0, 2);
     const ts = t === .5 ? '30 minutes' : Number.isInteger(t) ? `${t} hours` : `${Math.floor(t)} hours 30 minutes`, note = Number.isInteger(t) ? [] : [`${ts} = ${t} hours`];
-    if (f === 0) return { q: `A car travels ${d} km in ${ts}. Find its average speed.`, kind: 'num', v: s, suf: 'km/h', show: s + ' km/h', steps: [...note, 'Speed = distance ÷ time', `= ${d} ÷ ${t} = ${s} km/h`] };
-    if (f === 1) return { q: `A cyclist travels at ${s} km/h for ${ts}. How far do they go?`, kind: 'num', v: d, suf: 'km', show: d + ' km', steps: [...note, 'Distance = speed × time', `= ${s} × ${t} = ${d} km`] };
-    return { q: `How long does it take to travel ${d} km at ${s} km/h? Give your answer in hours.`, kind: 'num', v: t, suf: 'hours', show: t + ' hours', steps: ['Time = distance ÷ speed', `= ${d} ÷ ${s} = ${t} hours`] };
+    if (f === 0) return { q: `A car travels ${d} km in ${ts}. Find its average speed.`, kind: 'num', v: s, dm: { f: 's', s, t, d }, suf: 'km/h', show: s + ' km/h', steps: [...note, 'Speed = distance ÷ time', `= ${d} ÷ ${t} = ${s} km/h`] };
+    if (f === 1) return { q: `A cyclist travels at ${s} km/h for ${ts}. How far do they go?`, kind: 'num', v: d, dm: { f: 'd', s, t, d }, suf: 'km', show: d + ' km', steps: [...note, 'Distance = speed × time', `= ${s} × ${t} = ${d} km`] };
+    return { q: `How long does it take to travel ${d} km at ${s} km/h? Give your answer in hours.`, kind: 'num', v: t, dm: { f: 't', s, t, d }, suf: 'hours', show: t + ' hours', steps: ['Time = distance ÷ speed', `= ${d} ÷ ${s} = ${t} hours`] };
   });
   T('std-form', 'Standard form', () => {
     const m = ri(11, 99) / 10, neg = Math.random() < .35, p = neg ? -ri(1, 4) : ri(2, 6), v = clean(m * Math.pow(10, p)), ms = String(m);
-    if (Math.random() < .5) return { q: `Write ${ms} × 10${sup(p)} as an ordinary number.`, kind: 'num', v, rel: 1e-9, show: String(v),
+    if (Math.random() < .5) return { q: `Write ${ms} × 10${sup(p)} as an ordinary number.`, kind: 'num', v, rel: 1e-9, dm: { m, p, toOrd: true }, show: String(v),
       steps: [`The power is ${p}, so move the decimal point ${Math.abs(p)} place${Math.abs(p) > 1 ? 's' : ''} ${p > 0 ? 'right (bigger number)' : 'left (smaller number)'}`, `${ms} → ${v}`] };
-    return { q: `Write ${v} in standard form.`, kind: 'sf', v, show: `${ms} × 10${sup(p)}`, hint: 'Type it like 4.7 x 10^5',
+    return { q: `Write ${v} in standard form.`, kind: 'sf', v, dm: { m, p, toOrd: false }, show: `${ms} × 10${sup(p)}`, hint: 'Type it like 4.7 x 10^5',
       steps: ['Standard form is A × 10ⁿ, where 1 ≤ A < 10', `A = ${ms}`, `Count how far the decimal point moves to get from ${ms} to ${v}: ${Math.abs(p)} place${Math.abs(p) > 1 ? 's' : ''} ${p > 0 ? 'right, so n = ' + p : 'left, so n = ' + p}`, `${ms} × 10${sup(p)}`] };
   });
   T('prob', 'Probability', () => {
     const cols = ['red', 'blue', 'green', 'yellow'], k = ri(2, 3), cs = Array.from({ length: k }, () => ri(1, 9)), tot = cs.reduce((a, b) => a + b), i = ri(0, k - 1), not = Math.random() < .35;
     const num = not ? tot - cs[i] : cs[i], [sn, sd] = simp(num, tot);
     const list = cs.map((c, j) => `${c} ${cols[j]}`), desc = list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
-    return { q: `A bag has ${desc} counters. One is taken at random. What is the probability it is ${not ? 'not ' : ''}${cols[i]}?`, kind: 'frac', n: sn, d: sd, simplest: false, show: fs(num, tot) + (sd !== tot ? ` (= ${fs(sn, sd)})` : ''), hint: 'Type a fraction like 3/8',
+    return { q: `A bag has ${desc} counters. One is taken at random. What is the probability it is ${not ? 'not ' : ''}${cols[i]}?`, kind: 'frac', dm: { cs, i, not, cols }, n: sn, d: sd, simplest: false, show: fs(num, tot) + (sd !== tot ? ` (= ${fs(sn, sd)})` : ''), hint: 'Type a fraction like 3/8',
       steps: [`Total counters: ${cs.join(' + ')} = ${tot}`, not ? `Not ${cols[i]}: ${tot} − ${cs[i]} = ${num}` : `${cap(cols[i])} counters: ${num}`, `Probability = ${num}/${tot}${sd !== tot ? ' = ' + fs(sn, sd) : ''}`] };
   });
   T('compound', 'Compound interest', () => {
     const P = ri(2, 50) * 100, r = pick([2, 3, 4, 5, 6, 8]), y = ri(2, 5), m = 1 + r / 100, v = Math.round(P * Math.pow(m, y) * 100) / 100;
-    return { q: `£${P} is invested at ${r}% compound interest per year. How much is it worth after ${y} years?`, kind: 'num', v, tol: .011, pre: '£', show: '£' + v.toFixed(2),
+    return { q: `£${P} is invested at ${r}% compound interest per year. How much is it worth after ${y} years?`, kind: 'num', v, dm: { P, r, y }, tol: .011, pre: '£', show: '£' + v.toFixed(2),
       steps: [`Multiplier: 1 + ${r}/100 = ${n(m)}`, `Apply it once per year: £${P} × ${n(m)}${sup(y)}`, `= £${v.toFixed(2)}`] };
   });
   T('rounding', 'Rounding (d.p. and s.f.)', () => {
@@ -210,12 +210,12 @@ const LEARN = (() => {
     if (Math.random() < .5) {
       const dp = ri(1, 2), ip = ri(0, 99), ds = [dig(), dig(), dig(), dig()]; ds[dp] = dig(true);
       const x = Number(`${ip}.${ds.join('')}`), ans = Number(x.toFixed(dp)), up = ds[dp] > 5;
-      return { q: `Round ${x} to ${dp} decimal place${dp > 1 ? 's' : ''}.`, kind: 'num', v: ans, show: ans.toFixed(dp),
+      return { q: `Round ${x} to ${dp} decimal place${dp > 1 ? 's' : ''}.`, kind: 'num', v: ans, dm: { x, dp }, show: ans.toFixed(dp),
         steps: [`Look at the digit after decimal place ${dp}: it is ${ds[dp]}`, up ? 'It is 5 or more, so round up' : 'It is less than 5, so round down', `Answer: ${ans.toFixed(dp)}`] };
     }
     const sf = ri(1, 3), big = Math.random() < .6, ds = [ri(1, 9), dig(), dig(), dig(), dig()]; ds[sf] = dig(true);
     const x = big ? Number(ds.join('')) : Number('0.0' + ds.join('')), ans = Number(x.toPrecision(sf)), up = ds[sf] > 5;
-    return { q: `Round ${x} to ${sf} significant figure${sf > 1 ? 's' : ''}.`, kind: 'num', v: ans, rel: 1e-9, show: String(ans),
+    return { q: `Round ${x} to ${sf} significant figure${sf > 1 ? 's' : ''}.`, kind: 'num', v: ans, dm: { x, sf }, rel: 1e-9, show: String(ans),
       steps: [`The first significant figure is the first non-zero digit: ${ds[0]}`, `The digit after ${sf} s.f. is ${ds[sf]}, so round ${up ? 'up' : 'down'}`, big ? 'Fill the remaining places with zeros to keep the size of the number' : 'Keep the leading zeros', `Answer: ${ans}`] };
   });
 
@@ -307,8 +307,8 @@ const LEARN = (() => {
   });
   CT('cc-pct', 'chemistry', 'Percentage by mass', () => {
     const f = pick(FORMULAS.filter(x => parseF(x).length > 1)), parts = parseF(f), mr = clean(sum(parts.map(([e, c]) => AR[e] * c))), [e, c] = pick(parts), p = d1(AR[e] * c / mr * 100);
-    return { q: `Calculate the percentage by mass of ${e} in ${subF(f)} to 1 d.p. Relative atomic masses: ${parts.map(([x]) => `${x} = ${AR[x]}`).join(', ')}.`, kind: 'num', v: p, tol: .051, suf: '%', show: n(p) + '%',
-      steps: [`Mr of ${subF(f)} = ${n(mr)}`, `Mass of ${e} in the formula = ${c} × ${AR[e]} = ${n(c * AR[e])}`, `% = ${n(c * AR[e])} ÷ ${n(mr)} × 100 = ${n(p)}%`] };
+    return { q: `Calculate the percentage by mass of ${e} in ${subF(f)} to 1 d.p. Relative atomic masses: ${parts.map(([x]) => `${x} = ${AR[x]}`).join(', ')}.`, kind: 'num', v: p, tol: .051, suf: '%', show: p.toFixed(1) + '%',
+      steps: [`Mr of ${subF(f)} = ${n(mr)}`, `Mass of ${e} in the formula = ${c} × ${AR[e]} = ${n(c * AR[e])}`, `% = ${n(c * AR[e])} ÷ ${n(mr)} × 100 = ${p.toFixed(1)}%`] };
   });
   CT('cc-conc', 'chemistry', 'Concentration (g/dm³)', () => {
     const m = pick([2, 4, 5, 8, 10, 12.5, 20, 25]), v = pick([100, 200, 250, 500]), dm = v / 1000, c = clean(m / dm);

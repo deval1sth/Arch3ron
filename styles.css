@@ -1058,7 +1058,7 @@ html.bd-open{overflow:hidden}
 .bl:not(.now){opacity:.72}
 .bl.now{border-left-color:var(--y)}
 .bs{margin:0 0 6px;color:var(--m);font-size:15px;line-height:1.45}
-.bm{display:block;font-size:clamp(19px,4.6vw,24px);line-height:1.5;font-weight:700;font-variant-numeric:tabular-nums;color:var(--hi);letter-spacing:.01em}
+.bm{display:block;white-space:pre-wrap;font-size:clamp(19px,4.6vw,24px);line-height:1.5;font-weight:700;font-variant-numeric:tabular-nums;color:var(--hi);letter-spacing:.01em}
 .bw{display:inline-block;white-space:nowrap}
 .bc{display:inline-block;white-space:pre}
 .bf{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1.15;font-size:.9em}
@@ -1074,10 +1074,6 @@ html.bd-open{overflow:hidden}
 .bt th{font-size:12px;color:var(--m);font-weight:700;text-align:center;padding:2px 12px}
 .bt td{text-align:center;padding:3px 12px;font-weight:700;border-top:1px solid var(--line2)}
 .bt tr.eq td:last-child{color:var(--g)}.bt tr.ne td:last-child{color:var(--danger)}
-.btri{display:block;width:min(280px,100%);height:auto;margin:4px 0}
-.btri .ts{fill:none;stroke:var(--hi);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0}
-.btri .hyp{stroke:var(--y)}.btri .ra{stroke-width:2}
-.btri .tl{font:700 14px var(--font);fill:var(--t)}.btri .tl.hy{fill:var(--y3)}.btri .tl.sm{font-size:12px;fill:var(--m)}
 .bd-think,.bd-end{margin:10px 16px 0;padding:12px 14px;border-radius:var(--r-sm);background:var(--y-soft)}
 .bd-think p,.bd-end p{margin:0 0 8px;font-weight:700}.bd-think p{margin:0}
 .bd-end .row{display:flex;flex-wrap:wrap;gap:8px}
@@ -1096,8 +1092,6 @@ html.bd-open{overflow:hidden}
 .bl.live .bb{animation-name:bdBar}
 .bl.live .bs{animation:bdFade .45s var(--ease) both}
 .bl.live .bt tr{animation:bdFade .35s var(--ease) var(--d,0ms) both}
-.bl.live .btri .ts{animation:bdDraw .5s var(--ease) var(--d,0ms) both}
-.bl.live .btri .tl{animation:bdFade .4s var(--ease) var(--d,0ms) both}
 .bl.live.k-answer .bm{animation:bdMark .5s var(--ease) both}
 .bd-scrim.paused .bl.live *{animation-play-state:paused!important}
 @keyframes bdInk{from{opacity:0;transform:translateY(.28em) scale(.92)}to{opacity:1;transform:none}}
@@ -1108,3 +1102,20 @@ html.bd-open{overflow:hidden}
 @keyframes bdMark{from{background-size:0 100%}to{background-size:100% 100%}}
 .bl.k-answer .bm{background-repeat:no-repeat;background-size:100% 100%}
 html.rm .bd,html.rm .bd-scrim{animation:none}
+/* board diagrams (demo.js FIG): lines draw, labels and dots fade in */
+.bfig{display:block;width:100%;height:auto;margin:6px 0 2px;overflow:visible}
+.bfig .fl{fill:none;stroke:var(--hi);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.bfig .fl.hy{stroke:var(--y)}.bfig .fl.thin{stroke-width:1.6}.bfig .fl.thick{stroke-width:4.5}
+.bfig .fl.dash{stroke-dasharray:6 5}
+.bfig .ft{font:700 13px var(--font);fill:var(--t)}
+.bfig .ft.mid{text-anchor:middle}.bfig .ft.end{text-anchor:end}.bfig .ft.hy{fill:var(--y3)}.bfig .ft.sm{font-size:11px;fill:var(--m);font-weight:400}.bfig .ft.big{font-size:20px}
+.bfig .fo{fill:var(--hi)}.bfig .fo.acc{fill:var(--m)}.bfig .fo.hyf{fill:var(--y)}
+.bfig .c-red{fill:#e0464e}.bfig .c-blue{fill:#3a6ee8}.bfig .c-green{fill:#2ea06a}.bfig .c-yellow{fill:#f2c230}
+.bfig .at{stroke:rgba(0,0,0,.35);stroke-width:1;fill:#9aa1b5}
+.bfig .at-H{fill:#fff}.bfig .at-O{fill:#e5484d}.bfig .at-C{fill:#3b3f4c}.bfig .at-N{fill:#4b7bec}.bfig .at-Cl{fill:#3fbf6f}.bfig .at-Na,.bfig .at-K,.bfig .at-Li{fill:#9b6bdf}
+.bfig .at-Mg,.bfig .at-Ca{fill:#d8d2bf}.bfig .at-Fe,.bfig .at-Cu,.bfig .at-Zn,.bfig .at-Ag,.bfig .at-Pb,.bfig .at-Al{fill:#d98a3d}.bfig .at-S{fill:#e8c93a}.bfig .at-Br,.bfig .at-I{fill:#a0522d}
+.bfig .ft.at-t{font-size:8px;fill:#1c2033;pointer-events:none}
+.bfig .at-C+.ft.at-t,.bfig .at-O+.ft.at-t,.bfig .at-N+.ft.at-t,.bfig .at-Br+.ft.at-t,.bfig .at-I+.ft.at-t{fill:#fff}
+.bl.live .bfig .fl{stroke-dasharray:1;animation:bdDraw .55s var(--ease) var(--d,0ms) both}
+.bl.live .bfig .fl.dash{stroke-dasharray:6 5;animation:bdFade .4s var(--ease) var(--d,0ms) both}
+.bl.live .bfig .ft,.bl.live .bfig .fo{animation:bdFade .35s var(--ease) var(--d,0ms) both}

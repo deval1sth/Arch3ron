@@ -47,23 +47,30 @@ const BOARD = (() => {
     tb.append(body);
     return [tb, rows.length * 180 * k() + 300];
   }
-  /* right-angled triangle; the sides draw themselves, labels fade in after */
-  function tri(lab, start, animate) {
+  /* diagrams from demo.js: lines draw themselves in order, then labels and dots fade in. Big drawings
+     (like lots of atoms) are sped up so a diagram never takes more than about 3 seconds at Steady. */
+  function drawFig(F, start, animate) {
     const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg');
-    s.setAttribute('viewBox', '0 0 240 150'); s.setAttribute('class', 'btri'); s.setAttribute('role', 'img');
-    s.setAttribute('aria-label', `Right-angled triangle. Shorter sides ${lab.a} and ${lab.b}, hypotenuse ${lab.c}.`);
-    const P = (d, cls, j) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('class', cls); p.setAttribute('pathLength', '1'); if (animate) p.style.setProperty('--d', Math.round(start + j * 380 * k()) + 'ms'); s.append(p); };
-    P('M40 120 H200', 'ts', 0); P('M40 120 V24', 'ts', 1); P('M40 24 L200 120', 'ts hyp', 2); P('M40 106 H54 V120', 'ts ra', 3);
-    const T = (x, y, txt, j, cls = '') => { const t = document.createElementNS(NS, 'text'); t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('class', 'tl ' + cls); t.textContent = txt; if (animate) t.style.setProperty('--d', Math.round(start + (4 + j) * 300 * k()) + 'ms'); s.append(t); };
-    T(120, 142, 'a = ' + lab.a, 0); T(10, 76, 'b', 1); T(14, 92, lab.b, 1, 'sm'); T(132, 62, 'c = ' + lab.c, 2, 'hy');
-    return [s, 7 * 300 * k()];
+    s.setAttribute('viewBox', `0 0 ${F.w} ${F.h}`); s.setAttribute('class', 'bfig'); s.setAttribute('role', 'img'); s.setAttribute('aria-label', F.label);
+    s.style.maxWidth = Math.min(F.w * 1.2, 460) + 'px';
+    const step = Math.min(320, 3000 / F.parts.length) * k();
+    let t = start;
+    for (const [type, ...a] of F.parts) {
+      let e;
+      if (type === 'l') { e = document.createElementNS(NS, 'path'); e.setAttribute('d', a[0]); e.setAttribute('pathLength', '1'); e.setAttribute('class', 'fl ' + (a[1] || '')); }
+      else if (type === 't') { e = document.createElementNS(NS, 'text'); e.setAttribute('x', a[0]); e.setAttribute('y', a[1]); e.textContent = a[2]; e.setAttribute('class', 'ft ' + (a[3] || '')); }
+      else { e = document.createElementNS(NS, 'circle'); e.setAttribute('cx', a[0]); e.setAttribute('cy', a[1]); e.setAttribute('r', a[2]); e.setAttribute('class', 'fo ' + (a[3] || '')); }
+      if (animate) { e.style.setProperty('--d', Math.round(t) + 'ms'); t += type === 'l' ? step : step * .45; }
+      s.append(e);
+    }
+    return [s, animate ? t - start + 300 : 0];
   }
 
   function line(L, j, animate) {
     const row = el('div', 'bl' + (L.kind ? ' k-' + L.kind : '') + (animate ? ' live' : ''));
     let t = 0; const R = reduced(), go = animate && !R;
     if (L.say) { const s = el('p', 'bs', L.say); if (go) s.style.setProperty('--d', '0ms'); row.append(s); t += SAY * k(); }
-    if (L.tri) { const [n, d] = tri(L.tri, t, go); row.append(n); t += d; }
+    if (L.fig) { const [n, d] = drawFig(L.fig, t, go); row.append(n); t += d; }
     if (L.math) { const [n, d] = ink(L.math, t, go); row.append(n); t += d; }
     if (L.table) { const [n, d] = table(L.table, t, go); row.append(n); t += d; }
     if (L.why) {
@@ -141,8 +148,8 @@ const BOARD = (() => {
     if (!demo || !demo.ok) return false;
     if (root) close(true);
     D = demo; opts = o; i = 0; playing = true; ended = false; waiting = false; back = document.activeElement;
-    const checked = demo.source === 'verified' ? el('span', 'bd-ok', '✓ Every step checked') : el('span', 'bd-ok soft', 'Worked steps');
-    if (demo.source === 'verified') checked.title = demo.checks.map(c => c[0]).join(' · ');
+    const checked = demo.source === 'verified' ? el('span', 'bd-ok', '✓ Every step checked') : demo.source === 'sums' ? el('span', 'bd-ok', '✓ Every sum checked') : el('span', 'bd-ok soft', 'Worked steps');
+    if (demo.source !== 'steps') checked.title = demo.checks.map(c => c[0]).join(' · ');
     root = el('div', 'bd-scrim',
       el('section', 'bd',
         el('header', 'bd-top', el('div', null, el('p', 'bd-kick', demo.subject ? demo.subject + ' · ' + demo.topic : demo.topic), checked), btn('✕', 'close', 'ghost icon-only', 'Close the board')),
