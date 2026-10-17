@@ -88,7 +88,8 @@ const BOARD = (() => {
   const boardEl = () => root.querySelector('.bd-board');
   const rowsNow = () => [...boardEl().querySelectorAll('.bl:not(.gone)')];
   const dOf = u => parseFloat(u.style.getPropertyValue('--d')) || 0;
-  function stopAnims() { anims.forEach(a => a.cancel()); anims = []; }
+  function stopAnims() { anims.forEach(a => a.cancel()); anims = []; sfx('stopPen'); }
+  const sfx = (fn, ...a) => { if (typeof SFX !== 'undefined') SFX[fn](...a); };
   function addRow(j, animate) {
     const [row, d] = line(D.lines[j], j, animate); row.dataset.dur = d; boardEl().append(row);
     if (animate && !reduced()) { carry(row); pen(row); }
@@ -108,7 +109,7 @@ const BOARD = (() => {
       const dx = (a.left + z.right) / 2 - (b.left + b.right) / 2, dy = (a.top + z.bottom) / 2 - (b.top + b.bottom) / 2;
       const f = g.animate([{ transform: `translate(${dx}px, ${dy}px) scale(.85)`, opacity: .2 }, { opacity: 1, offset: .2 }, { transform: 'none', opacity: 1 }],
         { duration: Math.max(560, d1 - d0 + 300) * k(), delay: d0, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'backwards' });
-      src.forEach(c => c.classList.add('src')); f.onfinish = () => src.forEach(c => c.classList.remove('src'));
+      src.forEach(c => c.classList.add('src')); f.onfinish = () => { src.forEach(c => c.classList.remove('src')); sfx('play', 'land'); };
       anims.push(f);
     }
   }
@@ -123,6 +124,7 @@ const BOARD = (() => {
     kf.push({ transform: at(us[us.length - 1]), opacity: 0, offset: 1 });
     const p = el('span', 'bd-pen'); B.append(p);
     const a = p.animate(kf, { duration: end, fill: 'forwards' }); a.onfinish = () => p.remove(); a.oncancel = () => p.remove(); anims.push(a);
+    sfx('pen', (dOf(us[us.length - 1]) - dOf(us[0]) + per) / 1000, dOf(us[0]) / 1000);
   }
   function focusRow(d) {
     const rows = rowsNow(); rows.forEach(r => r.classList.remove('now'));
@@ -131,7 +133,7 @@ const BOARD = (() => {
   }
   function schedule() {
     clearTimeout(timer); waiting = false; ended = i === D.lines.length - 1; t0 = performance.now(); left = dur;
-    if (playing) timer = setTimeout(ended ? () => { playing = false; sync(); } : advance, dur);
+    if (playing) timer = setTimeout(ended ? () => { playing = false; sfx('play', 'chime'); sync(); } : advance, dur);
     sync();
   }
   function rebuild(animate) {
@@ -168,7 +170,7 @@ const BOARD = (() => {
     root.querySelector('.bd-think').hidden = !waiting;
     root.querySelector('.bd-end').hidden = !ended || playing;
   }
-  function pause() { if (!playing) return; playing = false; clearTimeout(timer); left = Math.max(0, left - (performance.now() - t0)); anims.forEach(a => a.playState === 'running' && a.pause()); sync(); }
+  function pause() { if (!playing) return; playing = false; clearTimeout(timer); left = Math.max(0, left - (performance.now() - t0)); anims.forEach(a => a.playState === 'running' && a.pause()); sfx('stopPen'); sync(); }
   function resume() {
     if (waiting) { waiting = false; playing = true; return forward(); }
     if (ended) return;

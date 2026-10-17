@@ -112,7 +112,7 @@ const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 
 function freshState() {
   return { v: 3, xp: 0, notes: {}, tnotes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
-    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
+    skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
 }
 const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -131,7 +131,7 @@ function normalize(raw) {
   s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
   for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
   s.deload = !!r.deload;
-  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
+  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.sound = ['off', 'quiet', 'normal'].includes(r.sound) ? r.sound : 'quiet'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
   const t = obj(r.timer);
   s.timer = { focus: clamp(Math.round(num(t.focus, 25)), 1, 120), brk: clamp(Math.round(num(t.brk, 5)), 1, 60) };
   for (const [k, c] of Object.entries(obj(r.cards))) { const o = obj(c); if (isKey(o.due)) s.cards[k] = { box: clamp(Math.round(num(o.box)), 0, 5), due: o.due }; }
@@ -328,6 +328,7 @@ function checkAch(silent) {
   }
   if (!fresh.length) return;
   save();
+  if (!silent && fresh.length) SFX.play('ach');
   if (!silent) for (const [a, tier] of fresh.slice(0, 3)) FXS.reveal(`${TIERS[tier - 1]} achievement`, a.name, `${a.t[tier - 1].toLocaleString('en-GB')} ${a.unit} · yours for good`);
 }
 const badgeCount = () => ACH.reduce((t, a) => t + (S.ach[a.id] ? S.ach[a.id].tier : 0), 0);
@@ -385,8 +386,8 @@ function timerDone() {
     const ended = T.end || Date.now();
     T.mode = 'break'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
     saveT(); save();
-    FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub);
-  } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); }
+    FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub); SFX.play('fanfare');
+  } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); SFX.play('rest'); }
   render(); checkAch();
 }
 function beep() {
@@ -1339,6 +1340,8 @@ function vMe() {
         card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
+        card('Sound', null, h('p', { class: 'muted xs' }, 'Effects for right answers, streaks, the timer, flashcards and the board. Made on your device, so they work offline.'),
+          h('div', { class: 'chips' }, [['off', 'Off'], ['quiet', 'Quiet'], ['normal', 'Normal']].map(([v, l]) => chip(l, S.sound === v, 'sound', { 'data-v': v })))),
         card('Mocks', null, field('First mock exam', h('input', { type: 'date', value: S.mock, 'data-act': 'mock' })), h('p', { class: 'muted xs' }, 'Used for the trend line on your score chart.')),
         card('Sebastian', null, h('p', { class: 'muted xs' }, 'The resident rat on Focus. Purely for fun.'),
           h('div', { class: 'chips' }, chip('Show him', S.seb !== false, 'sebShow', { 'data-v': '1' }), chip('Hide him', S.seb === false, 'sebShow', { 'data-v': '0' }))),
@@ -1418,6 +1421,7 @@ function revealAboveNav(e) {
 /* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
 function go(t, focusSel) {
   if (!VIEWS[t]) return;
+  if (t !== TAB) SFX.play('click');
   const dir = ORDER(t) >= ORDER(TAB) ? 'fwd' : 'back';
   const swap = () => { TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, 0); };
   if (HAS_VT && t !== TAB) { document.documentElement.dataset.dir = dir; document.startViewTransition(swap); }
@@ -1442,6 +1446,7 @@ function finishAnswer(res) {
   save();
   render({ focus: '#nextq' });
   if (res.ok) FXS.burst($('.qcard'), DR.run >= 5 ? 60 : 36);
+  SFX.play(!res.ok ? 'wrong' : DR.run === 3 || DR.run === 5 || DR.run % 10 === 0 ? 'combo' : 'correct', DR.run);
 }
 const ACT = {
   go: el => go(el.dataset.tab),
@@ -1460,7 +1465,7 @@ const ACT = {
   },
   tgl() {
     if (T.run) { T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; }
-    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; } T.end = Date.now() + T.left * 1000; T.run = true; }
+    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; SFX.play('start'); } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
   rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
@@ -1497,6 +1502,7 @@ const ACT = {
   },
   reveal() {
     if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
+    SFX.play('reveal');
     /* Show me plays the board straight away when the demo is fully checked; the written method stays underneath */
     const d = typeof DEMO !== 'undefined' && DEMO.build(DR.q);
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
@@ -1521,6 +1527,7 @@ const ACT = {
   emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
   theme(el) { const t = THEMES.find(x => x[0] === el.dataset.v); if (!t) return; S.theme = t[0]; save(); applyTheme(); render(); toast(t[1] + ' highlighter'); },
   mode(el) { const m = MODES.find(x => x[0] === el.dataset.v); if (!m) return; S.mode = m[0]; save(); applyTheme(); render(); toast('Page: ' + m[1]); },
+  sound(el) { S.sound = el.dataset.v; save(); SFX.setLevel(S.sound); SFX.play('correct'); render(); },
   motion(el) { S.motion = el.dataset.v; S.motionHint = true; save(); applyMotion(); render({ enter: true }); if (!REDUCED) toast('Full motion on', 'big'); },
   achCat(el) { ACH_CAT = el.dataset.k; render(); },
   chart(el) { const s = el.dataset.subj; CHART.has(s) ? CHART.delete(s) : CHART.add(s); render(); },
@@ -1544,7 +1551,7 @@ const ACT = {
     toast('Added to your fix list'); save(); render();
   },
   deck(el) { CD = { deck: el.dataset.deck, flip: false, i: 0 }; DRAFT.card = { f: '', b: '' }; render(); },
-  flip(el) { CD.flip = !CD.flip; el.classList.toggle('flipped', CD.flip); const r = $('#rate'); if (r) r.hidden = !CD.flip; },
+  flip(el) { SFX.play('flip'); CD.flip = !CD.flip; el.classList.toggle('flipped', CD.flip); const r = $('#rate'); if (r) r.hidden = !CD.flip; },
   rate(el) {
     const ok = el.dataset.ok === '1', list = dueCards(CD.deck); if (!list.length) return;
     const o = list[CD.i % list.length], s = S.cards[o.id] || { box: 0 };
@@ -1667,7 +1674,7 @@ document.addEventListener('pointerleave', () => { untilt(tiltEl); tiltEl = null;
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { movePill(false); if (TAB === 'papers') drawChart(); }, 120); });
 setInterval(() => { timerTick(); if (dkey() !== renderedDay) render(); }, 250);
 
-applyMotion(); applyTheme();
+applyMotion(); applyTheme(); SFX.setLevel(S.sound);
 /* intro */
 (function intro() {
   const i = $('#intro'); if (!i) return;
