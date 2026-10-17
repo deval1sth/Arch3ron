@@ -19,6 +19,74 @@ const DEMO = (() => {
   const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' }, sup = p => String(p).split('').map(c => SUP[c]).join('');
   const B = {};
 
+  /* ---------- Written methods, the way you would set them out on paper. Each works out its own digits,
+     carries and borrows and returns the answer it got, so a drawing that disagrees with the sum is never shown. ---------- */
+  const CW = 24;
+  const WM = {
+    /* column addition or subtraction, decimals lined up on the point; carries and borrows written small */
+    col(a, b, op) {
+      const dp = Math.max(...[a, b].map(x => (String(x).split('.')[1] || '').length)), k = Math.pow(10, dp);
+      const A = Math.round(a * k), Bn = Math.round(b * k), add = op === '+';
+      if (!add && A < Bn) return null;
+      const R = add ? A + Bn : A - Bn, len = Math.max(String(A).length, String(Bn).length, String(R).length, dp + 1);
+      const dig = v => String(v).padStart(len, '0').split('').map(Number), da = dig(A), db = dig(Bn), dr = dig(R);
+      const lead = v => { const s = String(v).padStart(len, ' '); return s.split('').map(c => c !== ' '); }; /* only write digits that are really there */
+      const sa = lead(A).map((x, i) => x || i >= len - dp - 1), sb = lead(Bn).map((x, i) => x || i >= len - dp - 1), sr = lead(R).map((x, i) => x || i >= len - dp - 1);
+      const X = i => 40 + i * CW + (dp && i >= len - dp ? 8 : 0), W = X(len) + 16, parts = [], small = [];
+      let topA = [...da];
+      if (add) { let c = 0; for (let i = len - 1; i >= 0; i--) { const s = da[i] + db[i] + c; if (s % 10 !== dr[i]) return null; c = Math.floor(s / 10); if (c && i > 0) small.push(['t', X(i - 1) + 12, 128, String(c), 'mid ann sm']); } }
+      else for (let i = len - 1; i >= 0; i--) if (topA[i] < db[i]) {
+        let j = i - 1; while (j >= 0 && topA[j] === 0) j--; if (j < 0) return null;
+        for (let m = j; m < i; m++) { const was = topA[m]; topA[m] = m === j ? was - 1 : 9; small.push(['l', `M${X(m) - 7} 46 L${X(m) + 7} 30`, 'arw'], ['t', X(m) + 2, 22, String(topA[m]), 'mid ann sm']); }
+        topA[i] += 10; small.push(['t', X(i) - 9, 30, '1', 'mid ann sm']);
+      }
+      if (!add && topA.some((v, i) => v - db[i] !== dr[i])) return null; /* the borrows drawn must give every answer digit */
+      da.forEach((d, i) => sa[i] && parts.push(['t', X(i), 44, String(d), 'mid hand']));
+      parts.push(['t', 14, 80, op, 'mid hand']);
+      db.forEach((d, i) => sb[i] && parts.push(['t', X(i), 80, String(d), 'mid hand']));
+      if (dp) for (const y of [44, 80, 118]) parts.push(['t', X(len - dp) - 10, y, '.', 'mid hand']);
+      parts.push(['l', `M4 92 H${W}`, 'ink']);
+      dr.forEach((d, i) => sr[i] && parts.push(['t', X(i), 118, String(d), 'mid hand']));
+      parts.push(['l', `M4 128 H${W}`, 'ink']);
+      parts.push(...small);
+      return { fig: fig(W + 4, 140, `${a} ${op} ${b} = ${R / k} written in columns`, parts), got: R / k };
+    },
+    /* short multiplication by one digit, carries written small under the answer line */
+    mul(a, d) {
+      const s = String(a), len = s.length + 1, X = i => 40 + i * CW, parts = [], ds = s.split('').map(Number);
+      let c = 0; const res = [];
+      for (let i = ds.length - 1; i >= 0; i--) { const p = ds[i] * d + c; res.unshift(p % 10); c = Math.floor(p / 10); if (c) parts.push(['t', X(i) + 12, 136, String(c), 'mid ann sm']); }
+      if (c) res.unshift(c);
+      const R = Number(res.join('')), off = len - ds.length, offR = len - res.length;
+      ds.forEach((v, i) => parts.unshift(['t', X(i + off), 44, String(v), 'mid hand']));
+      parts.unshift(['t', 14, 80, '×', 'mid hand'], ['t', X(len - 1), 80, String(d), 'mid hand'], ['l', `M4 92 H${X(len) + 6}`, 'ink']);
+      res.forEach((v, i) => parts.push(['t', X(i + offR), 118, String(v), 'mid hand']));
+      parts.push(['l', `M4 126 H${X(len) + 6}`, 'ink']);
+      return { fig: fig(X(len) + 10, 146, `${a} × ${d} = ${R} by short multiplication`, parts), got: R };
+    },
+    /* bus stop division: the remainder from each digit is written small before the next one */
+    bus(n, d) {
+      const s = String(n), X = i => 64 + i * CW, parts = [['t', 22, 84, String(d), 'mid hand'], ['l', `M44 54 Q50 76 44 96`, 'ink'], ['l', `M44 54 H${X(s.length) + 2}`, 'ink']];
+      let r = 0, q = '';
+      s.split('').forEach((ch, i) => { const cur = r * 10 + Number(ch), qd = Math.floor(cur / d); r = cur % d;
+        parts.push(['t', X(i), 84, ch, 'mid hand']);
+        if (q || qd || i === s.length - 1) { q += qd; parts.push(['t', X(i), 40, String(qd), 'mid hand']); }
+        if (r && i < s.length - 1) parts.push(['t', X(i + 1) - 11, 70, String(r), 'mid ann sm']); });
+      return { fig: fig(X(s.length) + 14, 104, `${n} ÷ ${d} = ${q} by bus stop division`, parts), got: r ? NaN : Number(q) };
+    }
+  };
+  /* Find "a op b = c" in a line of working and, when it is a sum worth writing out, return the written method. */
+  const NUM = '(\\d+(?:\\.\\d+)?)', SUMRE = new RegExp(`£?${NUM} ([+−×÷]) £?${NUM} = £?${NUM}(?![\\d.])`);
+  function written(math) {
+    const m = String(math).replace(/\[\[|\]\]/g, '').match(SUMRE); if (!m) return null;
+    const a = Number(m[1]), op = m[2], b = Number(m[3]), c = Number(m[4]), int = x => Number.isInteger(x);
+    let w = null;
+    if ((op === '+' && a >= 10 && b >= 10) || (op === '−' && a >= 20 && b >= 10)) w = WM.col(a, b, op);
+    else if (op === '×' && int(a) && int(b) && Math.min(a, b) >= 2 && Math.min(a, b) <= 9 && Math.max(a, b) >= 10) w = WM.mul(Math.max(a, b), Math.min(a, b));
+    else if (op === '÷' && int(a) && int(b) && a >= 20 && b >= 2 && b <= 12 && int(a / b) && a / b >= 10) w = WM.bus(a, b);
+    return w && near(w.got, c) ? { say: `Written method for ${m[1]} ${op} ${m[3]}:`, fig: w.fig, sum: [a, op, b, c] } : null;
+  }
+
   /* ---------- Diagrams: plain data the board draws in order. Parts: ['l', path, cls] a line that draws itself,
      ['t', x, y, text, cls] a label, ['o', cx, cy, r, cls] a filled dot. Sizes are in viewBox units. */
   const fig = (w, h, label, parts) => ({ w, h, label, parts });
@@ -87,6 +155,11 @@ const DEMO = (() => {
       ['t', 155, 70, String(b[0]), 'mid hand'], ['l', 'M137 80 H173', 'ink'], ['t', 155, 108, String(b[1]), 'mid hand'],
       ['l', 'M54 44 Q100 6 146 44', 'arw'], ['l', 'M146 44 l-9 -3 M146 44 l-1 -9', 'arw'], ['t', 100, 18, k, 'mid ann'],
       ['l', 'M54 116 Q100 154 146 116', 'arw'], ['l', 'M146 116 l-9 3 M146 116 l-1 9', 'arw'], ['t', 100, 152, k, 'mid ann']]),
+    /* expanding: an arc from the number outside the bracket to each term inside */
+    brackets: (k, t1, t2) => fig(250, 110, `${k}(${t1} ${t2}): multiply ${k} by each term inside.`, [
+      ['t', 30, 86, String(k), 'mid hand'], ['t', 56, 86, '(', 'mid hand'], ['t', 100, 86, t1, 'mid hand'], ['t', 172, 86, t2, 'mid hand'], ['t', 222, 86, ')', 'mid hand'],
+      ['l', 'M36 56 Q66 14 96 54', 'arw'], ['l', 'M96 54 l-8 -5 M96 54 l0 -10', 'arw'], ['t', 64, 24, '×', 'mid ann'],
+      ['l', 'M36 56 Q104 -6 170 54', 'arw'], ['l', 'M170 54 l-9 -4 M170 54 l1 -10', 'arw'], ['t', 128, 14, '×', 'mid ann']]),
     /* a sequence with a hop drawn between each pair of terms and the difference written on it */
     hops: (terms, step) => { const X = i => 34 + i * 64, parts = terms.map((v, i) => ['t', X(i), 92, v, 'mid hand']);
       parts.push(['t', X(terms.length) - 14, 92, '…', 'mid hand']);
@@ -123,7 +196,7 @@ const DEMO = (() => {
   B.expand = q => {
     const { k, p, m } = q.dm, A = k * p, Bc = k * m, px = cx(p, 'x'), at = x => k * (p * x + m);
     return { lines: [
-      { kind: 'q', say: 'Here is the bracket to expand.', math: `${k}(${px}${sg(m)})` },
+      { kind: 'q', say: 'Here is the bracket to expand. The number outside multiplies every term inside, so draw an arrow to each one.', fig: FIG.brackets(k, px, sg(m).trim()) },
       { say: `Multiply the ${k} outside by every term inside.`, math: `[[${k}]] × ${px} = ${cx(A, 'x')}`, why: 'A number in front of a bracket multiplies everything inside it.' },
       { math: `[[${k}]] × ${par(m)} = ${n(Bc)}`, why: m < 0 ? 'Positive × negative = negative.' : null },
       { kind: 'answer', say: 'Put the two parts together.', math: `${k}(${px}${sg(m)}) = ${lin(A, Bc, 'x')}` },
@@ -191,7 +264,7 @@ const DEMO = (() => {
       { say: 'Pythagoras links the three sides of a right-angled triangle. c is the hypotenuse, opposite the right angle.', math: 'a² + b² = c²', why: 'It only works for right-angled triangles.' }];
     if (hyp) lines.push({ say: 'Put the numbers in.', math: `c² = ${a}² + ${other}²` }, { say: 'Square each side, then add.', math: `c² = ${a * a} + ${other * other} = ${s}` }, { say: 'Square root to undo the square.', math: `c = √${s}` });
     else lines.push({ say: 'We need a shorter side, so subtract.', math: `b² = c² − a²`, why: 'Rearrange: take a² from both sides.' }, { say: 'Put the numbers in.', math: `b² = ${other}² − ${a}² = ${other * other} − ${a * a} = ${s}` }, { say: 'Square root to undo the square.', math: `b = √${s}` });
-    lines.push({ kind: 'answer', math: `${hyp ? 'c' : 'b'} = ${exact ? r : r.toFixed(3) + '… = ' + ans} cm${exact ? '' : ' (1 d.p.)'}` },
+    lines.push({ kind: 'answer', math: `${hyp ? 'c' : 'b'} = ${exact ? r : r.toFixed(3) + '… = ' + ans.toFixed(1)} cm${exact ? '' : ' (1 d.p.)'}` },
       { kind: 'check', say: hyp ? 'Check: the hypotenuse must be the longest side.' : 'Check: the answer must be shorter than the hypotenuse.', math: hyp ? `${ans} > ${Math.max(a, other)} ✓` : `${ans} < ${other} ✓` },
       { kind: 'idea', say: 'Finding the longest side: add the squares. Finding a shorter side: subtract.' });
     return { lines, checks: [['square root is right', near(r * r, s)], ['answer is sensible', hyp ? ans > Math.max(a, other) : ans < other && ans > 0], ['matches the marked answer', near(ans, q.v)]] };
@@ -450,6 +523,21 @@ const DEMO = (() => {
     density: ['Density is mass per unit volume: how tightly the mass is packed in.', 'With kg and m³ the answer is in kg/m³. Do not mix in grams or cm³.'],
     wave: ['Each wave moves forward one wavelength, and f waves pass every second, so speed = f × λ.', 'Frequency in hertz and wavelength in metres. Convert km or cm first.']
   };
+  /* Rearranging X = Y × Z or X = Y ÷ Z with the teacher's both-sides arrows. The steps are built from the
+     equation itself and must finish on exactly the rearranged form in learn.js, or the plain line is used instead. */
+  function rearrange(e, want, target) {
+    const plainLine = [{ say: `Rearrange to get ${want} on its own.`, math: target, why: 'Do the same thing to both sides, exactly like solving an equation.' }];
+    const m = e.eq.match(/^(\S+) = (\S+) ([×÷]) (\S+)$/); if (!m) return plainLine;
+    const [, X, Y, op, Z] = m, L = [];
+    if (op === '×') { const other = want === Y ? Z : Y;
+      L.push({ op: `÷ ${other}`, say: `${want} is multiplied by ${other}, so divide both sides by ${other}.`, math: `${X} ÷ ${other} = ${want}`, why: 'Dividing undoes multiplying.' }); }
+    else if (want === Y) L.push({ op: `× ${Z}`, say: `${Y} is divided by ${Z}, so multiply both sides by ${Z}.`, math: `${X} × ${Z} = ${Y}`, why: 'Multiplying undoes dividing.' });
+    else L.push({ op: `× ${Z}`, say: `${Z} is on the bottom, so first multiply both sides by ${Z}.`, math: `${X} × ${Z} = ${Y}` },
+      { op: `÷ ${X}`, say: `Now divide both sides by ${X} to leave ${Z} on its own.`, math: `${Z} = ${Y} ÷ ${X}` });
+    const last = L[L.length - 1].math, flip = last.startsWith(want + ' = ') ? last : `${want} = ${last.split(' = ')[0]}`;
+    if (!last.startsWith(want + ' = ')) L.push({ say: `Swap the sides so ${want} is on the left.`, math: flip });
+    return flip.replace(/\s+/g, ' ') === target.replace(/\s+/g, ' ') ? L : plainLine;
+  }
   const CIRCUIT = ['ohm', 'power-vi', 'power-ir', 'charge', 'energy-qv'];
   function picture(pid, all, v, find) {
     const lab = k => { const i = all.find(x => x[0] === k); return k === find ? '?' : `${n(v[k])} ${i[3]}`; }, has = k => all.some(i => i[0] === k);
@@ -470,7 +558,7 @@ const DEMO = (() => {
       { say: `We need the ${tgt[2]} (${tgt[1]}), measured in ${tgt[3]}.`, math: `${tgt[1]} = ?` },
       picture(pid, all, v, find),
       { say: `The equation that links ${all.map(i => i[2]).join(', ').replace(/, ([^,]*)$/, ' and $1')}:`, math: e.eq, why: (PW[pid] || [])[0] || 'Choose the equation that contains everything you know and the thing you need.' }];
-    if (!fwd) lines.push({ say: `Rearrange to get ${tgt[1]} on its own.`, math: e.re[find][0], why: 'Do the same thing to both sides, exactly like solving an equation.' });
+    if (!fwd) lines.push(...rearrange(e, tgt[1], e.re[find][0]));
     lines.push({ say: 'Substitute the numbers in.', math: `${tgt[1]} = ${fill(tpl, v)}` },
       { kind: 'answer', say: 'Calculate, and always write the unit.', math: `${tgt[1]} = ${n(got)} ${tgt[3]}` });
     if (fwd) { const k = Object.keys(e.re)[0], ki = k && e.ins.find(i => i[0] === k);
@@ -519,7 +607,7 @@ const DEMO = (() => {
      arithmetic (after a leading £ and a trailing unit); words, letters and labels like "30%" are skipped. */
   const UNIT = /\s*(cm²|cm|km\/h|km|m\/s|hours|°)$/;
   function arith(piece, last) {
-    let s = piece.trim().replace(/^£/, '').replace(UNIT, '');
+    let s = piece.trim().replace(/£/g, '').replace(UNIT, '');
     if (last) s = s.replace(/%$/, '');
     if (!s || !/^[\d\s.+\−×÷()²\/-]+$/.test(s) || !/\d/.test(s)) return null;
     try { const v = Function('"use strict";return (' + s.replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/').replace(/(\d|\))²/g, '$1**2') + ')')(); return Number.isFinite(v) ? v : null; } catch (e) { return null; }
@@ -551,6 +639,10 @@ const DEMO = (() => {
     let d = null;
     try { d = f && (q.dm || q.co) ? f(q) : null; } catch (err) { d = { lines: [], checks: [['built without errors', false]] }; }
     if (!d) { if (!q.steps || !q.steps.length) return null; d = fromSteps(q); }
+    /* any sum worth doing on paper gets its written method right after it (at most three per demo) */
+    const withWork = []; let wn = 0;
+    for (const l of d.lines) { withWork.push(l); const w = wn < 3 && l.math && l.kind !== 'check' && l.kind !== 'q' && written(l.math); if (w) { withWork.push({ say: w.say, fig: w.fig, work: w.sum }); wn++; } }
+    d.lines = withWork;
     const subj = LEARN.SUBJECTS.find(s => s.topics.includes(q.id));
     return { id: q.id, topic: q.sub || LEARN.name(q.id), subject: subj ? subj.name : '', question: q.q, lines: d.lines, checks: d.checks,
       source: d.source || 'verified', ok: d.checks.every(c => c[1]) && d.lines.length > 0 };
@@ -566,7 +658,15 @@ const DEMO = (() => {
       const empty = d.lines.some(l => !l.say && !l.math && !l.table && !l.fig), noAns = !d.lines.some(l => l.kind === 'answer');
       if ((!d.ok || empty || noAns) && out.bad.length < 20) out.bad.push([id, q.q, d.checks.filter(c => !c[1]).map(c => c[0]).join(', ') || (empty ? 'empty line' : 'no answer line')]);
     }
+    /* written methods: thousands of random sums, each drawing must get the true answer */
+    const R = (m, dp = 0) => Math.round(Math.random() * m * Math.pow(10, dp)) / Math.pow(10, dp);
+    out.writtenWrong = 0;
+    for (let i = 0; i < 3000; i++) {
+      const dp = i % 3 === 0 ? 2 : 0, a = R(99999, dp), b = R(9999, dp), d = 2 + (i % 11), n = d * (10 + Math.floor(Math.random() * 9990)), m = 2 + (i % 8);
+      const sums = [[WM.col(a, b, '+'), a + b], [WM.col(Math.max(a, b), Math.min(a, b), '−'), Math.max(a, b) - Math.min(a, b)], [WM.mul(n, m), n * m], [WM.bus(n, d), n / d]];
+      for (const [w, want] of sums) if (!w || !near(w.got, want)) { out.writtenWrong++; if (out.bad.length < 20) out.bad.push(['written', JSON.stringify([a, b, n, d, m]), w ? w.fig.label : 'no drawing']); }
+    }
     return out;
   }
-  return { build, selfTest, builders: Object.keys(B) };
+  return { build, selfTest, builders: Object.keys(B), written, WM };
 })();

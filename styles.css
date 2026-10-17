@@ -1183,3 +1183,4 @@ html.rm .bd-pen{display:none}
 /* the line the arrows come from starts in the same column as the lines they lead to */
 .bd-board .bl:has(+ .bl.has-op)>.bm{margin-left:70px}
 @media (max-width:520px){.bd-board .bl:has(+ .bl.has-op)>.bm{margin-left:54px}}
+.bfig .ft.ann.sm{font-size:12px}

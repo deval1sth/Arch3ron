@@ -46,16 +46,20 @@ const SFX = (() => {
   };
   const on = () => level !== 'off' && !document.hidden;
   function play(name, arg) { if (!on() || !SOUNDS[name]) return; const c = ac(); if (!c || c.state !== 'running') return; SOUNDS[name](c, out, c.currentTime + .01, arg); }
-  /* the board's pen: a faint fluttering scratch for as long as a line is being written */
+  /* the board's pen: soft, sparse pencil taps while a line is written (a continuous hiss sounded like sandpaper).
+     Each tap is a tiny low-passed click with a little random timing and pitch so it never sounds mechanical. */
+  const tap = (c, dst, t, v = .05) => {
+    const s = noise(c), fl = c.createBiquadFilter(), g = c.createGain(); fl.type = 'lowpass'; fl.frequency.value = 1400 + Math.random() * 700; fl.Q.value = .7;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + .035);
+    s.connect(fl).connect(g).connect(dst); s.start(t, Math.random() * .5); s.stop(t + .05);
+  };
+  SOUNDS.tap = (c, o, t) => tap(c, o, t, .08);
   function pen(sec, after = 0) {
     stopPen(); if (!on() || sec <= 0) return; const c = ac(); if (!c || c.state !== 'running') return;
-    const t = c.currentTime + after, s = noise(c), fl = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
-    s.loop = true; fl.type = 'bandpass'; fl.frequency.value = 3500; fl.Q.value = 1.2;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.03, t + .05); g.gain.setValueAtTime(.03, t + sec); g.gain.linearRampToValueAtTime(0, t + sec + .08);
-    lfo.frequency.value = 11; lg.gain.value = .018; lfo.connect(lg).connect(g.gain);
-    s.connect(fl).connect(g).connect(out); s.start(t); s.stop(t + sec + .1); lfo.start(t); lfo.stop(t + sec + .1); scratch = [s, lfo];
+    const g = c.createGain(); g.connect(out); scratch = g;
+    for (let t = after; t < after + sec; t += .13 + Math.random() * .09) tap(c, g, c.currentTime + t, .035 + Math.random() * .025);
   }
-  function stopPen() { if (scratch) { for (const n of scratch) try { n.stop(); } catch (e) {} scratch = null; } }
+  function stopPen() { if (scratch) { try { scratch.gain.value = 0; scratch.disconnect(); } catch (e) {} scratch = null; } }
   function setLevel(l) { level = VOL[l] != null ? l : 'quiet'; if (out) out.gain.value = VOL[level]; if (level === 'off') stopPen(); }
 
   /* Run from the console: renders every sound offline (silently) and checks each one actually makes audio. */

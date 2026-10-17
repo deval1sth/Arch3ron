@@ -113,8 +113,27 @@ const BOARD = (() => {
   const sfx = (fn, ...a) => { if (typeof SFX !== 'undefined') SFX[fn](...a); };
   function addRow(j, animate) {
     const [row, d] = line(D.lines[j], j, animate); row.dataset.dur = d; boardEl().append(row);
+    alignEq();
     if (animate && !reduced()) { carry(row); pen(row); }
     return row;
+  }
+  /* In a both-sides step the new line slides sideways so its = sits under the = of the line above,
+     the way a teacher keeps the working in one column. Never closer than the arrows need, never off the board. */
+  /* The whole run (the starting line plus every arrow step after it) is lined up at once: the = column is put
+     where the line that needs the most room on its left can still fit its arrows. If that would push a line off
+     the board (a narrow phone), the run is left as it is. */
+  function alignEq(end) {
+    const rows = rowsNow(); let s = end == null ? rows.length - 1 : end; const last = s;
+    if (s < 1 || !rows[s].classList.contains('has-op')) return;
+    while (s > 0 && rows[s].classList.contains('has-op')) s--;
+    const run = rows.slice(s, last + 1).map(r => { const box = r.querySelector('.bopw') || r.querySelector(':scope > .bm'); if (!box) return null;
+      const bm = box.classList.contains('bm') ? box : box.querySelector('.bm'), e = [...bm.querySelectorAll('.bc')].find(c => c.textContent === '=');
+      return e && { box, bm, op: r.classList.contains('has-op'), off: e.getBoundingClientRect().left - bm.getBoundingClientRect().left }; });
+    if (run.some(x => !x)) return;
+    const col = Math.max(...run.map(x => (x.op ? 52 : 0) + x.off)), room = boardEl().clientWidth - 70;
+    const wide = x => { const cs = x.bm.querySelectorAll('.bc'); return cs.length ? cs[cs.length - 1].getBoundingClientRect().right - x.bm.getBoundingClientRect().left : 0; };
+    if (run.some(x => col - x.off + wide(x) > room)) return;
+    for (const x of run) x.box.style.marginLeft = Math.round(col - x.off) + 'px';
   }
   /* A highlighted number that also appears on the line above flies down from there, the way a
      teacher carries "+ 5" across the equals sign. Matching is by the whole number only. */
@@ -251,6 +270,9 @@ const BOARD = (() => {
     document.addEventListener('keydown', onKey, true);
     if (inline()) o.mount.replaceChildren(root); else { document.body.append(root); document.documentElement.classList.add('bd-open'); }
     rebuild(true);
+    /* the handwriting font may arrive after the first layout; line the = signs up again once it has */
+    if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { if (!root) return; const rs = rowsNow();
+      rs.forEach((r, j) => { if (r.classList.contains('has-op') && !(rs[j + 1] && rs[j + 1].classList.contains('has-op'))) alignEq(j); }); });
     if (!inline()) root.querySelector('[data-bd="play"]').focus({ preventScroll: true });
     return true;
   }

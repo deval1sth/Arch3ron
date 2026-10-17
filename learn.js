@@ -142,21 +142,21 @@ const LEARN = (() => {
   T('circles', 'Circles: area and circumference', () => {
     const r = ri(2, 15), useD = Math.random() < .4, area = Math.random() < .5, v = area ? Math.PI * r * r : 2 * Math.PI * r, ans = Math.round(v * 10) / 10;
     const steps = []; if (useD && area) steps.push(`Radius = diameter ÷ 2 = ${2 * r} ÷ 2 = ${r} cm`);
-    if (area) steps.push('Area = π × r²', `= π × ${r}² = π × ${r * r}`, `= ${v.toFixed(3)}… = ${ans} cm² (1 d.p.)`);
-    else steps.push('Circumference = π × diameter', useD ? `= π × ${2 * r}` : `Diameter = 2 × ${r} = ${2 * r}, so π × ${2 * r}`, `= ${v.toFixed(3)}… = ${ans} cm (1 d.p.)`);
-    return { q: `A circle has ${useD ? 'diameter ' + 2 * r : 'radius ' + r} cm. Find its ${area ? 'area' : 'circumference'} to 1 decimal place.`, kind: 'num', v: ans, dm: { r, useD, area }, tol: .051, suf: area ? 'cm²' : 'cm', show: ans + (area ? ' cm²' : ' cm'), steps };
+    if (area) steps.push('Area = π × r²', `= π × ${r}² = π × ${r * r}`, `= ${v.toFixed(3)}… = ${ans.toFixed(1)} cm² (1 d.p.)`);
+    else steps.push('Circumference = π × diameter', useD ? `= π × ${2 * r}` : `Diameter = 2 × ${r} = ${2 * r}, so π × ${2 * r}`, `= ${v.toFixed(3)}… = ${ans.toFixed(1)} cm (1 d.p.)`);
+    return { q: `A circle has ${useD ? 'diameter ' + 2 * r : 'radius ' + r} cm. Find its ${area ? 'area' : 'circumference'} to 1 decimal place.`, kind: 'num', v: ans, dm: { r, useD, area }, tol: .051, suf: area ? 'cm²' : 'cm', show: ans.toFixed(1) + (area ? ' cm²' : ' cm'), steps };
   });
   T('pythag', 'Pythagoras', () => {
     const tri = pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [9, 12, 15], [7, 24, 25], null, null, null]);
     if (Math.random() < .6) {
       const [a, b] = tri || [ri(3, 12), ri(3, 14)], s = a * a + b * b, c = Math.sqrt(s), exact = Number.isInteger(c), ans = exact ? c : Math.round(c * 10) / 10;
-      return { q: `A right-angled triangle has shorter sides ${a} cm and ${b} cm. Find the hypotenuse${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, b, hyp: true }, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
-        steps: ['Hypotenuse² = a² + b²', `= ${a}² + ${b}² = ${a * a} + ${b * b} = ${s}`, `Hypotenuse = √${s} = ${exact ? c : c.toFixed(3) + '… = ' + ans} cm`] };
+      return { q: `A right-angled triangle has shorter sides ${a} cm and ${b} cm. Find the hypotenuse${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, b, hyp: true }, tol: exact ? 1e-6 : .051, suf: 'cm', show: (exact ? ans : ans.toFixed(1)) + ' cm',
+        steps: ['Hypotenuse² = a² + b²', `= ${a}² + ${b}² = ${a * a} + ${b * b} = ${s}`, `Hypotenuse = √${s} = ${exact ? c : c.toFixed(3) + '… = ' + ans.toFixed(1)} cm`] };
     }
     let a, c; if (tri) { a = tri[0]; c = tri[2]; } else { c = ri(8, 20); a = ri(3, c - 2); }
     const s = c * c - a * a, b = Math.sqrt(s), exact = Number.isInteger(b), ans = exact ? b : Math.round(b * 10) / 10;
-    return { q: `A right-angled triangle has hypotenuse ${c} cm and one shorter side ${a} cm. Find the other side${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, c, hyp: false }, tol: exact ? 1e-6 : .051, suf: 'cm', show: ans + ' cm',
-      steps: ['Shorter side² = hypotenuse² − other side²', `= ${c}² − ${a}² = ${c * c} − ${a * a} = ${s}`, `Side = √${s} = ${exact ? b : b.toFixed(3) + '… = ' + ans} cm`] };
+    return { q: `A right-angled triangle has hypotenuse ${c} cm and one shorter side ${a} cm. Find the other side${exact ? '.' : ' to 1 d.p.'}`, kind: 'num', v: ans, dm: { a, c, hyp: false }, tol: exact ? 1e-6 : .051, suf: 'cm', show: (exact ? ans : ans.toFixed(1)) + ' cm',
+      steps: ['Shorter side² = hypotenuse² − other side²', `= ${c}² − ${a}² = ${c * c} − ${a * a} = ${s}`, `Side = √${s} = ${exact ? b : b.toFixed(3) + '… = ' + ans.toFixed(1)} cm`] };
   });
   T('angles', 'Angles', () => {
     const f = ri(0, 3);
@@ -291,8 +291,8 @@ const LEARN = (() => {
   });
   CT('bc-mean', 'biology', 'Mean of results', () => {
     const k = ri(3, 5), xs = Array.from({ length: k }, () => ri(8, 40)), s = sum(xs), m = d1(s / k);
-    return { q: `In a photosynthesis experiment the bubbles counted per minute were ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: m, tol: .051, show: n(m),
-      steps: [`Add them: ${xs.join(' + ')} = ${s}`, `Divide by how many: ${s} ÷ ${k} = ${n(m)}`] };
+    return { q: `In a photosynthesis experiment the bubbles counted per minute were ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: m, tol: .051, show: m.toFixed(1),
+      steps: [`Add them: ${xs.join(' + ')} = ${s}`, `Divide by how many: ${s} ÷ ${k} = ${m.toFixed(1)}`] };
   });
 
   const AR = { H: 1, C: 12, N: 14, O: 16, Na: 23, Mg: 24, Al: 27, S: 32, Cl: 35.5, K: 39, Ca: 40 };
@@ -341,11 +341,11 @@ const LEARN = (() => {
   });
   CT('bz-margins', 'business', 'Profit margins', () => {
     const rev = ri(20, 200) * 1000, cos = Math.round(rev * ri(30, 70) / 100 / 100) * 100, gp = rev - cos, exp = Math.round(gp * ri(20, 70) / 100 / 100) * 100, np = gp - exp, net = Math.random() < .5;
-    if (!net) { const m = d1(gp / rev * 100); return { q: `Revenue is £${rev} and cost of sales is £${cos}. Calculate the gross profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: n(m) + '%',
-      steps: [`Gross profit = revenue − cost of sales = £${rev} − £${cos} = £${gp}`, 'Gross profit margin = gross profit ÷ revenue × 100', `= £${gp} ÷ £${rev} × 100 = ${n(m)}%`] }; }
+    if (!net) { const m = d1(gp / rev * 100); return { q: `Revenue is £${rev} and cost of sales is £${cos}. Calculate the gross profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: m.toFixed(1) + '%',
+      steps: [`Gross profit = revenue − cost of sales = £${rev} − £${cos} = £${gp}`, 'Gross profit margin = gross profit ÷ revenue × 100', `= £${gp} ÷ £${rev} × 100 = ${m.toFixed(1)}%`] }; }
     const m = d1(np / rev * 100);
-    return { q: `Revenue is £${rev}, cost of sales is £${cos} and other expenses are £${exp}. Calculate the net profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: n(m) + '%',
-      steps: [`Gross profit = £${rev} − £${cos} = £${gp}`, `Net profit = gross profit − expenses = £${gp} − £${exp} = £${np}`, `Net profit margin = £${np} ÷ £${rev} × 100 = ${n(m)}%`] };
+    return { q: `Revenue is £${rev}, cost of sales is £${cos} and other expenses are £${exp}. Calculate the net profit margin to 1 d.p.`, kind: 'num', v: m, tol: .051, suf: '%', show: m.toFixed(1) + '%',
+      steps: [`Gross profit = £${rev} − £${cos} = £${gp}`, `Net profit = gross profit − expenses = £${gp} − £${exp} = £${np}`, `Net profit margin = £${np} ÷ £${rev} × 100 = ${m.toFixed(1)}%`] };
   });
   CT('bz-cash', 'business', 'Cash flow', () => {
     const open = ri(-5, 20) * 100, inf = ri(20, 80) * 100, out = ri(20, 80) * 100, net = inf - out, close = open + net, money = x => (x < 0 ? '−£' : '£') + Math.abs(x);
@@ -372,7 +372,7 @@ const LEARN = (() => {
   });
   CT('gc-data', 'geography', 'Rainfall data', () => {
     const xs = Array.from({ length: 6 }, () => ri(20, 180)), range = Math.max(...xs) - Math.min(...xs), s = sum(xs), mean = d1(s / 6), useMean = Math.random() < .5;
-    if (useMean) return { q: `Monthly rainfall (mm) was ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: mean, tol: .051, suf: 'mm', show: n(mean) + ' mm', steps: [`Total = ${xs.join(' + ')} = ${s}`, `Mean = ${s} ÷ 6 = ${n(mean)} mm`] };
+    if (useMean) return { q: `Monthly rainfall (mm) was ${xs.join(', ')}. Calculate the mean to 1 d.p.`, kind: 'num', v: mean, tol: .051, suf: 'mm', show: mean.toFixed(1) + ' mm', steps: [`Total = ${xs.join(' + ')} = ${s}`, `Mean = ${s} ÷ 6 = ${mean.toFixed(1)} mm`] };
     return { q: `Monthly rainfall (mm) was ${xs.join(', ')}. Calculate the range.`, kind: 'num', v: range, suf: 'mm', show: range + ' mm', steps: [`Range = highest − lowest = ${Math.max(...xs)} − ${Math.min(...xs)} = ${range} mm`] };
   });
 
