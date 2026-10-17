@@ -220,7 +220,7 @@ Contamination|The unwanted presence of radioactive atoms on or in other material
 Background radiation|Radiation around us all the time from natural sources (rocks, cosmic rays) and man-made sources.|around us all the time;natural and man-made sources`],
   'd-p-forces': ['physics', 'Forces: key terms', `
 Scalar|A quantity with magnitude (size) only, such as speed, distance or mass.|size only
-Vector|A quantity with magnitude and direction, such as velocity, force or displacement.|size and direction
+Vector|A quantity with magnitude and direction, such as velocity, force or displacement.|magnitude and direction
 Velocity|Speed in a given direction.|speed in a given direction
 Displacement|Distance travelled in a given direction, measured in a straight line from start to finish.|distance;in a given direction
 Acceleration|The rate of change of velocity.|rate of change of velocity
@@ -280,7 +280,7 @@ Hazard risk|The probability that a natural hazard will affect people.|probabilit
 Plate margin|The boundary where two tectonic plates meet.|where two plates meet
 Tropical storm|A large low-pressure weather system with very strong winds that forms over warm oceans (at least 27 °C) between 5° and 30° from the equator.|low pressure;warm ocean;strong winds
 Climate change|A long-term change in the Earth's average temperature and weather patterns.|long-term change;temperature and weather
-Ecosystem|A community of plants and animals interacting with each other and their physical environment.|living things;interacting with their environment
+Ecosystem|A community of plants and animals interacting with each other and their physical environment.|community of plants and animals;interacting with their environment
 Deforestation|The cutting down and removal of trees from a forested area.|removing trees
 Sustainable|Meeting the needs of people today without stopping future generations from meeting theirs.|needs of today;without harming future generations
 Urbanisation|An increase in the percentage of people living in towns and cities.|increase in the percentage;people living in towns and cities

@@ -445,6 +445,11 @@ const LEARN = (() => {
     const aw = words(raw), has = w => aw.some(a => a === w || (a.length >= 4 && w.length >= 4 && a.slice(0, 4) === w.slice(0, 4)) || (Math.min(a.length, w.length) >= 3 && (a.startsWith(w) || w.startsWith(a))));
     return q.points.map(p => { const kw = words(p.replace(/\(.*?\)/g, "")); return kw.length ? kw.filter(has).length / kw.length >= .6 : !!compact(p) && compact(raw).includes(compact(p)); });
   }
+  /* Run from the console to prove every model answer earns all its own ticks and a blank answer earns none. */
+  function selfTest() {
+    const all = Object.values(DF).flatMap(t => t.items), bad = all.filter(it => !defTicks({ points: it.k }, it.d).every(Boolean) || defTicks({ points: it.k }, 'no idea').some(Boolean)).map(it => it.t);
+    return { definitions: all.length, bad };
+  }
 
   /* ---------- Descriptive vocabulary: spell it, know its meaning, use it in a sentence ---------- */
   const VB = {};
@@ -583,5 +588,5 @@ const LEARN = (() => {
     for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
-  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
+  return { MATHS, PHYS, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();
