@@ -6,7 +6,7 @@ const DEFS = {
   /* ---------------- Biology ---------------- */
   'd-b-cells': ['biology', 'Cells: key terms', `
 Diffusion|The net movement of particles from an area of higher concentration to an area of lower concentration.|net movement of particles;from higher to lower concentration
-Osmosis|The diffusion of water from a dilute solution to a more concentrated solution through a partially permeable membrane.|water moves;from dilute to more concentrated solution;through a partially permeable membrane
+Osmosis|The diffusion of water from a dilute solution to a more concentrated solution through a partially permeable membrane.|diffusion of water;from dilute to more concentrated solution;through a partially permeable membrane
 Active transport|The movement of substances from a more dilute solution to a more concentrated solution (against the concentration gradient), using energy from respiration.|against the concentration gradient (dilute to concentrated);needs energy from respiration
 Eukaryotic cell|A cell whose genetic material is enclosed in a nucleus, such as a plant or animal cell.|genetic material inside a nucleus
 Prokaryotic cell|A cell with no nucleus; its DNA is a single loop and it may have plasmids. Bacteria are prokaryotic.|no nucleus;DNA is a single loop (may have plasmids)
@@ -15,7 +15,7 @@ Differentiation|The process by which a cell changes to become specialised for it
 Stem cell|An undifferentiated cell that can divide to make more cells and can differentiate into other types of cell.|undifferentiated;can become other types of cell
 Mitosis|Cell division that makes two genetically identical cells, used for growth and repair.|two genetically identical cells;for growth and repair
 Magnification|How many times bigger the image is than the real object: image size ÷ real size.|how many times bigger the image is;image size ÷ real size
-Resolution|The ability to tell apart two points that are close together.|distinguish between two points;that are close together
+Resolution|The ability to tell apart two points that are close together.|tell apart two points;that are close together
 Chromosome|A long molecule of DNA, found in the nucleus, that carries many genes.|DNA;carries genes`],
   'd-b-organisation': ['biology', 'Organisation: key terms', `
 Tissue|A group of cells with a similar structure and function.|group of cells;similar structure and function
@@ -28,15 +28,15 @@ Lock and key model|The idea that only a substrate with the right shape fits an e
 Coronary heart disease|When layers of fatty material build up inside the coronary arteries, narrowing them and reducing the flow of blood and oxygen to the heart muscle.|fatty material builds up in coronary arteries;less blood or oxygen reaches the heart muscle
 Transpiration|The loss of water vapour from the leaves of a plant, mainly by evaporation through the stomata.|loss of water vapour;from the leaves or stomata
 Translocation|The movement of dissolved sugars through the phloem from the leaves to the rest of the plant.|movement of dissolved sugars;through the phloem
-Stomata|Tiny pores, mainly on the underside of leaves, that let gases diffuse in and out; guard cells open and close them.|pores in the leaf;let gases in and out;controlled by guard cells
-Xylem|Tissue made of hollow tubes that carries water and mineral ions from the roots to the stems and leaves.|carries water and mineral ions;from the roots upwards
-Phloem|Tissue that carries dissolved sugars from the leaves to the rest of the plant.|carries dissolved sugars;around the plant
+Stomata|Tiny pores, mainly on the underside of leaves, that let gases diffuse in and out; guard cells open and close them.|pores on leaves;let gases diffuse in and out;guard cells open and close them
+Xylem|Tissue made of hollow tubes that carries water and mineral ions from the roots to the stems and leaves.|carries water and mineral ions;from the roots to the leaves
+Phloem|Tissue that carries dissolved sugars from the leaves to the rest of the plant.|carries dissolved sugars;from the leaves to the rest of the plant
 Haemoglobin|The red protein in red blood cells that binds to oxygen.|protein in red blood cells;binds oxygen`],
   'd-b-disease': ['biology', 'Infection and response: key terms', `
 Pathogen|A microorganism that causes infectious disease.|microorganism;causes disease
-Communicable disease|A disease that can be spread from one person or organism to another.|can be spread between people or organisms
+Communicable disease|A disease that can be spread from one person or organism to another.|can be spread from one person or organism to another
 Non-communicable disease|A disease that cannot be passed from one person to another, such as heart disease.|cannot be passed on
-Vaccination|Putting a small amount of a dead or inactive form of a pathogen into the body so white blood cells make antibodies, giving immunity.|dead or inactive pathogen;white blood cells make antibodies;gives immunity
+Vaccination|Putting a small amount of a dead or inactive form of a pathogen into the body so white blood cells make antibodies, giving immunity.|dead or inactive pathogen;white blood cells make antibodies;giving immunity
 Antibody|A protein made by white blood cells that binds to a specific antigen on a pathogen.|protein made by white blood cells;specific to an antigen
 Antigen|A protein on the surface of a pathogen that white blood cells recognise.|protein on the surface of a pathogen;recognised by white blood cells
 Antibiotic|A medicine that kills bacteria inside the body. It does not work on viruses.|kills bacteria;does not work on viruses
@@ -49,12 +49,12 @@ Double-blind trial|A drug trial where neither the patients nor the doctors know 
   'd-b-energy': ['biology', 'Bioenergetics: key terms', `
 Photosynthesis|An endothermic reaction in which plants use light energy to turn carbon dioxide and water into glucose and oxygen.|uses light energy;carbon dioxide and water into glucose and oxygen;endothermic
 Respiration|An exothermic reaction, happening all the time in living cells, that transfers energy from glucose.|transfers energy from glucose;in living cells;exothermic
-Aerobic respiration|Respiration using oxygen: glucose + oxygen → carbon dioxide + water. It transfers the most energy.|uses oxygen;glucose and oxygen give carbon dioxide and water
+Aerobic respiration|Respiration using oxygen: glucose + oxygen → carbon dioxide + water. It transfers the most energy.|using oxygen;glucose and oxygen give carbon dioxide and water
 Anaerobic respiration|Respiration without oxygen. In muscles, glucose → lactic acid. It transfers much less energy than aerobic respiration.|without oxygen;glucose to lactic acid in muscles;less energy transferred
 Fermentation|Anaerobic respiration in yeast cells: glucose → ethanol + carbon dioxide.|anaerobic respiration in yeast;makes ethanol and carbon dioxide
-Oxygen debt|The extra oxygen the body needs after exercise to react with the lactic acid and remove it from cells.|extra oxygen after exercise;to break down lactic acid
+Oxygen debt|The extra oxygen the body needs after exercise to react with the lactic acid and remove it from cells.|extra oxygen after exercise;to react with the lactic acid
 Metabolism|The sum of all the reactions in a cell or the body.|all the reactions;in a cell or the body
-Limiting factor|The factor in shortest supply that stops the rate of photosynthesis going faster: light intensity, carbon dioxide concentration or temperature.|in shortest supply;limits the rate`],
+Limiting factor|The factor in shortest supply that stops the rate of photosynthesis going faster: light intensity, carbon dioxide concentration or temperature.|in shortest supply;stops the rate going faster`],
   'd-b-homeostasis': ['biology', 'Homeostasis: key terms', `
 Homeostasis|The regulation of the internal conditions of a cell or organism to keep them at optimum levels, in response to internal and external changes.|regulating internal conditions;kept at optimum levels;in response to changes
 Hormone|A chemical messenger secreted by a gland into the bloodstream and carried to a target organ.|chemical messenger;secreted by a gland;carried in the blood to a target organ
@@ -106,9 +106,9 @@ Quadrat|A square frame used to sample organisms in an area.|square frame;used to
 Atom|The smallest part of an element that can exist. It has a nucleus of protons and neutrons, with electrons around it.|smallest part of an element;nucleus of protons and neutrons;electrons around it
 Element|A substance made of only one type of atom.|only one type of atom
 Compound|A substance made of two or more different elements chemically combined in fixed proportions.|two or more elements;chemically combined;fixed proportions
-Mixture|Two or more elements or compounds that are not chemically combined.|two or more substances;not chemically combined
+Mixture|Two or more elements or compounds that are not chemically combined.|two or more elements or compounds;not chemically combined
 Isotopes|Atoms of the same element with the same number of protons but a different number of neutrons.|same number of protons;different number of neutrons
-Ion|An atom or group of atoms with an electric charge, formed by losing or gaining electrons.|charged particle;lost or gained electrons
+Ion|An atom or group of atoms with an electric charge, formed by losing or gaining electrons.|atom with an electric charge;lost or gained electrons
 Atomic number|The number of protons in the nucleus of an atom.|number of protons
 Mass number|The total number of protons and neutrons in the nucleus of an atom.|protons plus neutrons
 Relative atomic mass|The average mass of the atoms of an element, taking into account the abundance of its isotopes.|average mass of the atoms;takes isotopes into account
@@ -124,7 +124,7 @@ Metallic bonding|The attraction between positive metal ions and a sea of delocal
 Delocalised electrons|Electrons that are free to move through a structure, as in metals and graphite.|free to move
 Giant ionic lattice|A regular 3D structure of oppositely charged ions held together by strong electrostatic forces in all directions.|regular arrangement of ions;strong electrostatic forces
 Simple molecule|A small group of atoms joined by covalent bonds, with weak forces between the molecules, so it has a low melting point.|atoms joined by covalent bonds;weak forces between molecules
-Giant covalent structure|A huge network of atoms all joined by strong covalent bonds, such as diamond, graphite or silicon dioxide.|many atoms;all joined by strong covalent bonds
+Giant covalent structure|A huge network of atoms all joined by strong covalent bonds, such as diamond, graphite or silicon dioxide.|huge network of atoms;all joined by strong covalent bonds
 Intermolecular forces|The weak forces of attraction between molecules.|weak forces;between molecules
 Alloy|A mixture of a metal with other elements. It is harder than the pure metal because the different-sized atoms distort the layers so they cannot slide.|mixture of a metal with other elements;harder because layers cannot slide
 Polymer|A very large molecule made from many small repeating units called monomers.|very large molecule;many repeating units`],
@@ -148,11 +148,11 @@ Ore|A rock that contains enough metal or metal compound to make extracting it wo
   'd-c-energy': ['chemistry', 'Energy and rates: key terms', `
 Exothermic reaction|A reaction that transfers energy to the surroundings, so the temperature of the surroundings increases.|transfers energy to the surroundings;temperature increases
 Endothermic reaction|A reaction that takes in energy from the surroundings, so the temperature of the surroundings decreases.|takes in energy from the surroundings;temperature decreases
-Activation energy|The minimum amount of energy that particles must have to react when they collide.|minimum energy;needed to react
+Activation energy|The minimum amount of energy that particles must have to react when they collide.|minimum energy;needed to react when they collide
 Rate of reaction|How quickly reactants are used up or products are formed.|how fast reactants are used up or products formed
 Catalyst|A substance that speeds up a reaction without being used up, by providing a pathway with a lower activation energy.|speeds up a reaction;not used up;lower activation energy
 Collision theory|Reactions only happen when particles collide with enough energy (at least the activation energy).|particles collide;with enough energy
-Reversible reaction|A reaction where the products can react to form the reactants again.|products can turn back into reactants
+Reversible reaction|A reaction where the products can react to form the reactants again.|products can react to form the reactants again
 Dynamic equilibrium|When a reversible reaction in a closed system goes forwards and backwards at the same rate, so the amounts stay the same.|forward and backward rates are equal;closed system`],
   'd-c-organic': ['chemistry', 'Organic, analysis and the atmosphere: key terms', `
 Hydrocarbon|A compound made of hydrogen and carbon atoms only.|hydrogen and carbon only
@@ -179,7 +179,7 @@ Power|The rate at which energy is transferred, or the rate at which work is done
 Efficiency|The proportion of input energy that is usefully transferred: useful output ÷ total input.|useful output divided by total input
 Conservation of energy|Energy cannot be created or destroyed, only transferred from one store to another.|cannot be created or destroyed;only transferred
 Specific heat capacity|The amount of energy needed to raise the temperature of 1 kg of a substance by 1 °C.|energy needed;to raise 1 kg by 1 °C
-Dissipated energy|Energy that is transferred to the surroundings in a way that is not useful, often by heating.|wasted energy;spread to the surroundings
+Dissipated energy|Energy that is transferred to the surroundings in a way that is not useful, often by heating.|not useful;transferred to the surroundings
 Renewable energy resource|An energy resource that is being, or can be, replenished as it is used, such as wind or solar.|replenished as it is used
 Non-renewable energy resource|An energy resource that will run out, such as coal, oil, gas or nuclear fuel.|will run out
 Thermal conductivity|How quickly energy is transferred through a material by heating.|how fast energy moves through a material
@@ -200,7 +200,7 @@ Neutral wire|The blue wire, which completes the circuit and is at or close to 0 
 Earth wire|The green and yellow safety wire, at 0 V, which only carries current if there is a fault.|green and yellow;safety wire for faults
 National Grid|The system of cables and transformers linking power stations to homes and businesses.|cables and transformers;links power stations to consumers
 Step-up transformer|A transformer that increases the potential difference for transmission, which reduces the current and so the energy lost.|increases potential difference;reduces current and energy loss
-Thermistor|A component whose resistance decreases as the temperature increases.|resistance falls as temperature rises
+Thermistor|A component whose resistance decreases as the temperature increases.|resistance decreases as temperature increases
 Light-dependent resistor|A component whose resistance decreases as the light intensity increases.|resistance falls as light increases
 Diode|A component that lets current flow in one direction only.|current in one direction only`],
   'd-p-particles': ['physics', 'Particles and radiation: key terms', `
@@ -213,11 +213,11 @@ Radioactive decay|The random process in which an unstable nucleus gives out radi
 Half-life|The time it takes for the number of radioactive nuclei in a sample, or the count rate, to halve.|time taken;to halve
 Activity|The rate at which a source of unstable nuclei decays, measured in becquerels (Bq).|rate of decay;becquerels
 Alpha particle|Two protons and two neutrons (a helium nucleus). Highly ionising and stopped by paper.|two protons and two neutrons;helium nucleus
-Beta particle|A high-speed electron given out from the nucleus as a neutron turns into a proton.|fast electron;from the nucleus
-Gamma ray|Electromagnetic radiation given out from the nucleus. Very penetrating, weakly ionising.|electromagnetic wave;from the nucleus
+Beta particle|A high-speed electron given out from the nucleus as a neutron turns into a proton.|high-speed electron;from the nucleus
+Gamma ray|Electromagnetic radiation given out from the nucleus. Very penetrating, weakly ionising.|electromagnetic radiation;from the nucleus
 Irradiation|Exposing an object to nuclear radiation. The object does not become radioactive.|exposed to radiation;does not become radioactive
 Contamination|The unwanted presence of radioactive atoms on or in other materials.|radioactive atoms get on or into a material
-Background radiation|Radiation around us all the time from natural sources (rocks, cosmic rays) and man-made sources.|always around us;natural and man-made sources`],
+Background radiation|Radiation around us all the time from natural sources (rocks, cosmic rays) and man-made sources.|around us all the time;natural and man-made sources`],
   'd-p-forces': ['physics', 'Forces: key terms', `
 Scalar|A quantity with magnitude (size) only, such as speed, distance or mass.|size only
 Vector|A quantity with magnitude and direction, such as velocity, force or displacement.|size and direction
@@ -227,20 +227,20 @@ Acceleration|The rate of change of velocity.|rate of change of velocity
 Resultant force|The single force that has the same effect as all the forces acting on an object together.|single force;same effect as all the forces
 Weight|The force acting on an object due to gravity.|force due to gravity
 Non-contact force|A force between objects that are not touching, such as gravity, magnetic or electrostatic force.|objects not touching
-Newton's first law|If the resultant force on an object is zero, it stays still or keeps moving at the same speed in the same direction.|zero resultant force;stays still or constant velocity
+Newton's first law|If the resultant force on an object is zero, it stays still or keeps moving at the same speed in the same direction.|resultant force is zero;stays still or keeps moving at the same speed and direction
 Newton's second law|The acceleration of an object is proportional to the resultant force on it and inversely proportional to its mass: F = m × a.|acceleration proportional to resultant force;F = ma
 Newton's third law|When two objects interact, they exert equal and opposite forces on each other.|two objects interact;equal and opposite forces
 Terminal velocity|The constant top speed of a falling object, reached when air resistance equals weight so the resultant force is zero.|constant maximum speed;air resistance equals weight
 Stopping distance|Thinking distance plus braking distance.|thinking distance;plus braking distance
 Thinking distance|The distance a vehicle travels during the driver's reaction time.|during the reaction time
-Braking distance|The distance a vehicle travels under the braking force.|after the brakes are applied
+Braking distance|The distance a vehicle travels under the braking force.|distance travelled under the braking force
 Elastic deformation|A change in shape where the object goes back to its original shape when the force is removed.|returns to its original shape
 Limit of proportionality|The point beyond which extension is no longer proportional to the force.|extension no longer proportional to force`],
   'd-p-waves': ['physics', 'Waves and magnetism: key terms', `
 Transverse wave|A wave where the oscillations are at right angles to the direction of energy transfer, such as light or ripples on water.|oscillations at right angles;to the direction of energy transfer
 Longitudinal wave|A wave where the oscillations are parallel to the direction of energy transfer, such as sound. It has compressions and rarefactions.|oscillations parallel;to the direction of energy transfer
 Amplitude|The maximum displacement of a point on a wave from its rest position.|maximum displacement;from the rest position
-Wavelength|The distance from a point on one wave to the same point on the next wave, such as crest to crest.|distance between the same points;on neighbouring waves
+Wavelength|The distance from a point on one wave to the same point on the next wave, such as crest to crest.|distance from a point on one wave;to the same point on the next wave
 Frequency|The number of waves passing a point each second, measured in hertz (Hz).|waves per second
 Period|The time taken for one complete wave to pass a point. T = 1 ÷ f.|time for one wave
 Refraction|When a wave changes direction as it crosses a boundary between two materials, because its speed changes.|changes direction;speed changes at a boundary
@@ -254,8 +254,8 @@ Motor effect|When a wire carrying a current in a magnetic field experiences a fo
 
   /* ---------------- Business, Geography, RE ---------------- */
   'd-bs-terms': ['business', 'Business: key terms', `
-Entrepreneur|Someone who takes the risk of setting up a business, hoping to make a profit.|takes risks;sets up a business
-Revenue|The money a business receives from selling its goods or services: price × quantity sold.|money from sales;price times quantity
+Entrepreneur|Someone who takes the risk of setting up a business, hoping to make a profit.|takes the risk;setting up a business
+Revenue|The money a business receives from selling its goods or services: price × quantity sold.|money from selling goods or services;price times quantity
 Profit|What is left when total costs are taken away from revenue.|revenue minus total costs
 Fixed costs|Costs that do not change with the level of output, such as rent.|do not change with output
 Variable costs|Costs that change directly with the level of output, such as raw materials.|change with output
@@ -264,8 +264,8 @@ Cash flow|The movement of money into and out of a business over a period of time
 Unlimited liability|When the owners are personally responsible for all the debts of the business.|personally responsible;for all the debts
 Limited liability|When owners can lose only the money they invested in the business.|only lose what they invested
 Market research|Gathering information about customers, competitors and trends in the market.|gathering information;about customers and the market
-Primary research|New information collected first-hand for a specific purpose, such as a survey.|new data;collected first-hand
-Secondary research|Using information that already exists, collected by someone else.|existing data;collected by others
+Primary research|New information collected first-hand for a specific purpose, such as a survey.|new information;collected first-hand
+Secondary research|Using information that already exists, collected by someone else.|information that already exists;collected by someone else
 Market segmentation|Dividing a market into groups of customers with similar characteristics.|dividing a market;groups with similar characteristics
 Stakeholder|Anyone who has an interest in, or is affected by, a business.|interest in or affected by a business
 Marketing mix|The four Ps: product, price, place and promotion.|product;price;place;promotion
@@ -283,7 +283,7 @@ Climate change|A long-term change in the Earth's average temperature and weather
 Ecosystem|A community of plants and animals interacting with each other and their physical environment.|living things;interacting with their environment
 Deforestation|The cutting down and removal of trees from a forested area.|removing trees
 Sustainable|Meeting the needs of people today without stopping future generations from meeting theirs.|needs of today;without harming future generations
-Urbanisation|An increase in the percentage of people living in towns and cities.|increasing percentage;living in urban areas
+Urbanisation|An increase in the percentage of people living in towns and cities.|increase in the percentage;people living in towns and cities
 Megacity|An urban area with a population of over 10 million people.|over 10 million people
 Rural–urban migration|The movement of people from the countryside to towns and cities.|countryside to cities
 Erosion|The wearing away and removal of material by a moving force, such as waves or a river.|wearing away;by waves or rivers
@@ -303,7 +303,7 @@ Sacrament|An outward sign of an inward, invisible grace, such as baptism or Holy
 Evangelism|Spreading the Christian gospel by public preaching or personal witness.|spreading the gospel
 Tawhid|The Muslim belief in the oneness of God.|oneness of God
 Akhirah|The Muslim belief in life after death.|life after death
-Risalah|Prophethood: the way Allah communicates with humans through prophets.|prophethood;communication from God
+Risalah|Prophethood: the way Allah communicates with humans through prophets.|prophethood;Allah communicates through prophets
 Ummah|The worldwide community of Muslims.|worldwide Muslim community
 Shahadah|The Muslim declaration of faith, the first of the Five Pillars.|declaration of faith
 Zakah|Giving 2.5% of savings to the poor, one of the Five Pillars.|2.5% of savings;to the poor

@@ -439,10 +439,11 @@ const LEARN = (() => {
   /* First guess at which key points an answer hit; the student confirms or fixes the ticks.
      shortcut: word-stem matching, not real marking; that is why the student has the final say. */
   const DSTOP = new Set('the and for with from that this its are can into than more less only when where which what their them they has have had was not all any one per'.split(' '));
-  const words = x => norm(x).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 2 && !DSTOP.has(w));
+  const words = x => norm(x).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => (w.length > 2 || /\d/.test(w)) && !DSTOP.has(w));
+  const compact = x => norm(x).toLowerCase().replace(/[^a-z0-9]+/g, '');
   function defTicks(q, raw) {
     const aw = words(raw), has = w => aw.some(a => a === w || (a.length >= 4 && w.length >= 4 && a.slice(0, 4) === w.slice(0, 4)) || (Math.min(a.length, w.length) >= 3 && (a.startsWith(w) || w.startsWith(a))));
-    return q.points.map(p => { const kw = words(p.replace(/\(.*?\)/g, "")); return kw.length > 0 && kw.filter(has).length / kw.length >= .6; });
+    return q.points.map(p => { const kw = words(p.replace(/\(.*?\)/g, "")); return kw.length ? kw.filter(has).length / kw.length >= .6 : !!compact(p) && compact(raw).includes(compact(p)); });
   }
 
   /* ---------- Descriptive vocabulary: spell it, know its meaning, use it in a sentence ---------- */
