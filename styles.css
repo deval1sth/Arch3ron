@@ -1064,7 +1064,9 @@ html.bd-open{overflow:hidden}
 .bf{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1.15;font-size:.9em}
 .bn,.bdn{display:block;padding:0 .2em}
 .bb{display:block;align-self:stretch;height:2px;background:currentColor;border-radius:2px;transform-origin:left}
-.hl,.bf.hl{background:linear-gradient(transparent 12%,rgba(var(--y-rgb),.16) 12%,rgba(var(--y-rgb),.16) 92%,transparent 92%);color:var(--y3)}
+.hl{color:var(--y3)}
+.hlg,.bf.hl{display:inline-block;white-space:nowrap;border-radius:5px;padding:0 .08em;background:rgba(var(--y-rgb),.13);color:var(--y3)}
+.src{color:var(--y3);background:rgba(var(--y-rgb),.2);border-radius:3px;transition:background .4s,color .4s}
 .bl.k-answer .bm{display:inline-block;padding:0 .3em;border-radius:6px;background-image:linear-gradient(var(--hl),var(--hl));color:var(--hl-ink)}
 .bl.k-check .bm{color:var(--g);font-size:clamp(16px,4vw,20px)}
 .bl.k-idea{margin-top:6px}.bl.k-idea .bs{color:var(--t);font-weight:700}
@@ -1088,13 +1090,13 @@ html.bd-open{overflow:hidden}
 .bd-ctl [data-bd="play"]{min-width:110px}
 .bd-ctl .btn.on{background:var(--y-soft);border-color:var(--y);color:var(--y3)}
 /* the pen: every unit fades and settles in on its own delay; pausing freezes them mid-stroke */
-.bl.live .bc,.bl.live .bb{animation:bdInk .32s var(--ease) var(--d,0ms) both}
+.bl.live .bc,.bl.live .bb{animation:bdInk .3s cubic-bezier(.4,.1,.3,1) var(--d,0ms) both}
 .bl.live .bb{animation-name:bdBar}
 .bl.live .bs{animation:bdFade .45s var(--ease) both}
 .bl.live .bt tr{animation:bdFade .35s var(--ease) var(--d,0ms) both}
 .bl.live.k-answer .bm{animation:bdMark .5s var(--ease) both}
-.bd-scrim.paused .bl.live *{animation-play-state:paused!important}
-@keyframes bdInk{from{opacity:0;transform:translateY(.28em) scale(.92)}to{opacity:1;transform:none}}
+.bd-scrim.paused .bl.now.live *{animation-play-state:paused!important}
+@keyframes bdInk{from{clip-path:inset(0 100% 0 0);opacity:.4}60%{opacity:1}to{clip-path:inset(0 0 0 0);opacity:1}}
 @keyframes bdBar{from{transform:scaleX(0)}to{transform:none}}
 @keyframes bdDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes bdFade{from{opacity:0}to{opacity:1}}
@@ -1119,3 +1121,7 @@ html.rm .bd,html.rm .bd-scrim{animation:none}
 .bl.live .bfig .fl{stroke-dasharray:1;animation:bdDraw .55s var(--ease) var(--d,0ms) both}
 .bl.live .bfig .fl.dash{stroke-dasharray:6 5;animation:bdFade .4s var(--ease) var(--d,0ms) both}
 .bl.live .bfig .ft,.bl.live .bfig .fo{animation:bdFade .35s var(--ease) var(--d,0ms) both}
+/* the pen tip that follows the writing (board.js pen()) */
+.bd-board{position:relative}
+.bd-pen{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -2px;border-radius:50% 50% 50% 0;background:var(--y);box-shadow:0 0 0 3px rgba(var(--y-rgb),.18),0 0 14px rgba(var(--y-rgb),.55);pointer-events:none;z-index:2;opacity:0;will-change:transform}
+html.rm .bd-pen{display:none}

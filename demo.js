@@ -422,6 +422,27 @@ const DEMO = (() => {
      checked independently of the value the generator picked. They are fixed strings in our own code. */
   const evalT = (tpl, v) => Function('"use strict";return (' + tpl.replace(/\{(\w+)\}/g, (_, k) => `(${v[k]})`).replace(/×/g, '*').replace(/÷/g, '/').replace(/½/g, '0.5').replace(/²/g, '**2').replace(/√/g, 'Math.sqrt') + ')')();
   const fill = (tpl, v) => tpl.replace(/\{(\w+)\}/g, (_, k) => n(v[k]));
+  /* why each AQA equation applies, and the slip examiners see most often with it */
+  const PW = {
+    weight: ['Weight is the force of gravity pulling on a mass. On Earth every kilogram is pulled with 9.8 N.', 'Mass (kg) and weight (N) are different things. Mass stays the same on the Moon; weight does not.'],
+    work: ['Work is done whenever a force moves something along the direction of the force. It is energy transferred.', 'The distance must be in metres and along the line of the force.'],
+    spring: ['Hooke\'s law: the extension is proportional to the force, up to the limit of proportionality.', 'e is how much the spring stretched, not its total length, and it must be in metres.'],
+    speed: ['Speed is the distance travelled each second.', 'For m/s, distance must be in metres and time in seconds. Convert minutes and km first.'],
+    accel: ['Acceleration is how much the velocity changes every second.', 'Use the change in velocity: final velocity − starting velocity.'],
+    newton2: ['Newton\'s second law: a bigger resultant force gives a bigger acceleration, and a bigger mass gives a smaller one.', 'F is the resultant force: add forces in the same direction, subtract opposite ones first.'],
+    momentum: ['Momentum is mass × velocity. It is conserved in collisions and explosions.', 'Velocity has a direction, so momentum does too. Take one direction as positive.'],
+    ke: ['A moving object has energy in its kinetic store. Double the speed and you get four times the energy.', 'Only v is squared. Square the speed first, then × mass, then halve.'],
+    gpe: ['Lifting something transfers energy into its gravitational potential store.', 'h is the change in height, in metres. g is 9.8 N/kg on Earth.'],
+    'power-e': ['Power is how fast energy is transferred: 1 watt is 1 joule every second.', 'Time must be in seconds: minutes × 60.'],
+    charge: ['Current is the rate of flow of charge: 1 amp is 1 coulomb flowing every second.', 'Time in seconds, not minutes.'],
+    ohm: ['For a component in a circuit, the potential difference across it is current × resistance.', 'It is V = I × R. Students often divide when they should multiply: cover the one you need in the V-I-R triangle.'],
+    'power-vi': ['Electrical power is the energy transferred each second: potential difference × current.', 'UK mains is 230 V. Check you used volts and amps, not kV or mA.'],
+    'power-ir': ['This is the heating effect: power lost in a wire grows with the current squared.', 'Square the current only, then multiply by the resistance.'],
+    'energy-pt': ['Energy transferred is power × time: a 2000 W kettle on for 60 s transfers 120 000 J.', 'Kilowatts to watts: × 1000. Minutes to seconds: × 60.'],
+    'energy-qv': ['Every coulomb of charge that passes through a potential difference of V volts transfers V joules.', 'Use the charge in coulombs. If you only have current, find Q = I × t first.'],
+    density: ['Density is mass per unit volume: how tightly the mass is packed in.', 'With kg and m³ the answer is in kg/m³. Do not mix in grams or cm³.'],
+    wave: ['Each wave moves forward one wavelength, and f waves pass every second, so speed = f × λ.', 'Frequency in hertz and wavelength in metres. Convert km or cm first.']
+  };
   const CIRCUIT = ['ohm', 'power-vi', 'power-ir', 'charge', 'energy-qv'];
   function picture(pid, all, v, find) {
     const lab = k => { const i = all.find(x => x[0] === k); return k === find ? '?' : `${n(v[k])} ${i[3]}`; }, has = k => all.some(i => i[0] === k);
@@ -441,14 +462,14 @@ const DEMO = (() => {
       { kind: 'q', say: 'Write down what you know, with units.', math: known.map(i => `${i[1]} = ${n(v[i[0]])} ${i[3]}`).join('    ') },
       { say: `We need the ${tgt[2]} (${tgt[1]}), measured in ${tgt[3]}.`, math: `${tgt[1]} = ?` },
       picture(pid, all, v, find),
-      { say: `The equation that links ${all.map(i => i[2]).join(', ').replace(/, ([^,]*)$/, ' and $1')}:`, math: e.eq, why: 'Choose the equation that contains everything you know and the thing you need.' }];
+      { say: `The equation that links ${all.map(i => i[2]).join(', ').replace(/, ([^,]*)$/, ' and $1')}:`, math: e.eq, why: (PW[pid] || [])[0] || 'Choose the equation that contains everything you know and the thing you need.' }];
     if (!fwd) lines.push({ say: `Rearrange to get ${tgt[1]} on its own.`, math: e.re[find][0], why: 'Do the same thing to both sides, exactly like solving an equation.' });
     lines.push({ say: 'Substitute the numbers in.', math: `${tgt[1]} = ${fill(tpl, v)}` },
       { kind: 'answer', say: 'Calculate, and always write the unit.', math: `${tgt[1]} = ${n(got)} ${tgt[3]}` });
     if (fwd) { const k = Object.keys(e.re)[0], ki = k && e.ins.find(i => i[0] === k);
       if (ki) lines.push({ kind: 'check', say: `Check by working backwards to the ${ki[2]}.`, math: `${e.re[k][0].split(' = ')[0]} = ${fill(e.re[k][1], back)} = ${n(evalT(e.re[k][1], back))} ${ki[3]} ✓` }); }
     else lines.push({ kind: 'check', say: `Check: put ${tgt[1]} = ${n(got)} back into ${e.eq}.`, math: `${e.out[1]} = ${fill(e.sub, back)} = ${n(evalT(e.sub, back))} ${e.out[3]} ✓` });
-    lines.push({ kind: 'idea', say: 'Equation → rearrange → substitute → calculate → unit.' });
+    lines.push({ kind: 'idea', say: 'Equation → rearrange → substitute → calculate → unit.', why: PW[pid] && 'Common slip: ' + PW[pid][1] });
     const inv = fwd ? Object.keys(e.re).every(k => near(evalT(e.re[k][1], back), v[k])) : near(evalT(e.sub, back), v[e.out[0]]);
     return { lines: lines.filter(Boolean), checks: [['calculation is right', near(got, v[find])], ['works backwards to the given values', inv], ['unit matches', q.suf === tgt[3]], ['matches the marked answer', near(clean(got), q.v)]] };
   };
@@ -468,8 +489,12 @@ const DEMO = (() => {
     const order = sp.map((x, j) => j).filter(j => co[j] > 1).sort((i, j) => (Object.keys(sp[i].m).length === 1) - (Object.keys(sp[j].m).length === 1));
     if (!order.length) lines.push({ say: 'Every element already matches, so no big numbers are needed.', math: eq(cur) });
     for (const j of order) {
-      const before = ok(count(cur)); cur[j] = co[j]; const t = count(cur), fixed = ok(t).filter(el => !before.includes(el));
-      lines.push({ say: `Put a ${co[j]} in front of ${subs(sp[j].f)}${fixed.length ? ` to balance ${fixed.join(' and ')}` : ''}.`, math: eq(cur, j), table: t });
+      const was = count(cur), before = ok(was); cur[j] = co[j]; const t = count(cur), fixed = ok(t).filter(el => !before.includes(el));
+      /* name the element this step fixes, with the counts that show it was off */
+      const off = fixed.map(el => was.find(r => r[0] === el)).filter(Boolean)[0], moved = t.filter((r, x) => r[1] !== was[x][1] || r[2] !== was[x][2]).map(r => r[0]);
+      const say = off ? `${off[0]}: ${off[1]} on the left but ${off[2]} on the right. Put a ${co[j]} in front of ${subs(sp[j].f)} to make it ${t.find(r => r[0] === off[0])[1]} on both sides.`
+        : `Put a ${co[j]} in front of ${subs(sp[j].f)}. That changes ${moved.join(' and ')}, which we fix next.`;
+      lines.push({ say, math: eq(cur, j), table: t, why: fixed.length > 1 ? `This one number fixes ${fixed.join(' and ')} at the same time.` : null });
     }
     lines.push({ kind: 'answer', say: 'Every element now matches on both sides.', math: eq(co) });
     /* draw the atoms when it stays readable: no molecule over 12 atoms, no side over 40 */

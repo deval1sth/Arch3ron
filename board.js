@@ -17,13 +17,15 @@ const BOARD = (() => {
   const plain = s => s.replace(/\[\[|\]\]/g, '').replace(/\{([^{}/]+)\/([^{}]+)\}/g, '$1/$2');
   function ink(s, start, animate) {
     const out = el('span', 'bm'), per = CH * k();
-    let t = start, hi = false, word = null;
+    /* [[...]] becomes one .hlg group, so the board can fly it in from the line above as a unit */
+    let t = start, hi = false, word = null, grp = null;
     const unit = (node, w) => { if (animate) { node.style.setProperty('--d', Math.round(t) + 'ms'); t += w; } if (hi) node.classList.add('hl'); return node; };
-    const flush = () => { if (word) { out.append(word); word = null; } };
-    const char = c => { if (c === ' ') { flush(); out.append(hi ? el('span', 'hl', ' ') : ' '); t += per * .35; return; } if (!word) word = el('span', 'bw'); word.append(unit(el('span', 'bc', c), per)); };
+    const flush = () => { if (word) { (grp || out).append(word); word = null; } };
+    const char = c => { if (c === ' ') { flush(); (grp || out).append(hi ? el('span', 'hl', ' ') : ' '); t += per * .35; return; } if (!word) word = el('span', 'bw'); word.append(unit(el('span', 'bc', c), per)); };
     const re = /\[\[|\]\]|\{([^{}/]+)\/([^{}]+)\}|./gsu;
     for (const m of s.matchAll(re)) {
-      if (m[0] === '[[') { hi = true; continue; } if (m[0] === ']]') { hi = false; continue; }
+      if (m[0] === '[[') { flush(); hi = true; grp = el('span', 'hlg'); continue; }
+      if (m[0] === ']]') { flush(); hi = false; if (grp) out.append(grp); grp = null; continue; }
       if (m[1] != null) {
         if (!word) word = el('span', 'bw');
         const f = el('span', 'bf'), top = el('span', 'bn'), bar = unit(el('span', 'bb'), per), bot = el('span', 'bdn');
@@ -34,7 +36,7 @@ const BOARD = (() => {
       }
       char(m[0]);
     }
-    flush();
+    flush(); if (grp) out.append(grp);
     out.setAttribute('aria-label', plain(s)); out.setAttribute('role', 'img');
     return [out, t - start];
   }
@@ -67,7 +69,7 @@ const BOARD = (() => {
   }
 
   function line(L, j, animate) {
-    const row = el('div', 'bl' + (L.kind ? ' k-' + L.kind : '') + (animate ? ' live' : ''));
+    const row = el('div', 'bl' + (L.kind ? ' k-' + L.kind : '') + (animate && !reduced() ? ' live' : ''));
     let t = 0; const R = reduced(), go = animate && !R;
     if (L.say) { const s = el('p', 'bs', L.say); if (go) s.style.setProperty('--d', '0ms'); row.append(s); t += SAY * k(); }
     if (L.fig) { const [n, d] = drawFig(L.fig, t, go); row.append(n); t += d; }
@@ -81,22 +83,75 @@ const BOARD = (() => {
     return [row, R ? HOLD * k() : t + HOLD * k() * (L.kind === 'answer' ? 1.4 : 1)];
   }
 
-  function draw(animate) {
-    clearTimeout(timer); waiting = false;
-    const board = root.querySelector('.bd-board'); board.textContent = '';
-    for (let j = 0; j <= i; j++) { const [row, d] = line(D.lines[j], j, animate && j === i); if (j === i) { row.classList.add('now'); dur = d; } board.append(row); }
-    const cur = board.lastElementChild; if (cur) cur.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
-    ended = i === D.lines.length - 1;
-    t0 = performance.now(); left = dur;
-    if (playing && !ended) timer = setTimeout(advance, dur);
-    if (playing && ended) timer = setTimeout(() => { playing = false; sync(); }, dur);
+  /* ---------- playback: rows are added and removed one at a time, never rebuilt mid-lesson ---------- */
+  let anims = [];
+  const boardEl = () => root.querySelector('.bd-board');
+  const rowsNow = () => [...boardEl().querySelectorAll('.bl:not(.gone)')];
+  const dOf = u => parseFloat(u.style.getPropertyValue('--d')) || 0;
+  function stopAnims() { anims.forEach(a => a.cancel()); anims = []; }
+  function addRow(j, animate) {
+    const [row, d] = line(D.lines[j], j, animate); row.dataset.dur = d; boardEl().append(row);
+    if (animate && !reduced()) { carry(row); pen(row); }
+    return row;
+  }
+  /* A highlighted number that also appears on the line above flies down from there, the way a
+     teacher carries "+ 5" across the equals sign. Matching is by the whole number only. */
+  function carry(row) {
+    const prev = rowsNow().slice(0, -1).reverse().map(r => r.querySelector(':scope > .bm')).find(Boolean); if (!prev) return;
+    const pcs = [...prev.querySelectorAll('.bc')], txt = pcs.map(c => c.textContent).join('');
+    for (const g of row.querySelectorAll(':scope > .bm > .hlg')) {
+      const key = g.textContent.replace(/[^\d.]/g, ''); if (!key) continue;
+      const m = [...txt.matchAll(/\d+(\.\d+)?/g)].find(x => x[0] === key); if (!m) continue;
+      const src = pcs.slice(m.index, m.index + key.length), a = src[0].getBoundingClientRect(), z = src[src.length - 1].getBoundingClientRect(), b = g.getBoundingClientRect();
+      const cs = [...g.querySelectorAll('.bc')], d0 = Math.min(...cs.map(dOf)), d1 = Math.max(...cs.map(dOf));
+      cs.forEach(c => c.style.setProperty('--d', d0 + 'ms')); g.classList.add('carried');
+      const dx = (a.left + z.right) / 2 - (b.left + b.right) / 2, dy = (a.top + z.bottom) / 2 - (b.top + b.bottom) / 2;
+      const f = g.animate([{ transform: `translate(${dx}px, ${dy}px) scale(.85)`, opacity: .2 }, { opacity: 1, offset: .2 }, { transform: 'none', opacity: 1 }],
+        { duration: Math.max(560, d1 - d0 + 300) * k(), delay: d0, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'backwards' });
+      src.forEach(c => c.classList.add('src')); f.onfinish = () => src.forEach(c => c.classList.remove('src'));
+      anims.push(f);
+    }
+  }
+  /* the pen tip rides along the bottom of each character as it is written */
+  function pen(row) {
+    const B = boardEl(), us = [...row.querySelectorAll(':scope > .bm .bc, :scope > .bm .bb')].filter(u => !u.closest('.carried')).sort((p, q) => dOf(p) - dOf(q));
+    if (!us.length) return;
+    const R = B.getBoundingClientRect(), per = CH * k(), end = dOf(us[us.length - 1]) + per * 3;
+    const at = u => { const r = u.getBoundingClientRect(); return `translate(${Math.round(r.right - R.left + B.scrollLeft)}px, ${Math.round(r.bottom - R.top + B.scrollTop - 7)}px)`; };
+    const kf = [{ transform: at(us[0]), opacity: 0, offset: 0 }, { transform: at(us[0]), opacity: 0, offset: Math.max(0, dOf(us[0]) - per) / end }];
+    for (const u of us) kf.push({ transform: at(u), opacity: 1, offset: Math.min(1, (dOf(u) + per * .8) / end) });
+    kf.push({ transform: at(us[us.length - 1]), opacity: 0, offset: 1 });
+    const p = el('span', 'bd-pen'); B.append(p);
+    const a = p.animate(kf, { duration: end, fill: 'forwards' }); a.onfinish = () => p.remove(); a.oncancel = () => p.remove(); anims.push(a);
+  }
+  function focusRow(d) {
+    const rows = rowsNow(); rows.forEach(r => r.classList.remove('now'));
+    const cur = rows[rows.length - 1]; if (cur) { cur.classList.add('now'); cur.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' }); }
+    dur = d; schedule();
+  }
+  function schedule() {
+    clearTimeout(timer); waiting = false; ended = i === D.lines.length - 1; t0 = performance.now(); left = dur;
+    if (playing) timer = setTimeout(ended ? () => { playing = false; sync(); } : advance, dur);
     sync();
+  }
+  function rebuild(animate) {
+    stopAnims(); boardEl().textContent = '';
+    let last = null; for (let j = 0; j <= i; j++) last = addRow(j, animate && j === i);
+    focusRow(+last.dataset.dur);
+  }
+  function forward() { i++; const r = addRow(i, true); focusRow(+r.dataset.dur); }
+  function backward() {
+    const rows = rowsNow(), last = rows[rows.length - 1]; i--;
+    last.classList.add('gone'); last.classList.remove('now');
+    const a = last.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px)' }], { duration: reduced() ? 1 : 260, easing: 'ease-out', fill: 'forwards' });
+    a.onfinish = () => last.remove(); setTimeout(() => last.remove(), 320); // animations can stall in a background tab
+    focusRow(HOLD * k());
   }
   function advance() {
     if (i >= D.lines.length - 1) { playing = false; return sync(); }
     /* try-first mode: stop before each working line and let the student think */
     if (tryFirst && D.lines[i + 1].kind !== 'idea') { waiting = true; playing = false; return sync(); }
-    i++; draw(true);
+    forward();
   }
   function sync() {
     if (!root) return;
@@ -113,19 +168,19 @@ const BOARD = (() => {
     root.querySelector('.bd-think').hidden = !waiting;
     root.querySelector('.bd-end').hidden = !ended || playing;
   }
-  function pause() { if (!playing) return; playing = false; clearTimeout(timer); left = Math.max(0, left - (performance.now() - t0)); sync(); }
+  function pause() { if (!playing) return; playing = false; clearTimeout(timer); left = Math.max(0, left - (performance.now() - t0)); anims.forEach(a => a.playState === 'running' && a.pause()); sync(); }
   function resume() {
-    if (waiting) { waiting = false; playing = true; i++; return draw(true); }
+    if (waiting) { waiting = false; playing = true; return forward(); }
     if (ended) return;
-    playing = true; t0 = performance.now(); timer = setTimeout(advance, left); sync();
+    playing = true; t0 = performance.now(); anims.forEach(a => a.playState === 'paused' && a.play()); timer = setTimeout(advance, left); sync();
   }
 
   const ACT = {
     play: () => playing ? pause() : resume(),
-    next: () => { if (i < D.lines.length - 1) { i++; draw(true); } },
-    prev: () => { if (i > 0) { i--; draw(true); } },
-    replay: () => { i = 0; playing = true; draw(true); },
-    full: () => { playing = false; i = D.lines.length - 1; draw(false); },
+    next: () => { if (i < D.lines.length - 1) forward(); },
+    prev: () => { if (i > 0) backward(); },
+    replay: () => { i = 0; playing = true; rebuild(true); },
+    full: () => { playing = false; i = D.lines.length - 1; rebuild(false); },
     speed: () => { sp = (sp + 1) % SPEEDS.length; try { localStorage.setItem(KEY, String(sp)); } catch (e) {} sync(); },
     try: () => { tryFirst = !tryFirst; sync(); },
     why: b => { const w = b.nextElementSibling; w.hidden = !w.hidden; b.setAttribute('aria-expanded', String(!w.hidden)); if (!w.hidden) pause(); },
@@ -167,13 +222,13 @@ const BOARD = (() => {
     root.addEventListener('click', e => { if (e.target === root) return close(); const b = e.target.closest('[data-bd]'); if (b && !b.disabled) ACT[b.dataset.bd](b); });
     document.addEventListener('keydown', onKey, true);
     document.body.append(root); document.documentElement.classList.add('bd-open');
-    draw(true);
+    rebuild(true);
     root.querySelector('[data-bd="play"]').focus({ preventScroll: true });
     return true;
   }
   function close(silent) {
     if (!root) return;
-    clearTimeout(timer); document.removeEventListener('keydown', onKey, true);
+    clearTimeout(timer); stopAnims(); document.removeEventListener('keydown', onKey, true);
     root.remove(); root = null; D = null; playing = false; document.documentElement.classList.remove('bd-open');
     if (!silent && back && back.isConnected) back.focus({ preventScroll: true });
   }
@@ -182,7 +237,7 @@ const BOARD = (() => {
   function selfTest() {
     const demo = { topic: 'Self-test', subject: '', question: 'Test', source: 'verified', ok: true, checks: [['ok', true]],
       lines: [{ kind: 'q', math: '3x + 5 = 20' }, { say: 'Subtract 5', math: '3x + 5[[ − 5]] = 20[[ − 5]]', why: 'Balance' }, { math: '{15/3}' }, { kind: 'answer', math: 'x = 5' }] };
-    const res = [], cnt = () => root.querySelectorAll('.bl').length, T = (name, v) => res.push([name, !!v]);
+    const res = [], cnt = () => root.querySelectorAll('.bl:not(.gone)').length, T = (name, v) => res.push([name, !!v]);
     open(demo); T('opens on step 1', cnt() === 1);
     ACT.next(); T('next shows step 2', cnt() === 2);
     T('highlight marks the change', root.querySelectorAll('.bl.now .bc.hl').length === 4);
@@ -195,6 +250,8 @@ const BOARD = (() => {
     ACT.play(); T('play resumes', playing);
     const s0 = sp; ACT.speed(); T('speed changes', sp !== s0); sp = s0; try { localStorage.setItem(KEY, String(sp)); } catch (e) {}
     tryFirst = true; playing = true; advance(); T('try-first waits before the next step', waiting && cnt() === 1); ACT.play(); T('show step continues', cnt() === 2); tryFirst = false;
+    const rm = document.documentElement.classList.contains('rm'); document.documentElement.classList.add('rm'); open(demo); ACT.play();
+    T('reduced motion: paused text stays visible', !root.querySelector('.bl.live') && getComputedStyle(root.querySelector('.bl .bc')).opacity === '1'); if (!rm) document.documentElement.classList.remove('rm');
     T('bad demos are refused', open({ ...demo, ok: false }) === false);
     close(); T('closes cleanly', !document.querySelector('.bd-scrim'));
     return { passed: res.filter(r => r[1]).length, failed: res.filter(r => !r[1]).map(r => r[0]) };
