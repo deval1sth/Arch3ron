@@ -80,7 +80,18 @@ const DEMO = (() => {
         for (let k = 0; k < co[j]; k++) at.forEach((el, a) => { parts.push(['o', x + 11 + a * 17, 22 + k * 26, 9, 'at at-' + el], ['t', x + 11 + a * 17, 26 + k * 26, el, 'mid at-t']); });
         h = Math.max(h, co[j] * 26 + 12); x += w;
         if (j < sp.length - 1) { parts.push(['t', x + 8, 26, j === e.l.length - 1 ? '→' : '+', 'mid big']); x += 18; } });
-      return fig(Math.max(260, x + 6), Math.max(60, h), 'The balanced equation drawn as atoms. Each column is one substance; count the atoms of each element on both sides.', parts); }
+      return fig(Math.max(260, x + 6), Math.max(60, h), 'The balanced equation drawn as atoms. Each column is one substance; count the atoms of each element on both sides.', parts); },
+    /* equivalent fractions the way a teacher writes them: arcs over the tops and under the bottoms, both labelled */
+    equiv: (a, b, k) => fig(200, 156, `${a[0]}/${a[1]} = ${b[0]}/${b[1]}: ${k} on the top and the bottom.`, [
+      ['t', 45, 70, String(a[0]), 'mid hand'], ['l', 'M27 80 H63', 'ink'], ['t', 45, 108, String(a[1]), 'mid hand'], ['t', 100, 92, '=', 'mid hand'],
+      ['t', 155, 70, String(b[0]), 'mid hand'], ['l', 'M137 80 H173', 'ink'], ['t', 155, 108, String(b[1]), 'mid hand'],
+      ['l', 'M54 44 Q100 6 146 44', 'arw'], ['l', 'M146 44 l-9 -3 M146 44 l-1 -9', 'arw'], ['t', 100, 18, k, 'mid ann'],
+      ['l', 'M54 116 Q100 154 146 116', 'arw'], ['l', 'M146 116 l-9 3 M146 116 l-1 9', 'arw'], ['t', 100, 152, k, 'mid ann']]),
+    /* a sequence with a hop drawn between each pair of terms and the difference written on it */
+    hops: (terms, step) => { const X = i => 34 + i * 64, parts = terms.map((v, i) => ['t', X(i), 92, v, 'mid hand']);
+      parts.push(['t', X(terms.length) - 14, 92, '…', 'mid hand']);
+      for (let i = 0; i + 1 < terms.length; i++) parts.push(['l', `M${X(i) + 6} 64 Q${X(i) + 32} 30 ${X(i + 1) - 6} 64`, 'arw'], ['l', `M${X(i + 1) - 6} 64 l-8 -4 M${X(i + 1) - 6} 64 l1 -9`, 'arw'], ['t', X(i) + 32, 34, step, 'mid ann']);
+      return fig(X(terms.length), 104, `Sequence ${terms.join(', ')}: ${step} each time.`, parts); }
   };
 
   /* ---------- Maths ---------- */
@@ -88,11 +99,9 @@ const DEMO = (() => {
     const { a, b, c } = q.dm, x = (c - b) / a, k = Math.abs(b);
     return { lines: [
       { kind: 'q', say: 'Here is the equation.', math: `${a}x${sg(b)} = ${n(c)}` },
-      { say: `We want x on its own. First undo the ${sg(b).trim()}: ${b > 0 ? 'subtract' : 'add'} ${k} on both sides.`, math: `${a}x${sg(b)}[[${sg(-b)}]] = ${n(c)}[[${sg(-b)}]]`,
+      { op: sg(-b).trim(), say: `We want x on its own, so undo the ${sg(b).trim()} first: ${b > 0 ? 'subtract' : 'add'} ${k} on both sides.`, math: `${a}x = ${n(c - b)}`,
         why: 'Doing the same thing to both sides keeps the equation balanced, like weighing scales.' },
-      { say: 'Simplify both sides.', math: `${a}x = ${n(c - b)}` },
-      { say: `x is multiplied by ${a}, so divide both sides by ${a}.`, math: `${a}x [[÷ ${a}]] = ${n(c - b)} [[÷ ${a}]]`, why: 'Dividing undoes multiplying.' },
-      { kind: 'answer', math: `x = ${n(x)}` },
+      { op: `÷ ${a}`, kind: 'answer', say: `x is multiplied by ${a}, so divide both sides by ${a}.`, math: `x = ${n(x)}`, why: 'Dividing undoes multiplying.' },
       { kind: 'check', say: `Check: put x = ${n(x)} back into the original equation.`, math: `${a} × ${par(x)}${sg(b)} = ${n(a * x)}${sg(b)} = ${n(a * x + b)} ✓` },
       { kind: 'idea', say: 'Undo the operations in reverse order: first the + or −, then the ×.', why: 'Common slip: dividing only the x term. Divide the whole of both sides.' }],
       checks: [['x makes both sides equal', near(a * x + b, c)], ['matches the marked answer', near(x, q.v)]] };
@@ -101,14 +110,12 @@ const DEMO = (() => {
     const { a, b, c, d } = q.dm, x = (d - b) / (a - c), k = a - c, dd = d ? sg(d) : '';
     const L = [
       { kind: 'q', say: 'Here is the equation. There are x terms on both sides.', math: `${a}x${sg(b)} = ${lin(c, d, 'x')}` },
-      { say: `Subtract ${cx(c, 'x')} from both sides, so x is only on the left.`, math: `${a}x [[− ${cx(c, 'x')}]]${sg(b)} = ${cx(c, 'x')} [[− ${cx(c, 'x')}]]${dd}`,
+      { op: `− ${cx(c, 'x')}`, say: `Subtract ${cx(c, 'x')} from both sides, so x is only on the left.`, math: `${lin(k, b, 'x')} = ${n(d)}`,
         why: 'Move the smaller x term, so the x term you keep stays positive.' },
-      { say: 'Simplify both sides.', math: `${lin(k, b, 'x')} = ${n(d)}` },
-      { say: `Now undo the ${sg(b).trim()}: ${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)} on both sides.`, math: `${lin(k, b, 'x')}[[${sg(-b)}]] = ${n(d)}[[${sg(-b)}]]` },
-      { say: 'Simplify.', math: `${cx(k, 'x')} = ${n(d - b)}` }];
-    if (k !== 1) L.push({ say: `Divide both sides by ${k}.`, math: `${k}x [[÷ ${k}]] = ${n(d - b)} [[÷ ${k}]]`, why: 'Dividing undoes multiplying.' });
-    L.push({ kind: 'answer', math: `x = ${n(x)}` },
-      { kind: 'check', say: `Check: put x = ${n(x)} into both sides.`, math: `Left: ${a} × ${par(x)}${sg(b)} = ${n(a * x + b)}` },
+      { op: sg(-b).trim(), say: `Now undo the ${sg(b).trim()}: ${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)} on both sides.`, math: `${cx(k, 'x')} = ${n(d - b)}` }];
+    if (k !== 1) L.push({ op: `÷ ${k}`, say: `Divide both sides by ${k}.`, math: `x = ${n(x)}`, why: 'Dividing undoes multiplying.' });
+    L[L.length - 1].kind = 'answer';
+    L.push({ kind: 'check', say: `Check: put x = ${n(x)} into both sides.`, math: `Left: ${a} × ${par(x)}${sg(b)} = ${n(a * x + b)}` },
       { kind: 'check', math: `Right: ${c === 1 ? par(x) : c + ' × ' + par(x)}${dd} = ${n(c * x + d)} ✓` },
       { kind: 'idea', say: 'Collect the x terms on one side first, then solve it like a one-step equation.' });
     return { lines: L, checks: [['both sides equal at x', near(a * x + b, c * x + d)], ['matches the marked answer', near(x, q.v)]] };
@@ -128,7 +135,7 @@ const DEMO = (() => {
     const { d, c } = q.dm, t = [1, 2, 3, 4].map(i => d * i + c), step = (d > 0 ? '+' : '−') + Math.abs(d);
     return { lines: [
       { kind: 'q', say: 'Here is the sequence.', math: t.map(n).join(',  ') + ', …' },
-      { say: 'Find the difference between neighbouring terms.', math: [step, step, step].join('    ') },
+      { say: 'Find the difference between neighbouring terms.', fig: FIG.hops(t.map(n), step) },
       { say: `It ${d > 0 ? 'goes up' : 'goes down'} by ${Math.abs(d)} each time, so the nth term starts with ${cx(d, 'n')}.`, math: cx(d, 'n'), why: `A sequence that changes by ${n(d)} each time is linked to the ${n(d)} times table.` },
       { say: `Write out ${cx(d, 'n')} for n = 1, 2, 3, 4.`, math: [1, 2, 3, 4].map(i => n(d * i)).join(',  ') },
       { say: `Compare with the sequence. What do you add to ${n(d)} to get ${n(t[0])}?`, math: `${n(t[0])} − ${par(d)} = ${n(c)}` },
@@ -144,9 +151,9 @@ const DEMO = (() => {
       { say: `The bottoms are different, so find a common denominator: the lowest common multiple of ${a[1]} and ${b[1]}.`, math: `LCM of ${a[1]} and ${b[1]} = ${L}`,
         why: 'You can only add or subtract pieces that are the same size.' }];
     for (const [f, k, nn] of [[a, fa, an], [b, fb, bn]]) if (k !== 1)
-      lines.push({ say: `Multiply the top and bottom of ${f[0]}/${f[1]} by ${k}.`, math: `${fr(f[0], f[1])} = {${f[0]} [[× ${k}]]/${f[1]} [[× ${k}]]} = ${fr(nn, L)}`, why: 'Multiplying top and bottom by the same number gives an equal fraction.' });
+      lines.push({ say: `Multiply the top and bottom of ${f[0]}/${f[1]} by ${k}.`, fig: FIG.equiv([f[0], f[1]], [nn, L], `× ${k}`), why: 'Multiplying top and bottom by the same number gives an equal fraction.' });
     lines.push({ say: `Now the bottoms match, so ${sub ? 'subtract' : 'add'} the tops. The bottom stays ${L}.`, math: `${fr(an, L)} ${op} ${fr(bn, L)} = ${fr(rn, L)}`, why: 'The bottom says how big each piece is. That does not change.' });
-    if (g > 1) lines.push({ say: `${rn} and ${L} can both be divided by ${g}.`, math: `{${rn} [[÷ ${g}]]/${L} [[÷ ${g}]]} = ${fr(rn / g, L / g)}` });
+    if (g > 1) lines.push({ say: `${rn} and ${L} can both be divided by ${g}, so simplify.`, fig: FIG.equiv([rn, L], [rn / g, L / g], `÷ ${g}`) });
     lines.push({ kind: 'answer', math: `${fr(a[0], a[1])} ${op} ${fr(b[0], b[1])} = ${fr(rn / g, L / g)}` },
       { kind: 'idea', say: 'Same denominators first, then add or subtract the tops only.', why: 'Common slip: adding the bottoms too. 1/3 + 1/4 is not 2/7.' });
     return { lines, checks: [['equivalent fractions are equal', an * a[1] === a[0] * L && bn * b[1] === b[0] * L],
@@ -191,9 +198,10 @@ const DEMO = (() => {
   };
   B['pct-of'] = q => {
     const { p, amt } = q.dm, ten = amt / 10, tens = Math.floor(p / 10), five = p % 10 === 5, ans = amt * p / 100;
-    const lines = [{ kind: 'q', say: 'Find 10% first: it is the easiest building block.', math: `10% of ${amt} = ${amt} ÷ 10 = ${n(ten)}`, why: '10% is one tenth, so divide by 10.' }];
-    if (tens > 1) lines.push({ say: `${tens * 10}% is ${tens} lots of 10%.`, math: `${tens * 10}% = ${tens} × ${n(ten)} = ${n(tens * ten)}` });
-    if (five) lines.push({ say: '5% is half of 10%.', math: `5% = ${n(ten)} ÷ 2 = ${n(ten / 2)}` });
+    const lines = [{ kind: 'q', say: 'Start with the whole amount: that is 100%.', math: `100% = ${amt}` },
+      { op: '÷ 10', say: 'Divide both sides by 10 to find 10%, the easiest building block.', math: `10% = ${n(ten)}`, why: '10% is one tenth, so divide by 10.' }];
+    if (tens > 1) lines.push({ op: `× ${tens}`, say: `${tens * 10}% is ${tens} lots of 10%.`, math: `${tens * 10}% = ${n(tens * ten)}` });
+    if (five) lines.push(tens > 1 ? { say: '5% is half of 10%.', math: `5% = ${n(ten)} ÷ 2 = ${n(ten / 2)}` } : { op: '÷ 2', say: '5% is half of 10%.', math: `5% = ${n(ten / 2)}` });
     if (five && tens) lines.push({ say: `Add them to make ${p}%.`, math: `${p}% = ${n(tens * ten)} + ${n(ten / 2)} = ${n(tens * ten + ten / 2)}` });
     lines.push({ kind: 'answer', math: `${p}% of ${amt} = ${n(ans)}` },
       { kind: 'check', say: 'Check with a multiplier.', math: `${n(p / 100)} × ${amt} = ${n(ans)} ✓` },
@@ -239,9 +247,8 @@ const DEMO = (() => {
     const { p, q: r, k } = q.dm, A = p * k, Bv = r * k;
     return { lines: [
       { kind: 'q', say: 'Here is the ratio.', math: `${A} : ${Bv}` },
-      { say: 'Find the highest common factor: the biggest number that divides into both.', math: `HCF of ${A} and ${Bv} = ${k}` },
-      { say: `Divide both sides by ${k}.`, math: `${A} [[÷ ${k}]] : ${Bv} [[÷ ${k}]] = ${p} : ${r}`, why: 'Dividing both parts by the same number keeps the ratio the same.' },
-      { kind: 'answer', math: `${p} : ${r}` },
+      { op: `÷ ${k}`, kind: 'answer', say: `The highest common factor of ${A} and ${Bv} is ${k}: the biggest number that divides into both. Divide both parts by it.`, math: `${p} : ${r}`,
+        why: 'Dividing both parts by the same number keeps the ratio the same.' },
       { kind: 'check', say: `Only 1 divides into both ${p} and ${r}, so it is fully simplified.`, math: `HCF of ${p} and ${r} = 1 ✓` },
       { kind: 'idea', say: 'Divide both parts by the highest common factor in one go.' }],
       checks: [['HCF is right', gcd(A, Bv) === k], ['fully simplified', gcd(p, r) === 1], ['matches the marked answer', q.parts[0] === p && q.parts[1] === r]] };

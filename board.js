@@ -22,8 +22,17 @@ const BOARD = (() => {
     const unit = (node, w) => { if (animate) { node.style.setProperty('--d', Math.round(t) + 'ms'); t += w; } if (hi) node.classList.add('hl'); return node; };
     const flush = () => { if (word) { (grp || out).append(word); word = null; } };
     const char = c => { if (c === ' ') { flush(); (grp || out).append(hi ? el('span', 'hl', ' ') : ' '); t += per * .35; return; } if (!word) word = el('span', 'bw'); word.append(unit(el('span', 'bc', c), per)); };
-    const re = /\[\[|\]\]|\{([^{}/]+)\/([^{}]+)\}|./gsu;
+    /* proper notation: any plain 3/4 is drawn as a stacked fraction (units like km/h are left alone),
+       and √ gets a bar over everything it covers */
+    s = s.replace(/(^|[^\w.{/])(\d+)\/(\d+)(?![\w./}])/g, '$1{$2/$3}');
+    const re = /\[\[|\]\]|\{([^{}/]+)\/([^{}]+)\}|√\(([^()]+)\)|√(\d+(?:\.\d+)?)|./gsu;
     for (const m of s.matchAll(re)) {
+      if (m[3] != null || m[4] != null) {
+        if (!word) word = el('span', 'bw');
+        const q = el('span', 'bsq', unit(el('span', 'bc', '√'), per)), inside = el('span', 'bsqi');
+        for (const c of (m[3] || m[4])) inside.append(unit(el('span', 'bc', c), per));
+        q.append(inside); word.append(q); continue;
+      }
       if (m[0] === '[[') { flush(); hi = true; grp = el('span', 'hlg'); continue; }
       if (m[0] === ']]') { flush(); hi = false; if (grp) out.append(grp); grp = null; continue; }
       if (m[1] != null) {
@@ -71,9 +80,21 @@ const BOARD = (() => {
   function line(L, j, animate) {
     const row = el('div', 'bl' + (L.kind ? ' k-' + L.kind : '') + (animate && !reduced() ? ' live' : ''));
     let t = 0; const R = reduced(), go = animate && !R;
-    if (L.say) { const s = el('p', 'bs', L.say); if (go) s.style.setProperty('--d', '0ms'); row.append(s); t += SAY * k(); }
-    if (L.fig) { const [n, d] = drawFig(L.fig, t, go); row.append(n); t += d; }
-    if (L.math) { const [n, d] = ink(L.math, t, go); row.append(n); t += d; }
+    /* a both-sides step: the teacher's arrows come down either side of the new line, labelled with what was done.
+       The explanation goes underneath so the arrows sit right under the line above. */
+    if (L.op && L.math) {
+      row.classList.add('has-op');
+      const arrow = side => { const a = el('span', 'bop ' + side, el('span', 'bopl', L.op)); a.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 34 46" aria-hidden="true"><path pathLength="1" d="M30 4 C6 6 4 34 26 42"/><path pathLength="1" d="M26 42 l-8 -1 M26 42 l-4 -7"/></svg>');
+        if (go) a.style.setProperty('--d', '0ms'); return a; };
+      t += 520 * k();
+      const [n, d] = ink(L.math, t, go); t += d;
+      row.append(el('span', 'bopw', arrow('l'), n, arrow('r')));
+      if (L.say) { const s = el('p', 'bs after', L.say); if (go) s.style.setProperty('--d', Math.round(t) + 'ms'); row.append(s); t += SAY * k(); }
+    } else {
+      if (L.say) { const s = el('p', 'bs', L.say); if (go) s.style.setProperty('--d', '0ms'); row.append(s); t += SAY * k(); }
+      if (L.fig) { const [n, d] = drawFig(L.fig, t, go); row.append(n); t += d; }
+      if (L.math) { const [n, d] = ink(L.math, t, go); row.append(n); t += d; }
+    }
     if (L.table) { const [n, d] = table(L.table, t, go); row.append(n); t += d; }
     if (L.why) {
       const w = el('p', 'bwhy', L.why); w.id = 'bwhy' + j; w.hidden = true;
@@ -98,9 +119,9 @@ const BOARD = (() => {
   /* A highlighted number that also appears on the line above flies down from there, the way a
      teacher carries "+ 5" across the equals sign. Matching is by the whole number only. */
   function carry(row) {
-    const prev = rowsNow().slice(0, -1).reverse().map(r => r.querySelector(':scope > .bm')).find(Boolean); if (!prev) return;
+    const prev = rowsNow().slice(0, -1).reverse().map(r => r.querySelector('.bm')).find(Boolean); if (!prev) return;
     const pcs = [...prev.querySelectorAll('.bc')], txt = pcs.map(c => c.textContent).join('');
-    for (const g of row.querySelectorAll(':scope > .bm > .hlg')) {
+    for (const g of row.querySelectorAll('.bm > .hlg')) {
       const key = g.textContent.replace(/[^\d.]/g, ''); if (!key) continue;
       const m = [...txt.matchAll(/\d+(\.\d+)?/g)].find(x => x[0] === key); if (!m) continue;
       const src = pcs.slice(m.index, m.index + key.length), a = src[0].getBoundingClientRect(), z = src[src.length - 1].getBoundingClientRect(), b = g.getBoundingClientRect();
@@ -115,7 +136,7 @@ const BOARD = (() => {
   }
   /* the pen tip rides along the bottom of each character as it is written */
   function pen(row) {
-    const B = boardEl(), us = [...row.querySelectorAll(':scope > .bm .bc, :scope > .bm .bb')].filter(u => !u.closest('.carried')).sort((p, q) => dOf(p) - dOf(q));
+    const B = boardEl(), us = [...row.querySelectorAll('.bm .bc, .bm .bb')].filter(u => !u.closest('.carried')).sort((p, q) => dOf(p) - dOf(q));
     if (!us.length) return;
     const R = B.getBoundingClientRect(), per = CH * k(), end = dOf(us[us.length - 1]) + per * 3;
     const at = u => { const r = u.getBoundingClientRect(); return `translate(${Math.round(r.right - R.left + B.scrollLeft)}px, ${Math.round(r.bottom - R.top + B.scrollTop - 7)}px)`; };
