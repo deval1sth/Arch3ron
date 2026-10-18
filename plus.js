@@ -883,7 +883,9 @@ Object.assign(PLUSACT, {
 
 /* how much a planned set's subject needs doing now (same scale as the session planner) */
 function setPriority(label) {
-  const M = missionFor(label), tr = M.id === 'lit' ? 'englit' : M.id === 'lang' ? 'englang' : M.id === 're' ? 're' : M.subj;
+  /* ranked by what was planned, not by what a swap turns it into: a swap changes what you do in a set, never which set comes next.
+     (Ranking by the swapped subject let swapped sets jump the queue and push Chemistry out of the day; found by the simulation.) */
+  const M = missionPlan(label), tr = M.id === 'lit' ? 'englit' : M.id === 'lang' ? 'englang' : M.id === 're' ? 're' : M.subj;
   if (M.id === 'fixes') return fixCount() ? 30 : -20;
   if (tr === 'science') return Math.max(...['biology', 'chemistry', 'physics'].map(subjPriority));
   return tr && SUBJ_BY[tr] ? subjPriority(tr) : 0;

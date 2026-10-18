@@ -425,10 +425,14 @@ function missionFor(label) {
 const setTitle = label => { const M = missionFor(label); return M.swap ? TRACK_NAME(M.subj) : label; };
 function swapFor(tr) {
   const subj = trackSubj(tr === 'science' ? 'biology' : tr);
-  /* A subject nobody has touched for a week takes the set first. Found by the 50-student simulation (Oct 2026): subjects planned
+  /* A subject nobody has touched for a week takes the set, but only from whichever subject has had the most practice this week,
+     so the time comes from the subject with the most to spare. Found by the 50-student simulation (Oct 2026): subjects planned
      on one day only (Geography, Business) got 0% of practice, because students do fewer sets than planned and the top-priority
-     set is always picked first. Swapping after 7 idle days raised learning by about 15% for the same hours. */
-  const idle = typeof daysIdle === 'function' && sessRank().find(t => trackSubj(t) !== subj && (daysIdle(t) || 0) >= 7);
+     set is always picked first. Swapping from any set raised learning ~15% but cut Biology and Chemistry by a third; taking only
+     from the busiest subject keeps every science within ~1.5 points and still raises learning ~10%. */
+  const ids = tr === 'science' ? ['biology', 'chemistry', 'physics'] : [tr], mine = typeof recentShare === 'function' ? Math.max(...ids.map(recentShare)) : 0;
+  const busiest = LEARN.SUBJECTS.every(s => recentShare(s.id) <= mine);
+  const idle = busiest && typeof daysIdle === 'function' && sessRank().find(t => trackSubj(t) !== subj && (daysIdle(t) || 0) >= 7);
   if (idle) { const d = daysIdle(idle);
     return { to: idle, msg: `${TRACK_NAME(idle)} ${d >= 60 ? 'has not had any practice yet, so this set gets it started' : `has had no practice for ${d} days, so this set goes there before it fades`}. ${TRACK_NAME(tr)} comes back next time.` }; }
   const p = typeof predict === 'function' ? predict(subj) : null;
