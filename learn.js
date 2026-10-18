@@ -383,7 +383,9 @@ const LEARN = (() => {
   const hkey = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = (h * 33 ^ str.charCodeAt(i)) >>> 0; return h.toString(36); };
   let itemInfo = () => null; /* app supplies: key → { n, r, s (right streak), ago (days) } or null */
   const RECENT = [];
-  const gap = m => m.ago - (m.s > 0 ? 2 ** (m.s - 1) : 1); /* ≥ 0 means due: a miss comes back the next day, then 1, 2, 4, 8… days after each right answer */
+  /* scheduling knobs, exported so the student simulation can try alternatives; these values are the live ones */
+  const TUNE = { due: .75, grow: 2 };
+  const gap = m => m.ago - (m.s > 0 ? TUNE.grow ** (m.s - 1) : 1); /* ≥ 0 means due: a miss comes back the next day, then 1, 2, 4, 8… days after each right answer */
   function choose(list, keyOf) {
     const rows = list.map(it => { const k = hkey(keyOf(it)); return { it, k, m: itemInfo(k) }; });
     const pool = rows.length > 1 && rows.some(r => !RECENT.includes(r.k)) ? rows.filter(r => !RECENT.includes(r.k)) : rows;
@@ -393,7 +395,7 @@ const LEARN = (() => {
        questions stay new, so you keep moving forward. (Before, new facts always came first and misses came back at random, so a
        struggling student's facts faded before they were ever reviewed. Found by the 12-week simulation.) */
     due.sort((a, b) => gap(a.m) - gap(b.m));
-    const set = due.length && (Math.random() < .75 || !fresh.length) ? due.slice(0, 6) : fresh.length ? fresh : null;
+    const set = due.length && (Math.random() < TUNE.due || !fresh.length) ? due.slice(0, 6) : fresh.length ? fresh : null;
     const r = set ? pick(set) : pool.reduce((a, b) => gap(b.m) > gap(a.m) ? b : a); /* nothing due: the one closest to due */
     RECENT.push(r.k); if (RECENT.length > 40) RECENT.shift();
     return [r.it, r.k];
@@ -588,5 +590,5 @@ const LEARN = (() => {
     for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
-  return { MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
+  return { TUNE, MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();

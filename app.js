@@ -424,7 +424,14 @@ function missionFor(label) {
 /* the name of what a set is actually about once any swap is applied; every screen uses this, so they agree */
 const setTitle = label => { const M = missionFor(label); return M.swap ? TRACK_NAME(M.subj) : label; };
 function swapFor(tr) {
-  const subj = trackSubj(tr === 'science' ? 'biology' : tr), p = typeof predict === 'function' ? predict(subj) : null;
+  const subj = trackSubj(tr === 'science' ? 'biology' : tr);
+  /* A subject nobody has touched for a week takes the set first. Found by the 50-student simulation (Oct 2026): subjects planned
+     on one day only (Geography, Business) got 0% of practice, because students do fewer sets than planned and the top-priority
+     set is always picked first. Swapping after 7 idle days raised learning by about 15% for the same hours. */
+  const idle = typeof daysIdle === 'function' && sessRank().find(t => trackSubj(t) !== subj && (daysIdle(t) || 0) >= 7);
+  if (idle) { const d = daysIdle(idle);
+    return { to: idle, msg: `${TRACK_NAME(idle)} ${d >= 60 ? 'has not had any practice yet, so this set gets it started' : `has had no practice for ${d} days, so this set goes there before it fades`}. ${TRACK_NAME(tr)} comes back next time.` }; }
+  const p = typeof predict === 'function' ? predict(subj) : null;
   if (!p || p.n < 2) return null;
   const need = boundFor(subj, aimOf(subj)); if (p.pc < need + 12) return null;
   const to = sessRank().find(t => trackSubj(t) !== subj); if (!to) return null;
