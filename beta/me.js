@@ -23,10 +23,10 @@ const ME = (() => {
     [SCI, 'biology', 'Biology', ['biology'], 'Science', { tier: 1 }], [SCI, 'chemistry', 'Chemistry', ['chemistry'], 'Science', { tier: 1 }], [SCI, 'physics', 'Physics', ['physics'], 'Science', { tier: 1 }],
     [SCI, 'statistics', 'Statistics', [], 'Statistics', { tier: 1 }], [SCI, 'further', 'Further Maths (Level 2)', [], 'Further Maths', {}],
     [ENG, 'englang', 'English Language', ['englang'], 'English Language', {}], [ENG, 'englit', 'English Literature', ['englit'], 'English Literature', { texts: 1 }],
-    ...[['art', 'Art and Design'], ['business', 'Business', ['business']], ['citizenship', 'Citizenship'], ['compsci', 'Computer Science'], ['dt', 'Design and Technology'], ['drama', 'Drama'],
-      ['economics', 'Economics'], ['food', 'Food Preparation and Nutrition'], ['french', 'French', [], { tier: 1 }], ['geography', 'Geography', ['geography']], ['german', 'German', [], { tier: 1 }],
-      ['history', 'History'], ['latin', 'Latin'], ['media', 'Media Studies'], ['music', 'Music'], ['pe', 'Physical Education'], ['psychology', 'Psychology'], ['re', 'Religious Studies', ['re'], { relig: 1 }],
-      ['sociology', 'Sociology'], ['spanish', 'Spanish', [], { tier: 1 }]].map(([id, name, tr, f]) => [OTH, id, name, tr || [], id === 're' ? 'RE' : name, f || {}])
+    ...[['art', 'Art and Design'], ['business', 'Business', ['business']], ['citizenship', 'Citizenship'], ['compsci', 'Computer Science', ['compsci']], ['dt', 'Design and Technology'], ['drama', 'Drama'],
+      ['economics', 'Economics'], ['food', 'Food Preparation and Nutrition'], ['french', 'French', ['french'], { tier: 1 }], ['geography', 'Geography', ['geography']], ['german', 'German', [], { tier: 1 }],
+      ['history', 'History', ['history']], ['latin', 'Latin'], ['media', 'Media Studies'], ['music', 'Music'], ['pe', 'Physical Education'], ['psychology', 'Psychology'], ['re', 'Religious Studies', ['re'], { relig: 1 }],
+      ['sociology', 'Sociology'], ['spanish', 'Spanish', ['spanish'], { tier: 1 }]].map(([id, name, tr, f]) => [OTH, id, name, tr || [], id === 're' ? 'RE' : name, f || {}])
   ].map(([group, id, name, tracks, grade, f]) => ({ group, id, name, tracks, grade, ...f }));
   const byId = Object.fromEntries(CAT.map(c => [c.id, c]));
   const BOARDS = ['AQA', 'Edexcel', 'OCR', 'WJEC Eduqas', 'CCEA'];

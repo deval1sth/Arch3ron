@@ -460,7 +460,7 @@ function swapFor(tr) {
 function missionPlan(label) {
   const L = (label || '').toLowerCase();
   const subj = /math/.test(L) ? 'maths' : /biolog/.test(L) ? 'biology' : /chemi/.test(L) ? 'chemistry' : /physic/.test(L) ? 'physics' : /scien/.test(L) ? 'science'
-    : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : null;
+    : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : /histor/.test(L) ? 'history' : /computer/.test(L) ? 'compsci' : /french/.test(L) ? 'french' : /spanish/.test(L) ? 'spanish' : null;
   if (/mistake/.test(L)) return { id: 'fixes', title: 'Redo your mistakes', steps: ['Redo each mistake below from scratch, no notes', 'Got it right? Tap Fixed. Still shaky? Tap Again', 'Nothing waiting? Do the mixed drill instead'] };
   if (/paper|full timed/.test(L)) return { id: 'paper', subj, title: 'Past paper practice', steps: ['Use a paper from your teacher or your exam board website', 'Work timed, in silence, phone face down', 'Mark it with the mark scheme straight after', 'Log the score and where the marks went'].concat(/plan the week/.test(L) ? ['Last few minutes: check next week in your plan'] : []) };
   if (/lit|quote|essay|macbeth|carol|journey/.test(L)) return { id: 'lit', title: 'Quotes and an essay plan', steps: ['Warm up: quote and context questions until you get 5 right', 'Then plan one essay below: thesis and three paragraphs', 'Each paragraph: point, quote, method, effect, context'] };
@@ -727,7 +727,7 @@ function drillPanel() {
         B(`Confirm · ${DR.ticks.filter(Boolean).length} of ${q.points.length} key points`, 'defDone', 'primary wide', { id: 'nextq' }))
     : st === 'ask' ? (mcq ? h('div', { class: 'row end' }, B('Show me', 'reveal', 'link')) : h('div', { class: 'row' }, B(def ? 'Mark it' : 'Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost')))
       : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
-        h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
+        h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])), DR.msg && h('p', { class: 'muted xs' }, DR.msg),
         !mcq && acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
         !mcq && boardBtn(q, 'link', true),
         B('Next question', 'next', 'primary wide', { id: 'nextq' }))

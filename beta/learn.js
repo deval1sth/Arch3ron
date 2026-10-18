@@ -352,6 +352,82 @@ const LEARN = (() => {
   /* ---------- Science, Business and Geography calculations ---------- */
   const C = {};
   const CT = (id, subject, name, gen) => { C[id] = { name, subject, gen }; };
+  /* ---------- Computer Science: number systems, binary arithmetic, file sizes and logic, worked and checked ---------- */
+  const bin8 = v => v.toString(2).padStart(8, '0'), PLACES = [128, 64, 32, 16, 8, 4, 2, 1];
+  function toBinarySteps(v) {
+    const steps = ['Place values: 128 64 32 16 8 4 2 1. Take away each place value that fits, largest first'];
+    let rem = v;
+    for (const p of PLACES) if (rem >= p) { steps.push(`${rem} − ${p} = ${rem - p}, so the ${p} column is 1`); rem -= p; }
+    steps.push(`Every other column is 0: ${bin8(v)}`);
+    return steps;
+  }
+  CT('cs-binary', 'compsci', 'Binary and denary', (lvl = 2) => {
+    const v = lvl === 1 ? ri(1, 31) : lvl === 3 ? ri(128, 255) : ri(16, 200), b = bin8(v);
+    if (Math.random() < .5) { const used = PLACES.filter((p, i) => b[i] === '1');
+      return { q: `Convert the binary number ${b} to denary.`, kind: 'num', v, show: String(v), steps: ['Write the place values over the bits: 128 64 32 16 8 4 2 1', `Add the place values that have a 1: ${used.join(' + ')} = ${v}`] }; }
+    return { q: `Convert ${v} to an 8-bit binary number.`, kind: 'str', mode: 'bits', ans: b, show: b, hint: 'Type 8 digits, like 01101001', steps: toBinarySteps(v) };
+  });
+  CT('cs-hex', 'compsci', 'Hexadecimal', (lvl = 2) => {
+    const v = ri(lvl === 1 ? 16 : 26, 255), H = v.toString(16).toUpperCase().padStart(2, '0'), hi = Math.floor(v / 16), lo = v % 16, dig = d => d.toString(16).toUpperCase(), f = ri(0, lvl === 1 ? 1 : 2);
+    if (f === 0) return { q: `Convert the hexadecimal number ${H} to denary.`, kind: 'num', v, show: String(v),
+      steps: [`Hex digits: A = 10, B = 11, C = 12, D = 13, E = 14, F = 15`, `${dig(hi)} is worth ${hi} sixteens and ${dig(lo)} is worth ${lo} ones`, `${hi} × 16 + ${lo} = ${v}`] };
+    if (f === 1) return { q: `Convert ${v} to hexadecimal.`, kind: 'str', mode: 'hex', ans: H, show: H, hint: 'Type it like 3F',
+      steps: [`Divide by 16: ${v} ÷ 16 = ${hi} remainder ${lo}`, `${hi} sixteens is the digit ${dig(hi)}; the remainder ${lo} is the digit ${dig(lo)}`, `Answer: ${H}`] };
+    const b = bin8(v);
+    return { q: `Convert the binary number ${b} to hexadecimal.`, kind: 'str', mode: 'hex', ans: H, show: H, hint: 'Type it like 3F',
+      steps: [`Split into two nibbles: ${b.slice(0, 4)} and ${b.slice(4)}`, `${b.slice(0, 4)} in binary is ${hi}, which is hex ${dig(hi)}`, `${b.slice(4)} in binary is ${lo}, which is hex ${dig(lo)}`, `Answer: ${H}`] };
+  });
+  CT('cs-add', 'compsci', 'Binary addition and shifts', (lvl = 2) => {
+    if (Math.random() < .6) {
+      const a = ri(lvl === 1 ? 1 : 20, lvl === 1 ? 40 : 120), b = ri(lvl === 1 ? 1 : 20, Math.min(255 - a, lvl === 1 ? 40 : 135)), s = a + b;
+      return { q: `Add these binary numbers: ${bin8(a)} + ${bin8(b)}. Give an 8-bit answer.`, kind: 'str', mode: 'bits', ans: bin8(s), show: bin8(s), hint: 'Type 8 digits',
+        steps: ['Add column by column from the right: 0 + 0 = 0, 1 + 0 = 1, 1 + 1 = 10 (write 0, carry 1), 1 + 1 + 1 = 11 (write 1, carry 1)', `Check in denary: ${a} + ${b} = ${s}`, `${s} in binary is ${bin8(s)}`] };
+    }
+    const k = ri(1, 2), left = Math.random() < .5, v = left ? ri(1, Math.floor(255 / (1 << k))) : ri(4, 255) & ~((1 << k) - 1), r = left ? v << k : v >> k;
+    return { q: `Apply a ${k}-place ${left ? 'left' : 'right'} shift to ${bin8(v)}.`, kind: 'str', mode: 'bits', ans: bin8(r), show: bin8(r), hint: 'Type 8 digits',
+      steps: [`Move every bit ${k} place${k > 1 ? 's' : ''} to the ${left ? 'left' : 'right'}, filling the gap with 0${k > 1 ? 's' : ''}`, `A ${left ? 'left' : 'right'} shift of ${k} ${left ? 'multiplies' : 'divides'} by ${1 << k}: ${v} ${left ? '×' : '÷'} ${1 << k} = ${r}`, `Answer: ${bin8(r)}`] };
+  });
+  CT('cs-size', 'compsci', 'File size calculations', (lvl = 2) => {
+    if (Math.random() < .5) {
+      const w = pick([8, 16, 20, 40, 64, 100, 200]), hh = pick([8, 10, 16, 32, 50, 100]), d = pick(lvl === 1 ? [1, 8] : [1, 2, 4, 8, 16, 24]), bits = w * hh * d, by = bits / 8;
+      return { q: `An image is ${w} × ${hh} pixels with a colour depth of ${d} bit${d > 1 ? 's' : ''}. What is its file size in bytes?`, kind: 'num', v: by, suf: 'bytes', show: `${n(by)} bytes`,
+        steps: ['File size (bits) = width × height × colour depth', `${w} × ${hh} × ${d} = ${bits} bits`, `Divide by 8 to get bytes: ${bits} ÷ 8 = ${n(by)} bytes`] };
+    }
+    const rate = pick([1000, 2000, 8000, 10000]), depth = pick([8, 16]), secs = pick([2, 5, 10, 30]), bits = rate * depth * secs, by = bits / 8;
+    return { q: `A sound is recorded for ${secs} seconds at a sample rate of ${rate} Hz with a bit depth of ${depth} bits. What is its file size in bytes?`, kind: 'num', v: by, suf: 'bytes', show: `${n(by)} bytes`,
+      steps: ['File size (bits) = sample rate × bit depth × seconds', `${rate} × ${depth} × ${secs} = ${bits} bits`, `Divide by 8 to get bytes: ${bits} ÷ 8 = ${n(by)} bytes`] };
+  });
+  CT('cs-logic', 'compsci', 'Logic gates', () => {
+    const A = ri(0, 1), Bv = ri(0, 1), Cv = ri(0, 1), f = ri(0, 3), NOT = x => 1 - x;
+    const E = [[`A AND B`, A & Bv, [`A AND B: 1 only if both are 1: ${A} AND ${Bv} = ${A & Bv}`]], [`A OR B`, A | Bv, [`A OR B: 1 if at least one is 1: ${A} OR ${Bv} = ${A | Bv}`]],
+      [`NOT (A AND B)`, NOT(A & Bv), [`A AND B = ${A & Bv}`, `NOT reverses it: ${NOT(A & Bv)}`]], [`(A OR B) AND NOT C`, (A | Bv) & NOT(Cv), [`A OR B = ${A | Bv}`, `NOT C = ${NOT(Cv)}`, `${A | Bv} AND ${NOT(Cv)} = ${(A | Bv) & NOT(Cv)}`]]][f];
+    return { q: `If A = ${A}, B = ${Bv}${f === 3 ? `, C = ${Cv}` : ''}, what is the output of ${E[0]}?`, kind: 'num', v: E[1], show: String(E[1]), hint: 'Type 0 or 1', steps: [...E[2], `Output: ${E[1]}`] };
+  });
+
+  /* ---------- French and Spanish: present-tense verbs, regular and the key irregulars ---------- */
+  const FR_P = ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles'], ES_P = ['yo', 'tú', 'él/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes'];
+  const FR_END = { er: ['e', 'es', 'e', 'ons', 'ez', 'ent'], ir: ['is', 'is', 'it', 'issons', 'issez', 'issent'], re: ['s', 's', '', 'ons', 'ez', 'ent'] };
+  const ES_END = { ar: ['o', 'as', 'a', 'amos', 'áis', 'an'], er: ['o', 'es', 'e', 'emos', 'éis', 'en'], ir: ['o', 'es', 'e', 'imos', 'ís', 'en'] };
+  const FR_REG = [['parler', 'to speak'], ['jouer', 'to play'], ['regarder', 'to watch'], ['aimer', 'to like'], ['habiter', 'to live'], ['travailler', 'to work'], ['écouter', 'to listen'], ['détester', 'to hate'],
+    ['finir', 'to finish'], ['choisir', 'to choose'], ['remplir', 'to fill'], ['vendre', 'to sell'], ['attendre', 'to wait'], ['répondre', 'to answer'], ['entendre', 'to hear']];
+  const FR_IRR = { être: ['to be', ['suis', 'es', 'est', 'sommes', 'êtes', 'sont']], avoir: ['to have', ['ai', 'as', 'a', 'avons', 'avez', 'ont']], aller: ['to go', ['vais', 'vas', 'va', 'allons', 'allez', 'vont']], faire: ['to do / to make', ['fais', 'fais', 'fait', 'faisons', 'faites', 'font']] };
+  const ES_REG = [['hablar', 'to speak'], ['estudiar', 'to study'], ['trabajar', 'to work'], ['escuchar', 'to listen'], ['mirar', 'to look at'], ['bailar', 'to dance'], ['cantar', 'to sing'], ['viajar', 'to travel'],
+    ['comer', 'to eat'], ['beber', 'to drink'], ['aprender', 'to learn'], ['correr', 'to run'], ['vender', 'to sell'], ['vivir', 'to live'], ['escribir', 'to write'], ['abrir', 'to open'], ['recibir', 'to receive']];
+  const ES_IRR = { ser: ['to be (permanent)', ['soy', 'eres', 'es', 'somos', 'sois', 'son']], estar: ['to be (temporary or place)', ['estoy', 'estás', 'está', 'estamos', 'estáis', 'están']], tener: ['to have', ['tengo', 'tienes', 'tiene', 'tenemos', 'tenéis', 'tienen']],
+    ir: ['to go', ['voy', 'vas', 'va', 'vamos', 'vais', 'van']], hacer: ['to do / to make', ['hago', 'haces', 'hace', 'hacemos', 'hacéis', 'hacen']] };
+  function verbQ(lang, lvl) {
+    const fr = lang === 'fr', P = fr ? FR_P : ES_P, REG = fr ? FR_REG : ES_REG, IRR = fr ? FR_IRR : ES_IRR, END = fr ? FR_END : ES_END, i = ri(0, 5);
+    const irr = lvl === 1 ? false : lvl === 3 ? Math.random() < .6 : Math.random() < .35;
+    let inf, mean, form, steps;
+    if (irr) { inf = pick(Object.keys(IRR)); [mean] = IRR[inf]; form = IRR[inf][1][i]; steps = [`${inf} is irregular, so it has to be learned`, `${inf}: ${IRR[inf][1].join(', ')}`, `${P[i]} → ${form}`]; }
+    else { [inf, mean] = pick(REG); const t = inf.slice(-2), stem = inf.slice(0, -2); form = stem + END[t][i];
+      steps = [`${inf} is a regular -${t} verb: take off -${t} to get the stem "${stem}"`, `The ${P[i]} ending for -${t} verbs is "-${END[t][i] || '(no ending)'}"`, `${P[i]} → ${form}`]; }
+    const pron = fr && i === 0 && /^[aeiouéèh]/.test(form) ? 'j’' : P[i];
+    return { q: `Write the present tense of “${inf}” (${mean}) for: ${pron} ____`, kind: 'str', mode: 'text', ans: form, show: `${pron === 'j’' ? 'j’' : pron + ' '}${form}`, hint: 'Type just the verb', steps };
+  }
+  CT('fr-verbs', 'french', 'French: present tense verbs', (lvl = 2) => verbQ('fr', lvl));
+  CT('es-verbs', 'spanish', 'Spanish: present tense verbs', (lvl = 2) => verbQ('es', lvl));
+
   const sum = xs => xs.reduce((a, b) => a + b, 0);
   const d1 = x => Math.round(x * 10) / 10, d2 = x => Math.round(x * 100) / 100;
 
@@ -563,7 +639,8 @@ const LEARN = (() => {
   const SUBJECTS = [
     ['maths', 'Maths', 'target', 'Maths'], ['biology', 'Biology', 'leaf', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'bolt', 'Science'],
     ['englit', 'English Literature', 'feather', 'English Literature'], ['englang', 'English Language', 'scroll', 'English Language'],
-    ['geography', 'Geography', 'map', 'Geography'], ['business', 'Business', 'coin', 'Business'], ['re', 'RE', 'sparkle', 'RE']
+    ['geography', 'Geography', 'map', 'Geography'], ['business', 'Business', 'coin', 'Business'], ['re', 'RE', 'sparkle', 'RE'],
+    ['history', 'History', 'hourglass', 'History'], ['compsci', 'Computer Science', 'grid', 'Computer Science'], ['french', 'French', 'book', 'French'], ['spanish', 'Spanish', 'compass', 'Spanish']
   ].map(([id, name, icon, subj]) => ({ id, name, icon, subj, topics: Object.keys(TOPIC).filter(t => TOPIC[t].subject === id) }));
   const trackOf = id => TOPIC[id] ? TOPIC[id].subject : 'maths';
   const name = id => TOPIC[id] ? TOPIC[id].name : id;
@@ -692,6 +769,19 @@ const LEARN = (() => {
       if (a === q.a && b === q.b) return { valid: true, ok: true };
       return a * a * b === q.a * q.a * q.b ? { valid: true, ok: false, msg: 'Same value, but it can be simplified further.' } : { valid: true, ok: false };
     }
+    if (q.kind === 'str') {
+      if (q.mode === 'bits') {
+        const d = s.replace(/\s/g, ''); if (!/^[01]+$/.test(d)) return { valid: false, msg: 'Type 0s and 1s' };
+        if (d === q.ans) return { valid: true, ok: true };
+        return parseInt(d, 2) === parseInt(q.ans, 2) ? { valid: true, ok: false, msg: `Right value, but write all ${q.ans.length} bits (add the leading zeros).` } : { valid: true, ok: false };
+      }
+      if (q.mode === 'hex') { const d = s.toUpperCase().replace(/\s|^0X/g, ''); if (!/^[0-9A-F]+$/.test(d)) return { valid: false, msg: 'Type hex digits 0–9 and A–F' }; return { valid: true, ok: parseInt(d, 16) === parseInt(q.ans, 16) }; }
+      /* words: case and the kind of apostrophe never matter; a missing accent is accepted with a reminder */
+      const flat = t => t.toLowerCase().replace(/[’‘]/g, "'").trim(), bare = t => flat(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (flat(s) === flat(q.ans)) return { valid: true, ok: true };
+      if (bare(s) === bare(q.ans)) return { valid: true, ok: true, msg: `Watch the accent: ${q.ans}` };
+      return { valid: true, ok: false };
+    }
     if (q.kind === 'formula' || q.kind === 'coef') return CHEM.check(q, s);
     if (q.kind === 'word') {
       const a = s.toLowerCase().replace(/[^a-z']/g, ''), b = q.w.toLowerCase();
@@ -713,6 +803,6 @@ const LEARN = (() => {
     return BANK;
   }
   /* topics whose questions change with level (1 easier, 3 harder) */
-  const LEVELLED = new Set(['solve-1', 'expand', ...Object.keys(M).filter(id => M[id].tier === 'H')]);
+  const LEVELLED = new Set(['solve-1', 'expand', 'cs-binary', 'cs-hex', 'cs-add', 'cs-size', 'fr-verbs', 'es-verbs', ...Object.keys(M).filter(id => M[id].tier === 'H')]);
   return { TUNE, LEVELLED, MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();
