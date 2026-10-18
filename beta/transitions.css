@@ -1,0 +1,105 @@
+/* Motion adapted from Transitions.dev (https://transitions.dev), used under the
+   Transitions.dev License: free transitions may be used and modified in personal
+   projects. Only the transitions Archeron uses are included; each keeps its
+   "Transitions.dev — <name>" comment. Colours and selectors are retuned for Archeron. */
+
+/* Transitions.dev — Tabs sliding (pill follows the active nav tab; JS writes transform + size) */
+:root{--tabs-dur:300ms;--tabs-ease:cubic-bezier(0.22,1,0.36,1)}
+.t-tabs-pill{position:absolute;top:0;left:0;width:0;height:0;border-radius:16px;
+  background:var(--hl);
+  transition:transform var(--tabs-dur) var(--tabs-ease),width var(--tabs-dur) var(--tabs-ease),height var(--tabs-dur) var(--tabs-ease);
+  will-change:transform,width;z-index:0;pointer-events:none}
+
+/* Transitions.dev — Texts reveal (staggered blur-up on headings when a screen opens) */
+:root{--stagger-dur:550ms;--stagger-distance:12px;--stagger-stagger:60ms;--stagger-blur:4px;--stagger-ease:cubic-bezier(0.22,1,0.36,1)}
+.t-stagger>*{opacity:0;transform:translateY(var(--stagger-distance));filter:blur(var(--stagger-blur));
+  transition:opacity var(--stagger-dur) var(--stagger-ease),transform var(--stagger-dur) var(--stagger-ease),filter var(--stagger-dur) var(--stagger-ease);
+  will-change:transform,opacity,filter}
+.t-stagger>*:nth-child(2){transition-delay:var(--stagger-stagger)}
+.t-stagger>*:nth-child(3){transition-delay:calc(var(--stagger-stagger)*2)}
+.t-stagger>*:nth-child(4){transition-delay:calc(var(--stagger-stagger)*3)}
+.t-stagger.is-shown>*{opacity:1;transform:translateY(0);filter:blur(0)}
+
+/* Transitions.dev — Success check (correct answer) */
+:root{--check-opacity-dur:500ms;--check-rotate-dur:500ms;--check-rotate-from:80deg;--check-bob-dur:500ms;--check-y-amount:18px;
+  --check-blur-dur:500ms;--check-blur-from:10px;--check-path-dur:500ms;--check-path-delay:80ms;
+  --check-ease-out:cubic-bezier(0.22,1,0.36,1);--check-ease-bob:cubic-bezier(0.34,1.35,0.64,1)}
+.t-success-check{display:inline-block;transform-origin:center;opacity:0;will-change:transform,opacity,filter}
+.t-success-check svg{display:block;overflow:visible;width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.t-success-check svg path{stroke-dasharray:20;stroke-dashoffset:20}
+.t-success-check[data-state="in"]{animation:t-check-fade var(--check-opacity-dur) var(--check-ease-out) forwards,t-check-rotate var(--check-rotate-dur) var(--check-ease-out) forwards,t-check-blur var(--check-blur-dur) var(--check-ease-out) forwards,t-check-bob var(--check-bob-dur) var(--check-ease-bob) forwards}
+.t-success-check[data-state="in"] svg path{animation:t-check-draw var(--check-path-dur) var(--check-ease-out) var(--check-path-delay,0ms) forwards}
+@keyframes t-check-fade{from{opacity:0}to{opacity:1}}
+@keyframes t-check-rotate{from{transform:rotate(var(--check-rotate-from))}to{transform:rotate(0deg)}}
+@keyframes t-check-blur{from{filter:blur(var(--check-blur-from))}to{filter:blur(0)}}
+@keyframes t-check-bob{from{translate:0 var(--check-y-amount)}to{translate:0 0}}
+@keyframes t-check-draw{to{stroke-dashoffset:0}}
+
+/* Transitions.dev — Number pop-in (lantern count and counters when they grow) */
+:root{--digit-dur:500ms;--digit-distance:8px;--digit-stagger:70ms;--digit-blur:2px;--digit-ease:cubic-bezier(0.34,1.45,0.64,1)}
+@keyframes t-digit-pop-in{0%{transform:translateY(var(--digit-distance));opacity:0;filter:blur(var(--digit-blur))}100%{transform:translateY(0);opacity:1;filter:blur(0)}}
+.t-digit-group{display:inline-flex;align-items:baseline}
+.t-digit{display:inline-block;will-change:transform,opacity,filter}
+.t-digit-group.is-animating .t-digit{animation:t-digit-pop-in var(--digit-dur) var(--digit-ease) both}
+.t-digit-group.is-animating .t-digit:nth-last-child(2){animation-delay:var(--digit-stagger)}
+.t-digit-group.is-animating .t-digit:nth-last-child(1){animation-delay:calc(var(--digit-stagger)*2)}
+
+/* Transitions.dev — Toast open / close */
+:root{--toast-open:350ms;--toast-close:250ms;--toast-distance:16px;--toast-blur:2px;--toast-scale:0.97;--toast-ease:cubic-bezier(0.22,1,0.36,1)}
+.t-toast{opacity:0;transform:translateY(var(--toast-distance)) scale(var(--toast-scale));filter:blur(var(--toast-blur));will-change:transform,opacity,filter;
+  transition:opacity var(--toast-close) var(--toast-ease),transform var(--toast-close) var(--toast-ease),filter var(--toast-close) var(--toast-ease)}
+.t-toast.is-open{opacity:1;transform:translateY(0) scale(1);filter:blur(0);
+  transition:opacity var(--toast-open) var(--toast-ease),transform var(--toast-open) var(--toast-ease),filter var(--toast-open) var(--toast-ease)}
+
+/* Transitions.dev — Accordion expand (topic lists, worked methods, add-card form) */
+:root{--acc-expand:300ms;--acc-collapse:250ms;--acc-chevron:250ms;--acc-ease:cubic-bezier(0.22,1,0.36,1)}
+.t-acc-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0;border:0;background:none;cursor:pointer;text-align:left}
+.t-acc-head .acc-r{display:flex;align-items:center;gap:10px}
+.t-acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--acc-collapse) var(--acc-ease)}
+.t-acc[data-open="true"] .t-acc-panel{grid-template-rows:1fr;transition:grid-template-rows var(--acc-expand) var(--acc-ease)}
+.t-acc-panel-inner{overflow:hidden;opacity:0;filter:blur(2px);transition:opacity var(--acc-collapse) var(--acc-ease),filter var(--acc-collapse) var(--acc-ease)}
+.t-acc[data-open="true"] .t-acc-panel-inner{opacity:1;filter:blur(0);transition:opacity var(--acc-expand) var(--acc-ease),filter var(--acc-expand) var(--acc-ease)}
+.t-acc-chevron{display:inline-flex;transform:scaleY(1);transform-origin:center;transition:transform var(--acc-chevron) var(--acc-ease);color:var(--y)}
+.t-acc-chevron svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.t-acc-chevron path{vector-effect:non-scaling-stroke}
+.t-acc[data-open="true"] .t-acc-chevron{transform:scaleY(-1)}
+.t-acc-gap{height:12px}
+
+/* Transitions.dev — Checkbox check (checklists and daily extras; the native input stays for accessibility) */
+:root{--check-box:150ms;--check-draw:350ms;--check-uncheck:150ms;--check-ease:cubic-bezier(0.22,1,0.36,1)}
+.chk input{position:absolute;opacity:0;width:24px;height:24px;margin:0;cursor:pointer}
+.t-check{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;border:2px solid rgba(var(--y-rgb),.55);background:var(--card);color:var(--on-y);
+  transition:background var(--check-box) var(--check-ease),box-shadow var(--check-box) var(--check-ease),border-color var(--check-box) var(--check-ease)}
+.t-check svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.t-check svg path{stroke-dasharray:var(--check-len,15);stroke-dashoffset:var(--check-len,15);transition:stroke-dashoffset var(--check-uncheck) var(--check-ease)}
+.chk.d .t-check{background:var(--y);border-color:var(--y)}
+.chk.d .t-check svg path{stroke-dashoffset:0;transition:stroke-dashoffset var(--check-draw) var(--check-ease)}
+.chk input:focus-visible+.t-check{outline:2px solid var(--y);outline-offset:3px}
+
+/* Transitions.dev — Panel reveal (reveal overlay card, answer feedback, chooser) */
+:root{--panel-open-dur:450ms;--panel-close-dur:350ms;--panel-translate-y:28px;--panel-blur:3px;--panel-ease:cubic-bezier(0.22,1,0.36,1)}
+.t-panel-slide{transform:translateY(var(--panel-translate-y));opacity:0;filter:blur(var(--panel-blur));
+  transition:transform var(--panel-close-dur) var(--panel-ease),opacity var(--panel-close-dur) var(--panel-ease),filter var(--panel-close-dur) var(--panel-ease);will-change:transform,opacity,filter}
+.t-panel-slide[data-open="true"]{transform:translateY(0);opacity:1;filter:blur(0);
+  transition:transform var(--panel-open-dur) var(--panel-ease),opacity var(--panel-open-dur) var(--panel-ease),filter var(--panel-open-dur) var(--panel-ease)}
+
+/* Transitions.dev — Card hover tilt (mouse only; JS writes --tilt-rx/ry and glare position on the outer .t-tilt) */
+:root{--tilt-perspective:1000px;--tilt-return:1000ms;--tilt-return-ease:cubic-bezier(0.22,1,0.36,1);--tilt-follow:400ms;--tilt-follow-ease:cubic-bezier(0.22,1,0.36,1);--tilt-glare-opacity:.18;--tilt-glare-fade:300ms}
+.t-tilt{display:flex}
+.t-tilt>.t-tilt-card{flex:1;min-width:0}
+.t-tilt .t-tilt-card,.t-tilt .t-tilt-card:hover,.t-tilt .t-tilt-card:active{transform:perspective(var(--tilt-perspective)) rotateX(var(--tilt-rx,0deg)) rotateY(var(--tilt-ry,0deg))}
+.t-tilt-card{position:relative;overflow:hidden;transform:perspective(var(--tilt-perspective)) rotateX(var(--tilt-rx,0deg)) rotateY(var(--tilt-ry,0deg));transform-style:preserve-3d;
+  transition:transform var(--tilt-return) var(--tilt-return-ease),border-color .3s,box-shadow .3s;will-change:transform}
+.t-tilt-card.is-tilting{transition:transform var(--tilt-follow) var(--tilt-follow-ease),border-color .3s,box-shadow .3s}
+.t-tilt-glare{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;border-radius:inherit;
+  background:radial-gradient(circle 95px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,255,255,.48),rgba(255,255,255,.06) 52%,rgba(255,255,255,0) 84%),
+    radial-gradient(circle 220px at var(--tilt-gx,50%) var(--tilt-gy,50%),rgba(255,255,255,.2),rgba(255,255,255,0) 78%);
+  transition:opacity var(--tilt-glare-fade) var(--tilt-follow-ease)}
+.t-tilt.is-hover .t-tilt-glare{opacity:var(--tilt-glare-opacity)}
+
+/* Reduced motion: applied via html.rm (device setting or the in-app Motion choice) */
+html.rm .t-tilt-card{transform:none!important;transition:none!important}
+html.rm .t-tabs-pill,html.rm .t-stagger>*,html.rm .t-toast,html.rm .t-acc-panel,html.rm .t-acc-panel-inner,html.rm .t-acc-chevron,html.rm .t-check,html.rm .t-check svg path,html.rm .t-panel-slide{transition:none!important}
+html.rm .t-stagger>*{opacity:1;transform:none;filter:none}
+html.rm .t-success-check{animation:none!important;opacity:1}html.rm .t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
+html.rm .t-digit-group .t-digit{animation:none!important}

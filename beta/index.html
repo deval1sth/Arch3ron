@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f6fb">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Archeron">
+<meta name="description" content="Archeron: an offline GCSE mocks training programme.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/bricolage.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/atkinson-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="transitions.css">
+<title>Archeron Beta</title>
+<script>/* apply the saved page and highlighter before first paint (app.js applyTheme writes this) */
+try { var L = (localStorage.getItem('archeron-beta-look') || '').split(' '), R = document.documentElement, N = L[0] === 'night' || (L[0] === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  if (N) { R.setAttribute('data-mode', 'night'); document.querySelector('meta[name=theme-color]').setAttribute('content', '#121735'); }
+  if (L[1] && L[1] !== 'lime') R.setAttribute('data-hl', L[1]); } catch (e) {}</script>
+</head>
+<body>
+<div id="intro" aria-hidden="true">
+  <svg class="bat" viewBox="0 0 200 100"><g class="w"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></g></svg>
+  <div class="txt">Archeron</div>
+  <div class="welcome" id="welcome"><span class="w1">Welcome to Archeron</span><span class="w2"></span></div>
+</div>
+<a class="skip-link" href="#view">Skip to content</a>
+<header>
+  <div class="logo"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="M100 34 L95 20 L92 33 C80 31 70 23 60 8 C63 31 42 40 8 38 C30 50 36 64 33 82 C50 69 66 69 76 77 C81 66 90 62 100 75 C110 62 119 66 124 77 C134 69 150 69 167 82 C164 64 170 50 192 38 C158 40 137 31 140 8 C130 23 120 31 108 33 L105 20 Z"/></svg><span>Archeron</span></div>
+  <div class="cd" id="cd" aria-live="polite"></div>
+</header>
+<nav id="nav" aria-label="Sections"></nav>
+<main id="view" tabindex="-1"></main>
+<div id="toasts" aria-live="polite" aria-atomic="false"></div>
+<noscript><p style="padding:24px">Archeron needs JavaScript turned on.</p></noscript>
+<canvas id="fx" aria-hidden="true"></canvas>
+<script>
+/* If the app fails to start (e.g. a half-updated cache), offer a repair instead of a dead screen. Progress lives in localStorage and is never touched. */
+setTimeout(function () {
+  if (window.ARCHERON_OK) return;
+  var d = document.createElement('div');
+  d.setAttribute('style', 'position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;color:#1c2033;font:16px system-ui,sans-serif;text-align:center');
+  d.innerHTML = '<div><p style="font-size:20px;margin:0 0 8px">Archeron did not start properly</p><p style="opacity:.7;margin:0 0 18px">Usually a half-finished update. Your progress is safe.</p><button style="font:inherit;font-weight:600;padding:12px 22px;border-radius:99px;border:0;background:#2f55e4;color:#fff">Repair the app</button></div>';
+  d.querySelector('button').onclick = function () {
+    var jobs = [];
+    if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); }));
+    if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister(); })); }));
+    Promise.all(jobs).then(function () { location.reload(); }, function () { location.reload(); });
+  };
+  document.body.appendChild(d);
+}, 7000);
+</script>
+<script src="vocab.js"></script>
+<script src="data.js"></script>
+<script src="content.js"></script>
+<script src="bank2.js"></script>
+<script src="bank3.js"></script>
+<script src="defs.js"></script>
+<script src="defs2.js"></script>
+<script src="chem.js"></script>
+<script src="exam.js"></script>
+<script src="papers.js"></script>
+<script src="fx.js"></script>
+<script src="sfx.js"></script>
+<script src="learn.js"></script>
+<script src="demo.js"></script>
+<script src="board.js"></script>
+<script src="guides.js"></script>
+<script src="study.js"></script>
+<script src="plus.js"></script>
+<script src="desk.js"></script>
+<script src="stats.js"></script>
+<script src="me.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
