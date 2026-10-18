@@ -639,9 +639,26 @@ function startDrill(track, topic, ctx = 'learn') {
   DR = { track, topic: topic || null, ctx, q: null, state: 'ask', count: 0, ok: 0, run: 0, last: null, picked: null };
   nextQ();
 }
+/* A topic that has not clicked yet: under 40% right over its last 3–6 attempts. The 50-student simulation (Oct 2026) found
+   scheduling changes could not help these students; only learning that sticks better on first contact did. So these topics get
+   a worked example before the question, and missed facts come back once a few questions later. Both switch off by themselves. */
+const lowTopic = id => { const k = skill(id); return k.rec.length >= 3 && k.rec.filter(Boolean).length / k.rec.length < .4; };
+function queueBack() {
+  const q = DR.q; if (!q || !q.key || q.back || !lowTopic(q.id)) return;
+  (DR.retry = DR.retry || []).push({ q: Object.assign({}, q, { back: true }), at: DR.count + 3 });
+}
 function nextQ(sameTopic) {
+  DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null;
+  const due = !sameTopic && DR.retry && DR.retry.find(r => r.at <= DR.count);
+  if (due) { DR.retry = DR.retry.filter(r => r !== due); DR.q = due.q; DR.last = due.q.id; DR.state = 'ask'; return; }
   const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
-  DR.q = id && LEARN.gen(id); DR.state = 'ask'; DR.msg = ''; DR.last = id; DR.picked = null; DRAFT.dr = '';
+  DR.q = id && LEARN.gen(id); DR.state = 'ask'; DR.last = id;
+  /* the first question in a not-yet-clicked topic each session starts with a different example, worked on the board */
+  DR.exSeen = DR.exSeen || [];
+  if (DR.q && lowTopic(id) && !DR.exSeen.includes(id) && typeof DEMO !== 'undefined') {
+    const ex = LEARN.gen(id), d = ex && DEMO.build(ex);
+    if (d && d.ok) { DR.exSeen.push(id); DR.ex = d; DR.state = 'example'; }
+  }
 }
 function drillZone(track) {
   if (!DR || DR.ctx !== 'focus' || DR.track !== track) startDrill(track, null, 'focus');
@@ -663,6 +680,12 @@ function drillPanel() {
   const q = DR && DR.q;
   if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
   const st = DR.state, mcq = q.kind === 'mcq', def = q.kind === 'def';
+  if (st === 'example' && DR.ex) return h('section', { class: 'card qcard example' },
+    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, 'Worked example first')),
+    h('p', { class: 'fb-h' }, 'This topic has not clicked yet, so watch one done first.'),
+    h('p', { class: 'muted' }, 'Then it is your turn with different numbers. You only see this once per topic each session.'),
+    h('p', { class: 'qtext ex-q' }, h('span', { class: 'muted' }, 'Example: '), DR.ex.question),
+    h('div', { class: 'row' }, B([icon('play'), 'Watch it'], 'exWatch', 'primary grow', { id: 'nextq' }), B('Skip', 'exSkip', 'ghost')));
   const answerBox = def
     ? st !== 'ask' ? null : h('textarea', { id: 'ans', class: 'def-ans', rows: 3, 'data-draft': 'dr', value: DRAFT.dr, disabled: st !== 'ask', maxlength: 600, placeholder: 'Write the definition in your own words', 'aria-label': 'Your definition' })
     : mcq
@@ -673,7 +696,7 @@ function drillPanel() {
       h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer', placeholder: q.kind === 'coef' ? q.co.map(() => '1').join(' ') : null }),
       q.suf && h('span', { class: 'adorn' }, q.suf));
   return h('section', { class: 'card qcard ' + st },
-    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
+    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
     h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
     def && st !== 'ask' && DRAFT.dr.trim() && h('p', { class: 'yours' }, h('b', null, 'You wrote: '), DRAFT.dr.trim()),
     answerBox,
@@ -1451,6 +1474,7 @@ function toast(m, cls = '') {
 const findSess = sid => { for (let w = 0; w < 7; w++) { const i = S.plan[w].findIndex(s => s.id === sid); if (i > -1) return { w, i, s: S.plan[w][i] }; } return null; };
 function finishAnswer(res) {
   record(DR.q.id, res.ok, DR.q.key);
+  if (!res.ok) queueBack();
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
   if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); } else DR.run = 0;
   dayEv('run', DR.run, true);
@@ -1512,13 +1536,16 @@ const ACT = {
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
   reveal() {
-    if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
+    if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); queueBack(); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
     SFX.play('reveal');
     /* Show me plays the board straight away when the demo is fully checked; the written method stays underneath */
     const d = typeof DEMO !== 'undefined' && DEMO.build(DR.q);
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
   board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
+  /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
+  exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
+  exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
   drillFix() {

@@ -260,8 +260,8 @@ const BOARD = (() => {
     if (demo.source !== 'steps') checked.title = demo.checks.map(c => c[0]).join(' · ');
     root = el('div', inline() ? 'bd-inline' : 'bd-scrim',
       el('section', 'bd',
-        el('header', 'bd-top', el('div', null, el('p', 'bd-kick', demo.subject ? demo.subject + ' · ' + demo.topic : demo.topic), checked), btn('✕', 'close', 'ghost icon-only', 'Close the board')),
-        !inline() && el('p', 'bd-q', demo.question),
+        el('header', 'bd-top', el('div', null, el('p', 'bd-kick', (o.label ? o.label + ' · ' : '') + (demo.subject ? demo.subject + ' · ' + demo.topic : demo.topic)), checked), btn('✕', 'close', 'ghost icon-only', 'Close the board')),
+        (!inline() || o.label) && el('p', 'bd-q', demo.question),
         el('div', 'bd-board'),
         reduced() && o.onMotion && el('div', 'bd-motion', el('p', null, 'The pen and arrows are switched off because this device asks apps to reduce motion.'), btn('Turn on writing', 'motion', 'primary sm')),
         el('div', 'bd-think', el('p', null, 'What would you write next? Have a go in your head or on paper, then tap Show step.')),

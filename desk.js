@@ -133,9 +133,9 @@ function paintDock() {
   }
 }
 /* Show me on the desk plays in the dock; on a phone it is a pop-up */
-function playBoard(d, similar) {
+function playBoard(d, similar, label) {
   const m = document.querySelector('#dock .dock-board');
-  return BOARD.open(d, { mount: m, onSimilar: similar ? () => runAct('similar') : null, onClose: m ? () => paintDock() : null, onMotion: () => { S.motion = 'full'; S.motionHint = true; save(); applyMotion(); } });
+  return BOARD.open(d, { mount: m, label, onSimilar: similar ? () => runAct('similar') : null, onClose: m ? () => paintDock() : null, onMotion: () => { S.motion = 'full'; S.motionHint = true; save(); applyMotion(); } });
 }
 
 /* ---------- Today panel: timer, today's sets and what is next, on every page of a wide screen ---------- */

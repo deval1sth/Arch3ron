@@ -384,8 +384,8 @@ const LEARN = (() => {
   let itemInfo = () => null; /* app supplies: key → { n, r, s (right streak), ago (days) } or null */
   const RECENT = [];
   /* scheduling knobs, exported so the student simulation can try alternatives; these values are the live ones */
-  const TUNE = { due: .75, grow: 2 };
-  const gap = m => m.ago - (m.s > 0 ? TUNE.grow ** (m.s - 1) : 1); /* ≥ 0 means due: a miss comes back the next day, then 1, 2, 4, 8… days after each right answer */
+  const TUNE = { due: .75, grow: 2, miss: 1 };
+  const gap = m => m.ago - (m.s > 0 ? TUNE.grow ** (m.s - 1) : TUNE.miss); /* ≥ 0 means due: a miss comes back the next day, then 1, 2, 4, 8… days after each right answer */
   function choose(list, keyOf) {
     const rows = list.map(it => { const k = hkey(keyOf(it)); return { it, k, m: itemInfo(k) }; });
     const pool = rows.length > 1 && rows.some(r => !RECENT.includes(r.k)) ? rows.filter(r => !RECENT.includes(r.k)) : rows;
