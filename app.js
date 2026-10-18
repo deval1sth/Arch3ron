@@ -4,7 +4,8 @@
 
 /* fx.js may be missing if an old cached index.html is served during an update */
 const FXS = typeof FX !== 'undefined' ? FX : { init() {}, burst() {}, countUp() {}, reveal() {} };
-const K = 'archeron-v2', OLD = 'nightwatch-v1', TK = 'archeron-timer', TABK = 'archeron-tab';
+/* each profile on this device has its own saved progress (me.js picks which; whoever used Archeron before profiles keeps the original storage) */
+const K = ME.keys.state, OLD = ME.keys.old, TK = ME.keys.timer, TABK = ME.keys.tab;
 const $ = s => document.querySelector(s);
 /* Motion: 'auto' follows the device's reduce-motion setting; the user can override it in Settings */
 const MQ_REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
@@ -110,7 +111,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -125,7 +126,10 @@ const newId = () => ++uid;
 function normalize(raw) {
   const r = obj(raw), s = freshState();
   s.xp = Math.max(0, Math.round(num(r.xp)));
-  s.mock = isKey(r.mock) && r.mock !== '2027-01-11' ? r.mock : s.mock; /* old placeholder date → real first mock */
+  s.mock = isKey(r.mock) && (r.mock !== '2027-01-11' || r.me) ? r.mock : s.mock; /* old placeholder date → real first mock, unless a set-up picked it */
+  s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
+  s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
+  for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
   s.theme = THEMES.some(t => t[0] === r.theme) ? r.theme : OLD_HL[r.theme] || 'lime'; s.achV = num(r.achV);
   s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
@@ -257,7 +261,17 @@ const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.reduce((n, t
 const today = () => dayNum(dkey());
 LEARN.setItemInfo(key => { const m = S.items[key]; return m ? { n: m[0], r: m[1], s: m[2], ago: today() - m[3] } : null; });
 const learned = key => { const m = S.items[key]; return !!m && m[2] >= 2; }; /* right twice in a row, and right last time */
+/* Smart difficulty: each topic has a level 1–3. Four right in a row at a level moves you up (with a small celebration);
+   two misses at a level move you back down, quietly, so a hard patch never feels like a punishment. */
+const levelOf = id => (S.lvl[id] || { l: 1 }).l;
+function levelUp(id, ok) {
+  if (!LEARN.LEVELLED.has(id)) return;
+  const m = S.lvl[id] = S.lvl[id] || { l: 1, r: 0, w: 0 };
+  if (ok) { m.r++; if (m.r >= 4 && m.l < 3) { m.l++; m.r = 0; m.w = 0; toast(`Level up: ${LEARN.name(id)} is now level ${m.l}`, 'big'); } }
+  else { m.r = 0; m.w++; if (m.w >= 2 && m.l > 1) { m.l--; m.w = 0; } }
+}
 function record(id, ok, key) {
+  levelUp(id, ok);
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
   if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
@@ -278,11 +292,13 @@ function addFix(ids, why) {
   if (S.queue.length > 40) S.queue = S.queue.slice(-40);
   return n;
 }
+const higherPull = () => { const a = LEARN.MATHS.map(id => { const k = skill(id); return k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : null; }).filter(x => x != null), m = a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; return m >= .7 ? 1.5 : m >= .5 ? 1 : .6; };
 function pickTopic(track, avoid) {
   const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
+  const pull = higherPull(); /* Higher topics come up more as your Maths gets stronger */
   const w = pool.map(id => {
-    const core = LEARN.TOPIC[id].type === 'eq' ? .3 : 1; /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
+    const core = (LEARN.TOPIC[id].type === 'eq' ? .3 : 1) * (LEARN.TOPIC[id].tier === 'H' ? pull : 1); /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
     const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 * core : core; if (!k.n) return 3 * boost;
     const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
     return (k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3) * boost;
@@ -431,7 +447,7 @@ function swapFor(tr) {
      set is always picked first. Swapping from any set raised learning ~15% but cut Biology and Chemistry by a third; taking only
      from the busiest subject keeps every science within ~1.5 points and still raises learning ~10%. */
   const ids = tr === 'science' ? ['biology', 'chemistry', 'physics'] : [tr], mine = typeof recentShare === 'function' ? Math.max(...ids.map(recentShare)) : 0;
-  const busiest = LEARN.SUBJECTS.every(s => recentShare(s.id) <= mine);
+  const busiest = mySubjects().every(s => recentShare(s.id) <= mine);
   const idle = busiest && typeof daysIdle === 'function' && sessRank().find(t => trackSubj(t) !== subj && (daysIdle(t) || 0) >= 7);
   if (idle) { const d = daysIdle(idle);
     return { to: idle, msg: `${TRACK_NAME(idle)} ${d >= 60 ? 'has not had any practice yet, so this set gets it started' : `has had no practice for ${d} days, so this set goes there before it fades`}. ${TRACK_NAME(tr)} comes back next time.` }; }
@@ -444,13 +460,14 @@ function swapFor(tr) {
 function missionPlan(label) {
   const L = (label || '').toLowerCase();
   const subj = /math/.test(L) ? 'maths' : /biolog/.test(L) ? 'biology' : /chemi/.test(L) ? 'chemistry' : /physic/.test(L) ? 'physics' : /scien/.test(L) ? 'science'
-    : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : null;
+    : /geograph/.test(L) ? 'geography' : /business/.test(L) ? 'business' : /histor/.test(L) ? 'history' : /computer/.test(L) ? 'compsci' : /french/.test(L) ? 'french' : /spanish/.test(L) ? 'spanish' : null;
   if (/mistake/.test(L)) return { id: 'fixes', title: 'Redo your mistakes', steps: ['Redo each mistake below from scratch, no notes', 'Got it right? Tap Fixed. Still shaky? Tap Again', 'Nothing waiting? Do the mixed drill instead'] };
   if (/paper|full timed/.test(L)) return { id: 'paper', subj, title: 'Past paper practice', steps: ['Use a paper from your teacher or your exam board website', 'Work timed, in silence, phone face down', 'Mark it with the mark scheme straight after', 'Log the score and where the marks went'].concat(/plan the week/.test(L) ? ['Last few minutes: check next week in your plan'] : []) };
   if (/lit|quote|essay|macbeth|carol|journey/.test(L)) return { id: 'lit', title: 'Quotes and an essay plan', steps: ['Warm up: quote and context questions until you get 5 right', 'Then plan one essay below: thesis and three paragraphs', 'Each paragraph: point, quote, method, effect, context'] };
   if (/english lang|language|timed answer|writing/.test(L)) return { id: 'lang', title: 'English Language practice', steps: ['Pick a question type and read the method', 'Write your answer on paper, timed', 'Check it against the method, then plan a piece of writing'] };
   if (/\bre\b|religio/.test(L)) return { id: 're', title: 'RE: key terms and a 12-mark plan', steps: ['Answer key-term questions until you get 5 right', 'Plan a 12-mark answer below: both sides, then a justified conclusion'] };
-  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? ['Start with Corbettmaths 5-a-day (Foundation) on paper', ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
+  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? [`Start with Corbettmaths 5-a-day (${tierFor('Maths') === 'H' ? 'Higher' : 'Foundation'}) on paper`, ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
+  const own = ME.selfSubject(label); if (own) return own; /* a subject with no question bank yet: revise it your own way */
   return { id: 'choose', title: 'Choose what to study', steps: ['Pick a subject below', ...PRACTISE_STEPS.slice(0, 2)] };
 }
 
@@ -467,6 +484,13 @@ function currentSid() {
   /* the set whose subject needs it most right now, so doing fewer sets than planned never skips the same subjects every week */
   const pr = x => setPriority(x.s.label);
   return open.reduce((a, b) => pr(b) > pr(a) ? b : a).s.id;
+}
+/* today's sets in the order Begin hands them out: the one in progress (or picked) first, the rest by need, done ones last.
+   Lists showed plan order while Begin picked by need, so the top of the list was not what you got. */
+function todayQueue() {
+  const list = todayTrain(), now = timerActive() && T.mode === 'focus' ? T.sid : currentSid(), pr = x => setPriority(x.s.label);
+  const rank = x => x.s.id === now && x.left > 0 ? Infinity : x.left > 0 ? pr(x) : -Infinity;
+  return list.map(x => [x, rank(x)]).sort((a, b) => b[1] - a[1] || 0).map(a => a[0]);
 }
 function ringEl(compact) {
   const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') + (compact ? ' compact' : '') });
@@ -528,9 +552,10 @@ function vHome() {
       h('div', { class: 'focus-links' },
         B(CHOOSE ? 'Close' : 'Choose something else', 'choose', 'link'), h('span', { 'aria-hidden': 'true' }, '·'), B("Today's plan", 'go', 'link', { 'data-tab': 'today' })),
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
-        open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
+        todayQueue().filter(x => x.left > 0).map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
     todayBar(),
+    dailyCard(),
     missionCard(Object.assign({ why: missionWhy(HT) }, M), false),
     backupNag(),
     doNow(HT),
@@ -559,8 +584,9 @@ function missionPanel(M) {
   if (M.id === 'lang') return h('div', { class: 'm-panel' }, langGuides(), planBuilder(['writing1', 'writing2'], 'focus-lang'), drillZone('englang'));
   if (M.id === 're') return h('div', { class: 'm-panel' }, drillZone('re'), planBuilder(['re'], 'focus-re'));
   if (M.id === 'drill') return h('div', { class: 'm-panel' }, drillZone(M.subj));
+  if (M.id === 'self') return h('div', { class: 'm-panel' }, h('p', { class: 'muted' }, `Use the timer, your notes and past papers from your board. Log any paper you sit so your progress shows up.`), h('div', { class: 'row' }, B([icon('scroll'), 'Log a paper'], 'go', 'primary', { 'data-tab': 'papers' }), B([icon('cards'), 'Flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })));
   return h('div', { class: 'm-panel' },
-    h('div', { class: 'chips' }, LEARN.SUBJECTS.map(s => chip([icon(s.icon), s.name], FREE_TRACK === s.id, 'freeTrack', { 'data-track': s.id }))),
+    h('div', { class: 'chips' }, mySubjects().map(s => chip([icon(s.icon), s.name], FREE_TRACK === s.id, 'freeTrack', { 'data-track': s.id }))),
     FREE_TRACK ? drillZone(FREE_TRACK) : h('p', { class: 'muted xs' }, 'Pick a subject to get questions.'));
 }
 function motionHint() {
@@ -597,7 +623,7 @@ function vLearn() {
       h('span', { class: 'grow' }, h('b', null, `${fixCount()} thing${fixCount() > 1 ? 's' : ''} to fix`), h('small', null, 'Topics you keep missing and mistakes to redo, all on the Fix page.')), h('span', { class: 'btn primary sm' }, 'Fix')),
     tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'drill', 'data-track': 'all' }, h('span', { class: 'lc-ic' }, icon('compass')), h('b', null, 'Mixed practice'),
       h('span', { class: 'lc-d' }, 'Questions from all your subjects, weighted towards what you find hardest.'), h('small', null, `${S.learnOk.toLocaleString('en-GB')} answered right so far`))),
-    h('div', { class: 'sgrid' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id);
+    h('div', { class: 'sgrid' }, mySubjects().map(s => { const ids = topicsFor(s.id);
       return tilt(h('button', { type: 'button', class: 'scard', 'data-act': 'subject', 'data-track': s.id },
         h('span', { class: 'lc-ic' }, icon(s.icon)), h('b', null, s.name), h('small', null, `${masteredIn(ids)} of ${ids.length} mastered`), bar(ids.length ? masteredIn(ids) / ids.length * 100 : 0))); })),
     h('div', { class: 'lgrid' },
@@ -619,7 +645,7 @@ function guidePanel(id) {
     h('p', { class: 'g-ex' }, h('b', null, 'Example: '), g[2]), h('p', { class: 'muted' }, h('b', null, 'Exam tip: '), g[3]), h('div', { class: 'row' }, vid)), { open: !stars(id) });
 }
 function vSubject() {
-  const s = SUBJ_BY[SUBJ_SEL] || LEARN.SUBJECTS[0], ids = topicsFor(s.id);
+  const s = SUBJ_BY[SUBJ_SEL] || mySubjects()[0], ids = topicsFor(s.id);
   const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
     h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} ${LEARN.TOPIC[id].type === 'def' ? 'terms' : LEARN.TOPIC[id].type === 'vocab' ? 'words' : 'facts'}`) : null), starsEl(id)))))) : null; };
   const extras = s.id === 'englit' ? [B([icon('edit'), 'Plan an essay'], 'go', 'ghost', { 'data-tab': 'write' }), B([icon('cards'), 'Quote flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })]
@@ -647,12 +673,32 @@ function queueBack() {
   const q = DR.q; if (!q || !q.key || q.back || !lowTopic(q.id)) return;
   (DR.retry = DR.retry || []).push({ q: Object.assign({}, q, { back: true }), at: DR.count + 3 });
 }
+/* Daily five: five Maths questions that are the same for everyone today. The date seeds the random numbers while they are
+   made, so every device builds identical questions. Maths because every GCSE student takes it. Only the first go counts. */
+function dailyQs(day = dkey()) {
+  let seed = (dayNum(day) * 2654435761) >>> 0;
+  const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pool = LEARN.MATHS.filter(id => !LEARN.TOPIC[id].tier).sort(), keep = Math.random;
+  Math.random = rnd;
+  try { const ids = []; while (ids.length < 5) { const id = pool[Math.floor(rnd() * pool.length)]; if (!ids.includes(id)) ids.push(id); } return ids.map(id => LEARN.gen(id, 2)).filter(Boolean); }
+  finally { Math.random = keep; }
+}
+const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
+function dailyDone() { if (!dailyDoneToday()) { S.daily = { d: dkey(), s: Math.min(5, DR.ok) }; save(); SFX.play('fanfare'); } }
+function dailyCard(inDrill) {
+  if (inDrill || dailyDoneToday()) return card('Daily five', h('span', { class: 'muted' }, 'the same five for everyone today'),
+    h('p', { class: 'big-score' }, `${dailyDoneToday() ? S.daily.s : DR.ok} / 5`),
+    h('p', { class: 'muted xs' }, 'New questions tomorrow. Everyone using Archeron gets the same five each day, so you can compare with friends.'));
+  return h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'daily' }, h('span', { class: 'wc-ic' }, icon('star')),
+    h('span', { class: 'grow' }, h('b', null, 'Daily five'), h('small', null, 'Five Maths questions, the same for everyone today. About 3 minutes.')), h('span', { class: 'btn primary sm' }, 'Start'));
+}
 function nextQ(sameTopic) {
+  if (DR.ctx === 'daily') { DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null; DR.q = (DR.dq || [])[DR.count] || null; DR.state = 'ask'; if (!DR.q && DR.dq) dailyDone(); return; }
   DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null;
   const due = !sameTopic && DR.retry && DR.retry.find(r => r.at <= DR.count);
   if (due) { DR.retry = DR.retry.filter(r => r !== due); DR.q = due.q; DR.last = due.q.id; DR.state = 'ask'; return; }
   const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
-  DR.q = id && LEARN.gen(id); DR.state = 'ask'; DR.last = id;
+  DR.q = id && LEARN.gen(id, levelOf(id)); DR.state = 'ask'; DR.last = id;
   /* the first question in a not-yet-clicked topic each session starts with a different example, worked on the board */
   DR.exSeen = DR.exSeen || [];
   if (DR.q && lowTopic(id) && !DR.exSeen.includes(id) && typeof DEMO !== 'undefined') {
@@ -666,7 +712,7 @@ function drillZone(track) {
 }
 function vDrill() {
   if (!DR) return vLearn();
-  const title = DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
+  const title = DR.ctx === 'daily' ? 'Daily five' : DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
   const back = DR.ctx === 'sess' ? 'session' : DR.ctx === 'guide' ? 'guide' : DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
   if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
   return h('div', { class: 'stack narrow' },
@@ -678,6 +724,7 @@ function vDrill() {
 }
 function drillPanel() {
   const q = DR && DR.q;
+  if (!q && DR && DR.ctx === 'daily') return dailyCard(true);
   if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
   const st = DR.state, mcq = q.kind === 'mcq', def = q.kind === 'def';
   if (st === 'example' && DR.ex) return h('section', { class: 'card qcard example' },
@@ -696,7 +743,7 @@ function drillPanel() {
       h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer', placeholder: q.kind === 'coef' ? q.co.map(() => '1').join(' ') : null }),
       q.suf && h('span', { class: 'adorn' }, q.suf));
   return h('section', { class: 'card qcard ' + st },
-    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
+    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), LEARN.LEVELLED.has(q.id) && h('span', { class: 'pill lvl', title: 'Questions get harder as you get them right' }, 'Level ' + levelOf(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
     h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
     def && st !== 'ask' && DRAFT.dr.trim() && h('p', { class: 'yours' }, h('b', null, 'You wrote: '), DRAFT.dr.trim()),
     answerBox,
@@ -709,7 +756,7 @@ function drillPanel() {
         B(`Confirm · ${DR.ticks.filter(Boolean).length} of ${q.points.length} key points`, 'defDone', 'primary wide', { id: 'nextq' }))
     : st === 'ask' ? (mcq ? h('div', { class: 'row end' }, B('Show me', 'reveal', 'link')) : h('div', { class: 'row' }, B(def ? 'Mark it' : 'Check', 'check', 'primary grow'), B('Show me', 'reveal', 'ghost')))
       : st === 'right' ? h('div', { class: 'fb ok t-panel-slide', 'data-open': 'false' },
-        h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])),
+        h('p', { class: 'fb-h' }, successCheck(), pick(['Correct.', 'Exactly right.', 'Nailed it.', 'Yes. That is it.'])), DR.msg && h('p', { class: 'muted xs' }, DR.msg),
         !mcq && acc('method', h('span', { class: 'btn link' }, 'See the method'), h('ol', { class: 'steps' }, q.steps.map(s => h('li', null, s))), { cls: '' }),
         !mcq && boardBtn(q, 'link', true),
         B('Next question', 'next', 'primary wide', { id: 'nextq' }))
@@ -789,7 +836,7 @@ function vProfile() {
         return h('li', { class: 'ach t' + tier }, h('span', { class: 'ach-ic' }, icon(a.icon)),
           h('div', { class: 'ach-b' }, h('b', null, a.name), h('small', null, tier ? `${TIERS[tier - 1]} · ` : '', next ? `${Math.floor(v).toLocaleString('en-GB')} / ${next.toLocaleString('en-GB')} ${a.unit}` : `All tiers earned · ${Math.floor(v).toLocaleString('en-GB')} ${a.unit}`), bar(p)),
           h('span', { class: 'pips', 'aria-label': `${tier} of ${a.t.length} tiers` }, a.t.map((_, i) => h('i', { class: i < tier ? 'on t' + (i + 1) : '' })))); }))),
-    card('Subject mastery', null, h('ul', { class: 'mastery' }, LEARN.SUBJECTS.map(s => { const ids = topicsFor(s.id), m = masteredIn(ids);
+    card('Subject mastery', null, h('ul', { class: 'mastery' }, mySubjects().map(s => { const ids = topicsFor(s.id), m = masteredIn(ids);
       return h('li', null, h('button', { type: 'button', 'data-act': 'subject', 'data-track': s.id }, icon(s.icon), h('span', null, s.name), h('small', null, `${m}/${ids.length}`)), bar(ids.length ? m / ids.length * 100 : 0)); }))),
     h('div', { class: 'row center' }, B([icon('user'), 'Settings and backup'], 'go', 'ghost', { 'data-tab': 'me' })));
 }
@@ -798,6 +845,7 @@ function vTools() {
   const tool = (tab, ic, name, sub, extra = {}) => tilt(h('button', Object.assign({ type: 'button', class: 'tool', 'data-act': 'go', 'data-tab': tab }, extra), h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
   return h('div', { class: 'stack' },
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
+    ME.card(),
     h('div', { class: 'tools' },
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
       tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
@@ -814,7 +862,7 @@ function vToday() {
     S.deload && h('div', { class: 'banner' }, icon('moon'), h('div', null, h('b', null, 'Deload week'), h('p', null, 'Half volume on purpose. Recovery is part of the programme.'))),
     card('Sessions', B([icon('edit'), 'Edit week'], 'go', 'ghost sm', { 'data-tab': 'plan' }),
       plan.length ? plan.map(s => sessionRow(s, day)) : h('p', { class: 'muted' }, 'Nothing planned today. Rest is training too.')),
-    card('Daily extras', null, FINISHERS.map((f, i) => h('label', { class: 'chk' + (day.f[i] ? ' d' : '') },
+    card('Daily extras', null, FINISHERS.map(f => tierFor('Maths') === 'H' ? f.replace('(Foundation)', '(Higher)') : f).map((f, i) => h('label', { class: 'chk' + (day.f[i] ? ' d' : '') },
       h('input', { type: 'checkbox', checked: !!day.f[i], 'data-act': 'fin', 'data-i': i }), checkBox(), h('span', null, f)))));
 }
 function sessionRow(s, day) {
@@ -833,6 +881,14 @@ function sessionRow(s, day) {
    Schemes (exam.js, papers.js): [points] one mark each · {any, max} capped · {lv, look} levels-based. */
 let EXRES = null;
 const paperOf = id => (S.exam && S.exam.paper && S.exam.paper.id === id && S.exam.paper) || EXAMS.find(p => p.id === id); /* a PPP paper is built fresh and lives with its run */
+/* Higher students see Higher papers and Foundation students Foundation ones; untiered papers (English, RE...) suit everyone.
+   With no tier chosen yet, both are shown. */
+function tierFor(subj) {
+  const ids = subj === 'Maths' ? ['maths'] : subj === 'Science' ? ['combined', 'biology', 'chemistry', 'physics'] : [];
+  const s = S.me && S.me.subs.find(x => ids.includes(x.id));
+  return s && s.tier ? s.tier[0] : null;
+}
+const paperFits = p => !p.tier || !tierFor(p.subj) || tierFor(p.subj) === p.tier;
 function qMax(q) { const s = q[2]; return Array.isArray(s) ? s.length : s.lv ? s.lv[0][1] : s.max; }
 function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.look; }
 const qX = q => q[3] || {};
@@ -846,7 +902,7 @@ function vExam() {
   const run = S.exam && paperOf(S.exam.pid), tops = {};
   for (const sc of S.scores) for (const t of sc.tp) { const k = sc.subj + '|' + t.topic; const o = tops[k] = tops[k] || { subj: sc.subj, topic: t.topic, got: 0, max: 0 }; o.got += t.got; o.max += t.max; }
   const topics = Object.values(tops).sort((a, b) => a.got / a.max - b.got / b.max);
-  const groups = [...new Set(EXAMS.map(groupOf))];
+  const shown = EXAMS.filter(paperFits).sort((a, b) => !!b.tier - !!a.tier), groups = [...new Set(EXAMS.map(groupOf))].filter(g => shown.some(p => groupOf(p) === g)); /* full papers before 6-mark sets */
   return h('div', { class: 'stack narrow' },
     subHero('Mocks', 'Exam practice', 'mocks', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
     EXRES && examReport(EXRES),
@@ -855,9 +911,9 @@ function vExam() {
     card('Generated papers', h('span', { class: 'muted' }, 'any subject'), h('p', { class: 'muted xs' }, 'Quick practice sets, not the real exam format: a fresh set every time, weighted to your weak topics, marked automatically. Long sets cover more topics and count more towards your predicted grade.'),
       h('div', { class: 'chips' }, chip('Quick · 20 questions', GP_LEN === 20, 'gpLen', { 'data-n': 20 }), chip('Long · 40 questions', GP_LEN === 40, 'gpLen', { 'data-n': 40 })),
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
-      h('div', { class: 'chips' }, LEARN.SUBJECTS.map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
+      h('div', { class: 'chips' }, mySubjects().map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
-      h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
+      h('ul', { class: 'list' }, shown.filter(p => groupOf(p) === g).map(p => {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),
@@ -1090,7 +1146,7 @@ function vStats() {
   const span = (a, b) => { let n = 0, r = 0; for (let i = a; i < b; i++) { const d = dayAt(i); n += d.qa || 0; r += d.qr || 0; } return { n, r, pc: n ? Math.round(r / n * 100) : null }; };
   const wk = span(0, 7), prev = span(7, 14), acts = Array.from({ length: 28 }, (_, i) => dayAt(27 - i).qa || 0), top = Math.max(1, ...acts);
   let allL = 0, allT = 0;
-  const rows = LEARN.SUBJECTS.map(s => {
+  const rows = mySubjects().map(s => {
     const b = BK[s.id] || { def: [], recall: [], eq: [], vocab: [] }, calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc');
     const parts = [['Definitions', b.def], ['Descriptive vocabulary', b.vocab || []], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
     if (calc.length) parts.push(['Calculation skills mastered', masteredIn(calc), calc.length, calc.filter(id => skill(id).n).length]);
@@ -1353,7 +1409,7 @@ function vMe() {
     h('div', { class: 'cols' },
       h('div', { class: 'stack' },
         card('My subjects and topics', null, h('p', { class: 'muted xs' }, "Hide topics you don't study, e.g. a religion or poetry cluster you're not doing. Hidden topics leave practice, gates and missions."),
-          LEARN.SUBJECTS.map(s => acc('hide-' + s.id, [h('b', null, s.name), h('span', { class: 'muted acc-r' }, `${s.topics.filter(t => !S.hidden[t]).length} of ${s.topics.length} on`)],
+          mySubjects().map(s => acc('hide-' + s.id, [h('b', null, s.name), h('span', { class: 'muted acc-r' }, `${s.topics.filter(t => !S.hidden[t]).length} of ${s.topics.length} on`)],
             h('div', { class: 'hides' }, s.topics.map(t => h('label', { class: 'toggle sm' }, h('input', { type: 'checkbox', checked: !S.hidden[t], 'data-act': 'hide', 'data-topic': t, role: 'switch' }), h('span', null, LEARN.name(t))))), { cls: 'guide' }))),
         card('My grades', null, h('p', { class: 'muted xs' }, 'Saved only on this device. Target % is what you aim for on past papers; it shows on your chart.'),
           h('div', { class: 'tbl' }, h('table', { class: 'edit' }, h('tr', null, h('th', null, 'Subject'), h('th', null, 'Now'), h('th', null, 'Target'), h('th', null, 'Target %')),
@@ -1543,6 +1599,10 @@ const ACT = {
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
   board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
+  daily() {
+    if (dailyDoneToday()) { toast('You have done today\'s five. New ones tomorrow.'); return; }
+    startDrill('maths', null, 'daily'); DR.dq = dailyQs(); DR.count = 0; nextQ(); go('drill', '#ans');
+  },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
   exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
@@ -1629,7 +1689,7 @@ const ACT = {
   planSets(el) { const f = findSess(el.dataset.sid); if (!f) return; f.s.sets = clamp(f.s.sets + +el.dataset.d, 1, 12); save(); render(); },
   planMove(el) { const f = findSess(el.dataset.sid); if (!f) return; const p = S.plan[f.w], j = f.i + +el.dataset.d; if (j < 0 || j >= p.length) return; [p[f.i], p[j]] = [p[j], p[f.i]]; save(); render(); },
   planDel(el) { const f = findSess(el.dataset.sid); if (!f || !confirm(`Remove "${f.s.label}"?`)) return; S.plan[f.w].splice(f.i, 1); save(); render(); },
-  planReset() { if (!confirm('Reset the whole week to the starting plan? Past ticks are kept.')) return; S.plan = makePlan(); save(); render(); },
+  planReset() { if (!confirm('Rebuild your week from your set-up? Past ticks are kept.')) return; S.plan = S.me ? ME.buildPlan(S.me) : makePlan(); save(); render(); },
   saveGrades() {
     for (const s of SUBJ) { const g = DRAFT.grades[s]; S.grades[s] = { cur: str(g.cur, 8).trim(), tgt: str(g.tgt, 8).trim(), pct: g.pct === '' ? '' : String(clamp(Math.round(+g.pct || 0), 0, 100)) }; }
     DRAFT.grades = null; save(); toast('Grades saved on this device'); render();
@@ -1729,6 +1789,7 @@ FXS.init();
 if (S.achV !== 2) { S.ach = {}; S.achV = 2; save(); } /* tiers got harder: recount once, silently */
 checkAch(true);
 render({ enter: true });
+ME.start();
 if (T.run && T.end <= Date.now()) timerDone();
 if (bootNote) setTimeout(() => toast(bootNote), 600);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

@@ -1433,7 +1433,7 @@ function guideBody(body) {
   flush(); return out;
 }
 function vStudy() {
-  const subs = LEARN.SUBJECTS.filter(s => STUDY.some(g => g.subj === s.id)), shown = STUDY.filter(g => STUDY_SUBJ === 'all' || g.subj === STUDY_SUBJ);
+  const subs = mySubjects().filter(s => STUDY.some(g => g.subj === s.id)), shown = STUDY.filter(g => STUDY_SUBJ === 'all' || g.subj === STUDY_SUBJ);
   const ses = activeSession(), done = Object.keys(S.read).length;
   return h('div', { class: 'stack' },
     hero('Study', 'Understand it properly', 'In-depth guides to the hardest topics: plain explanations, worked examples, the mistakes that cost marks, and quick checks. Each one links straight to practice.'),
@@ -1483,10 +1483,10 @@ function subjPriority(sid) {
   const fixes = S.queue.filter(x => LEARN.trackOf(x.id) === sid).length;
   /* gap to target, how low the grade is now, Maths as the stated top priority, then live weakness data */
   /* a subject that has had more than its fair share of the last week's practice steps back, so nothing gets neglected */
-  const over = Math.max(0, recentShare(sid) - 1 / LEARN.SUBJECTS.length) * 60;
+  const over = Math.max(0, recentShare(sid) - 1 / mySubjects().length) * 60;
   /* and one left untouched for over a week climbs back up, a little more each day, so it never quietly drops out */
   const idle = daysIdle(sid), neglect = idle == null ? 0 : Math.min(30, Math.max(0, idle - 6) * 4);
-  return gp.gap * 10 + Math.max(0, 5 - gp.cur) * 4 + (sid === 'maths' ? (gp.gap > 0 ? 8 : 2) : 0) + weak * 10 + fixes * 3 - over + neglect + (STUDY.some(g => g.subj === sid) ? 0 : -50);
+  return gp.gap * 10 + Math.max(0, 5 - gp.cur) * 4 + (sid === 'maths' ? (gp.gap > 0 ? 8 : 2) : 0) + weak * 10 + fixes * 3 - over + neglect + (STUDY.some(g => g.subj === sid) || SUBJ_BY[sid].topics.length ? 0 : -50);
 }
 function daysIdle(sid) { /* days since this subject was last practised; null until there is a fortnight of history to judge by */
   let any = false;
@@ -1498,7 +1498,7 @@ function recentShare(sid) {
   for (let i = 0; i < 7; i++) { const t = (S.days[addDays(-i)] || {}).t; if (t) for (const [k, v] of Object.entries(t)) { all += v; if (k === sid) mine += v; } }
   return all >= 50 ? mine / all : 0; /* not enough practice yet to judge */
 }
-const sessRank = () => LEARN.SUBJECTS.map(s => s.id).filter(sid => STUDY.some(g => g.subj === sid)).sort((a, b) => subjPriority(b) - subjPriority(a));
+const sessRank = () => mySubjects().map(s => s.id).filter(sid => STUDY.some(g => g.subj === sid) || SUBJ_BY[sid].topics.length).sort((a, b) => subjPriority(b) - subjPriority(a));
 function guideScore(g, used) {
   if (used.has(g.id)) return -1e9;
   let sc = S.read[g.id] ? 0 : 10;
