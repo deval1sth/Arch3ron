@@ -111,7 +111,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, friends: [], readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, friends: [], daily: null, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -128,6 +128,7 @@ function normalize(raw) {
   s.xp = Math.max(0, Math.round(num(r.xp)));
   s.mock = isKey(r.mock) ? r.mock : s.mock; /* the beta has no old placeholder dates to correct */
   s.friends = FRIENDS.clean(r.friends);
+  s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
@@ -548,6 +549,7 @@ function vHome() {
         open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
     todayBar(),
+    dailyCard(),
     missionCard(Object.assign({ why: missionWhy(HT) }, M), false),
     backupNag(),
     doNow(HT),
@@ -665,7 +667,28 @@ function queueBack() {
   const q = DR.q; if (!q || !q.key || q.back || !lowTopic(q.id)) return;
   (DR.retry = DR.retry || []).push({ q: Object.assign({}, q, { back: true }), at: DR.count + 3 });
 }
+/* Daily five: five Maths questions that are the same for everyone today. The date seeds the random numbers while they are
+   made, so every device builds identical questions. Maths because every GCSE student takes it. Only the first go counts. */
+function dailyQs(day = dkey()) {
+  let seed = (dayNum(day) * 2654435761) >>> 0;
+  const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pool = LEARN.MATHS.filter(id => !LEARN.TOPIC[id].tier).sort(), keep = Math.random;
+  Math.random = rnd;
+  try { const ids = []; while (ids.length < 5) { const id = pool[Math.floor(rnd() * pool.length)]; if (!ids.includes(id)) ids.push(id); } return ids.map(id => LEARN.gen(id, 2)).filter(Boolean); }
+  finally { Math.random = keep; }
+}
+const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
+function dailyDone() { if (!dailyDoneToday()) { S.daily = { d: dkey(), s: Math.min(5, DR.ok) }; save(); SFX.play('fanfare'); } }
+function dailyCard(inDrill) {
+  if (inDrill || dailyDoneToday()) return card('Daily five', h('span', { class: 'muted' }, 'the same five for everyone today'),
+    h('p', { class: 'big-score' }, `${dailyDoneToday() ? S.daily.s : DR.ok} / 5`),
+    h('p', { class: 'muted xs' }, 'New questions tomorrow. Share your friend link and your friends see today\'s five on their board.'),
+    h('div', { class: 'row' }, B([icon('user'), 'Friends'], 'go', 'ghost', { 'data-tab': 'friends' })));
+  return h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'daily' }, h('span', { class: 'wc-ic' }, icon('star')),
+    h('span', { class: 'grow' }, h('b', null, 'Daily five'), h('small', null, 'Five Maths questions, the same for everyone today. About 3 minutes.')), h('span', { class: 'btn primary sm' }, 'Start'));
+}
 function nextQ(sameTopic) {
+  if (DR.ctx === 'daily') { DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null; DR.q = (DR.dq || [])[DR.count] || null; DR.state = 'ask'; if (!DR.q && DR.dq) dailyDone(); return; }
   DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null;
   const due = !sameTopic && DR.retry && DR.retry.find(r => r.at <= DR.count);
   if (due) { DR.retry = DR.retry.filter(r => r !== due); DR.q = due.q; DR.last = due.q.id; DR.state = 'ask'; return; }
@@ -684,7 +707,7 @@ function drillZone(track) {
 }
 function vDrill() {
   if (!DR) return vLearn();
-  const title = DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
+  const title = DR.ctx === 'daily' ? 'Daily five' : DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
   const back = DR.ctx === 'sess' ? 'session' : DR.ctx === 'guide' ? 'guide' : DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
   if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
   return h('div', { class: 'stack narrow' },
@@ -696,6 +719,7 @@ function vDrill() {
 }
 function drillPanel() {
   const q = DR && DR.q;
+  if (!q && DR && DR.ctx === 'daily') return dailyCard(true);
   if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
   const st = DR.state, mcq = q.kind === 'mcq', def = q.kind === 'def';
   if (st === 'example' && DR.ex) return h('section', { class: 'card qcard example' },
@@ -1563,6 +1587,10 @@ const ACT = {
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
   board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
+  daily() {
+    if (dailyDoneToday()) { toast('You have done today\'s five. New ones tomorrow.'); return; }
+    startDrill('maths', null, 'daily'); DR.dq = dailyQs(); DR.count = 0; nextQ(); go('drill', '#ans');
+  },
   frSort(el) { FR_SORT = el.dataset.k; render(); },
   frShare() { FRIENDS.share(); },
   async frCopy() { const c = FRIENDS.code(); try { await navigator.clipboard.writeText(c); toast('Code copied'); } catch (e) { prompt('Copy your code:', c); } },
