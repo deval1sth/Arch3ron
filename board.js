@@ -3,7 +3,7 @@
    pauses exactly with animation-play-state. Speed is a per-device convenience in localStorage. */
 'use strict';
 const BOARD = (() => {
-  const SPEEDS = [['Slow', 1.5], ['Steady', 1], ['Quick', .55]], CH = 58, SAY = 420, HOLD = 900;
+  const SPEEDS = [['Slow', 1.5], ['Steady', 1], ['Quick', .55]], CH = 72, SAY = 420, HOLD = 900;
   const KEY = 'archeron-board-speed';
   let D = null, i = 0, playing = false, timer = 0, t0 = 0, dur = 0, left = 0, ended = false, tryFirst = false, waiting = false;
   let root = null, opts = {}, back = null, sp = 1;
@@ -225,6 +225,7 @@ const BOARD = (() => {
     full: () => { playing = false; i = D.lines.length - 1; rebuild(false); },
     speed: () => { sp = (sp + 1) % SPEEDS.length; try { localStorage.setItem(KEY, String(sp)); } catch (e) {} sync(); },
     try: () => { tryFirst = !tryFirst; sync(); },
+    motion: () => { opts.onMotion(); root.querySelector('.bd-motion')?.remove(); i = 0; playing = true; rebuild(true); },
     why: b => { const w = b.nextElementSibling; w.hidden = !w.hidden; b.setAttribute('aria-expanded', String(!w.hidden)); if (!w.hidden) pause(); },
     close: () => close(),
     similar: () => { const f = opts.onSimilar; close(); if (f) f(); }
@@ -256,6 +257,7 @@ const BOARD = (() => {
         el('header', 'bd-top', el('div', null, el('p', 'bd-kick', demo.subject ? demo.subject + ' · ' + demo.topic : demo.topic), checked), btn('✕', 'close', 'ghost icon-only', 'Close the board')),
         !inline() && el('p', 'bd-q', demo.question),
         el('div', 'bd-board'),
+        reduced() && o.onMotion && el('div', 'bd-motion', el('p', null, 'The pen and arrows are switched off because this device asks apps to reduce motion.'), btn('Turn on writing', 'motion', 'primary sm')),
         el('div', 'bd-think', el('p', null, 'What would you write next? Have a go in your head or on paper, then tap Show step.')),
         el('div', 'bd-end', el('p', null, 'Now try one on your own.'), el('div', 'row', o.onSimilar && btn('Try a similar one', 'similar', 'primary'), btn('Watch again', 'replay', 'ghost'), btn('Close', 'close', 'ghost'))),
         el('footer', 'bd-bar',

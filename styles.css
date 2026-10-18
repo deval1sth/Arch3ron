@@ -1184,3 +1184,4 @@ html.rm .bd-pen{display:none}
 .bd-board .bl:has(+ .bl.has-op)>.bm{margin-left:70px}
 @media (max-width:520px){.bd-board .bl:has(+ .bl.has-op)>.bm{margin-left:54px}}
 .bfig .ft.ann.sm{font-size:12px}
+.bd-motion{margin:10px 16px 0;padding:10px 14px;border-radius:var(--r-sm);background:var(--y-soft);display:flex;align-items:center;gap:12px;flex-wrap:wrap}.bd-motion p{margin:0;flex:1;min-width:180px;font-size:14px}
