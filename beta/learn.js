@@ -219,32 +219,32 @@ const LEARN = (() => {
     return { q: `Round ${x} to ${sf} significant figure${sf > 1 ? 's' : ''}.`, kind: 'num', v: ans, dm: { x, sf }, rel: 1e-9, show: String(ans),
       steps: [`The first significant figure is the first non-zero digit: ${ds[0]}`, `The digit after ${sf} s.f. is ${ds[sf]}, so round ${up ? 'up' : 'down'}`, big ? 'Fill the remaining places with zeros to keep the size of the number' : 'Keep the leading zeros', `Answer: ${ans}`] };
   });
-  /* ---------- Maths: AQA Higher. Only shown to students on the Higher tier. Each takes a level (1 easier, 3 harder) ---------- */
-  const TH = (id, name, gen) => { M[id] = { name, gen, tier: 'H' }; };
+  /* ---------- Maths: harder algebra, trigonometry and percentages, on both tiers. Each takes a level (1 easier, 3 harder) ---------- */
+  const TH = (id, name, gen) => { M[id] = { name, gen, tier: 'H' }; }, TB = (id, name, gen) => { M[id] = { name, gen, lv: true }; };
   const nz = (a, b) => { let v; do v = ri(a, b); while (!v); return v; };
   const quadStr = (A, B, C) => [A === 1 ? 'x²' : A === -1 ? '−x²' : n(A) + 'x²', B ? (B < 0 ? ' − ' : ' + ') + (Math.abs(B) === 1 ? '' : Math.abs(B)) + 'x' : '', C ? sg(C) : ''].join('');
   const brk = p => `(x${sg(p)})`;
-  TH('h-dbl', 'Expanding double brackets', (lvl = 2) => {
+  TB('h-dbl', 'Expanding double brackets', (lvl = 2) => {
     const p = lvl === 3 ? ri(2, 4) : 1, a = nz(lvl === 1 ? 1 : -9, 9), b = nz(lvl === 1 ? 1 : -9, 9), A = p, B = p * b + a, C = a * b;
     const px = p === 1 ? 'x' : p + 'x';
     return { q: `Expand and simplify (${px}${sg(a)})(x${sg(b)})`, kind: 'quad', A, B, C, show: quadStr(A, B, C), hint: 'Type it like x^2 + 5x + 6',
       steps: [`First: ${px} × x = ${p === 1 ? '' : p}x²`, `Outside: ${px} × ${par(b)} = ${n(p * b)}x`, `Inside: ${n(a)} × x = ${n(a)}x`, `Last: ${n(a)} × ${par(b)} = ${n(C)}`,
         `Collect the x terms: ${n(p * b)} + ${par(a)} = ${n(B)}`, `Answer: ${quadStr(A, B, C)}`] };
   });
-  TH('h-fact', 'Factorising quadratics', (lvl = 2) => {
+  TB('h-fact', 'Factorising quadratics', (lvl = 2) => {
     let p, q; do { p = nz(lvl === 1 ? 1 : -9, 9); q = nz(lvl === 1 ? 1 : -9, 9); } while (p + q === 0);
     const B = p + q, C = p * q;
     return { q: `Factorise ${quadStr(1, B, C)}`, kind: 'fact', r: [p, q], show: brk(p) + brk(q), hint: 'Type it like (x + 2)(x + 3)',
       steps: [`Find two numbers that multiply to ${n(C)} and add to ${n(B)}`, `${n(p)} × ${par(q)} = ${n(C)}   and   ${n(p)} + ${par(q)} = ${n(B)}`, `Answer: ${brk(p)}${brk(q)}`] };
   });
-  TH('h-quad', 'Solving quadratics', (lvl = 2) => {
+  TB('h-quad', 'Solving quadratics', (lvl = 2) => {
     let p, q; do { p = nz(-9, lvl === 1 ? -1 : 9); q = nz(-9, lvl === 1 ? -1 : 9); } while (p === q || p + q === 0);
     const B = -(p + q), C = p * q;
     return { q: `Solve ${quadStr(1, B, C)} = 0`, kind: 'roots', r: [p, q], show: `x = ${n(p)} or x = ${n(q)}`, hint: 'Type both answers, like x = 2 or x = −5',
       steps: [`Factorise: two numbers that multiply to ${n(C)} and add to ${n(B)} are ${n(-p)} and ${n(-q)}`, `${brk(-p)}${brk(-q)} = 0`,
         `So x${sg(-p)} = 0, giving x = ${n(p)}`, `or x${sg(-q)} = 0, giving x = ${n(q)}`] };
   });
-  TH('h-sim', 'Simultaneous equations', (lvl = 2) => {
+  TB('h-sim', 'Simultaneous equations', (lvl = 2) => {
     for (;;) {
       const x = lvl === 1 ? ri(1, 6) : nz(-6, 9), y = lvl === 1 ? ri(1, 6) : nz(-6, 9), a1 = ri(1, 5), b1 = ri(1, 5), a2 = ri(1, 5), b2 = lvl === 1 ? -ri(1, 4) : nz(-5, 5);
       const det = a1 * b2 - a2 * b1; if (!det) continue;
@@ -255,7 +255,7 @@ const LEARN = (() => {
           `Substitute into the first equation: ${b1}y = ${n(c1)} − ${par(a1 * x)} = ${n(c1 - a1 * x)}, so y = ${n(y)}`, `Check in the second: ${a2} × ${par(x)} + ${par(b2)} × ${par(y)} = ${n(c2)} ✓`] };
     }
   });
-  TH('h-trig', 'Trigonometry (SOH CAH TOA)', (lvl = 2) => {
+  TB('h-trig', 'Trigonometry (SOH CAH TOA)', (lvl = 2) => {
     const deg = Math.PI / 180, ang = ri(lvl === 1 ? 30 : 15, lvl === 1 ? 60 : 75), H = ri(6, 30), O = H * Math.sin(ang * deg), A = H * Math.cos(ang * deg), f = ri(lvl === 3 ? 0 : 1, 3);
     const r1 = v => Math.round(v * 10) / 10;
     if (f === 0) { const o = r1(O), a = r1(A), t = r1(Math.atan(o / a) / deg);
@@ -269,7 +269,7 @@ const LEARN = (() => {
     return { q: `A right-angled triangle has angle ${ang}° and the side adjacent to it is ${a} cm. Find the opposite side to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
       steps: ['Adjacent known, opposite wanted: use TAN (TOA)', `opposite = ${a} × tan ${ang}°`, `= ${o.toFixed(3)}… = ${v.toFixed(1)} cm`] };
   });
-  TH('h-ind', 'Laws of indices', (lvl = 2) => {
+  TB('h-ind', 'Laws of indices', (lvl = 2) => {
     const L = pick(['a', 'x', 'y', 'm']), f = ri(0, lvl === 1 ? 1 : 2), m = ri(2, 9), k = ri(2, lvl === 3 ? 9 : 6);
     if (f === 0) return { q: `Simplify ${L}${sup(m)} × ${L}${sup(k)}`, kind: 'num', v: m + k, pre: L + '^', show: L + sup(m + k), hint: 'Type just the new power',
       steps: ['Multiplying powers of the same letter: add the powers', `${m} + ${k} = ${m + k}`, `Answer: ${L}${sup(m + k)}`] };
@@ -278,11 +278,12 @@ const LEARN = (() => {
     return { q: `Simplify (${L}${sup(m)})${sup(k)}`, kind: 'num', v: m * k, pre: L + '^', show: L + sup(m * k), hint: 'Type just the new power',
       steps: ['A power of a power: multiply the powers', `${m} × ${k} = ${m * k}`, `Answer: ${L}${sup(m * k)}`] };
   });
-  TH('h-revpct', 'Reverse percentages', (lvl = 2) => {
+  TB('h-revpct', 'Reverse percentages', (lvl = 2) => {
     const p = pick(lvl === 1 ? [10, 20, 25, 50] : [5, 10, 15, 20, 25, 30, 40]), up = Math.random() < .5, orig = ri(4, 60) * 4, m = (100 + (up ? p : -p)) / 100, now = clean(orig * m);
     return { q: `After a ${p}% ${up ? 'increase' : 'decrease'}, a price is £${money(now)}. What was the original price?`, kind: 'num', v: orig, tol: .005, pre: '£', show: '£' + money(orig),
       steps: [`The new price is ${up ? 100 + p : 100 - p}% of the original: multiplier ${n(m)}`, 'Undo the multiplier: divide by it', `£${money(now)} ÷ ${n(m)} = £${money(orig)}`] };
   });
+  /* Higher only from here: hidden for Foundation students */
   TH('h-surd', 'Simplifying surds', (lvl = 2) => {
     const b = pick([2, 3, 5, 6, 7, 10, 11]), a = ri(2, lvl === 3 ? 9 : 5), nn = a * a * b;
     return { q: `Simplify √${nn}`, kind: 'surd', a, b, show: `${a}√${b}`, hint: 'Type it like 4√3 (or 4 root 3)',
@@ -296,6 +297,276 @@ const LEARN = (() => {
     const s = String(ab), [sn, sd] = simp(ab, 99);
     return { q: `Write 0.${s}${s}${s}… (${s} recurring) as a fraction in its simplest form.`, kind: 'frac', n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 5/11',
       steps: [`Let x = 0.${s}${s}…`, `100x = ${s}.${s}${s}…`, `Subtract: 100x − x = 99x = ${ab}`, `x = ${ab}/99${sd !== 99 ? ' = ' + fs(sn, sd) : ''}`] };
+  });
+  /* ---------- Maths: Higher-only topics (bold in the AQA specification). Answers are computed; anything rounded is rounded once, at the end ---------- */
+  const rd = (v, d) => Math.sign(v) * Math.round(Number((Math.abs(v) * 10 ** d).toFixed(6))) / 10 ** d;
+  const fd = (v, d) => rd(v, d).toFixed(d).replace('-', '−');
+  const deg = Math.PI / 180, subN = i => String(i).split('').map(c => '₀₁₂₃₄₅₆₇₈₉'[c]).join('');
+  const xt = (c, k) => (c === 1 ? '' : c === -1 ? '−' : n(c)) + 'x' + (k ? sg(k) : ''); /* 2x + 3 */
+  const tx = k => (k < 0 ? ' − ' : ' + ') + (Math.abs(k) === 1 ? '' : Math.abs(k)) + 'x'; /* " − 3x" */
+  /* a polynomial from its coefficients, co[i] is the coefficient of v to the power i */
+  const polyStr = (co, v = 'x') => { let out = ''; for (let p = co.length - 1; p >= 0; p--) { const c = co[p]; if (!c) continue; const m = Math.abs(c), body = p === 0 ? String(m) : (m === 1 ? '' : m) + v + (p > 1 ? sup(p) : ''); out += out ? (c < 0 ? ' − ' : ' + ') + body : (c < 0 ? '−' : '') + body; } return out || '0'; };
+  const UF = { '1/2': '½', '1/3': '⅓', '2/3': '⅔', '1/4': '¼', '3/4': '¾' };
+  const gradStr = (a, b) => { const [p, q] = simp(a, b); if (q === 1) return p === 1 ? '' : p === -1 ? '−' : n(p); const u = UF[Math.abs(p) + '/' + q]; return (p < 0 ? '−' : '') + (u || `(${Math.abs(p)}/${q})`); };
+  const pf = (a, b) => { const [p, q] = simp(a, b); return q === 1 ? par(p) : `(${fs(p, q)})`; }; /* a fraction ready to multiply by */
+
+  TH('h-rat', 'Rationalising denominators', (lvl = 2) => {
+    const b = pick([2, 3, 5, 6, 7, 10]), k = ri(1, lvl === 1 ? 4 : 7), c = lvl === 3 ? ri(2, 4) : 1, a = k * b * c, den = c === 1 ? `√${b}` : `(${c}√${b})`, ans = (k === 1 ? '' : k) + '√' + b;
+    return { q: `Rationalise the denominator and simplify fully: ${a}/${den}`, kind: 'surd', a: k, b, show: ans, hint: 'Type it like 4√3 (or 4 root 3)',
+      steps: [`Multiply the top and the bottom by √${b}, because √${b} × √${b} = ${b}`, `${a}/${den} = ${a}√${b}/${c * b}`, `Simplify the numbers: ${a} ÷ ${c * b} = ${k}`, `Answer: ${ans}`] };
+  });
+  TH('h-fracind', 'Negative and fractional indices', (lvl = 2) => {
+    const f = lvl === 1 ? ri(0, 1) : lvl === 2 ? ri(0, 2) : ri(1, 3);
+    if (f === 0) { const b = ri(2, 5), p = ri(1, b > 3 ? 2 : 3), v = b ** p;
+      return { q: `Work out ${b}${sup(-p)}. Give your answer as a fraction.`, kind: 'frac', n: 1, d: v, show: `1/${v}`, hint: 'Type a fraction like 1/8',
+        steps: [`A negative power means one over the positive power: ${b}${sup(-p)} = 1/${b}${p > 1 ? sup(p) : ''}`, ...(p > 1 ? [`${b}${sup(p)} = ${v}`] : []), `Answer: 1/${v}`] }; }
+    const r = pick([2, 2, 3, 3, 4]), k = r === 2 ? ri(2, f === 1 ? 12 : 6) : r === 3 ? ri(2, 5) : ri(2, 3), b = k ** r;
+    const m = f === 1 ? 1 : r === 2 ? (f === 3 ? ri(1, 2) : 3) : r === 3 ? (f === 3 ? ri(1, 2) : 2) : (f === 3 ? 1 : 3), v = k ** m;
+    const pw = `${m}/${r}`, rootName = { 2: 'square', 3: 'cube', 4: 'fourth' }[r];
+    const steps = [`The bottom of the power is a root: the ${rootName} root of ${b} is ${k}`];
+    if (m > 1) steps.push(`The top of the power is a power: ${k}${sup(m)} = ${v}`);
+    if (f === 3) return { q: `Work out ${b}^(−${pw}). Give your answer as a fraction.`, kind: 'frac', n: 1, d: v, show: `1/${v}`, hint: 'Type a fraction like 1/9',
+      steps: [`The minus sign means one over: ${b}^(−${pw}) = 1/${b}^(${pw})`, ...steps, `Answer: 1/${v}`] };
+    return { q: `Work out ${b}^(${pw}).`, kind: 'num', v, show: String(v), hint: 'Type a whole number', steps: [...steps, `Answer: ${v}`] };
+  });
+  TH('h-qform', 'The quadratic formula', (lvl = 2) => {
+    for (;;) {
+      const a = lvl === 1 ? 1 : ri(1, lvl === 3 ? 5 : 3), b = nz(-9, 9), c = nz(-9, 9), D = b * b - 4 * a * c;
+      if (D <= 0 || Number.isInteger(Math.sqrt(D))) continue;
+      const s = Math.sqrt(D), x1 = (-b - s) / (2 * a), x2 = (-b + s) / (2 * a), r = [rd(x1, 2), rd(x2, 2)];
+      if (r[0] === r[1]) continue;
+      return { q: `Solve ${quadStr(a, b, c)} = 0. Give your answers to 2 decimal places.`, kind: 'roots', r, tol: .0051, show: `x = ${fd(x1, 2)} or x = ${fd(x2, 2)}`, hint: 'Type both answers, like x = 0.56 or x = −3.56',
+        steps: [`It does not factorise, so use the formula x = (−b ± √(b² − 4ac)) ÷ 2a with a = ${a}, b = ${n(b)}, c = ${n(c)}`,
+          `b² − 4ac = ${par(b)}² − 4 × ${a} × ${par(c)} = ${D}`, `x = (${n(-b)} ± √${D}) ÷ ${2 * a}`,
+          `With +: x = (${n(-b)} + √${D}) ÷ ${2 * a} = ${x2.toFixed(4).replace('-', '−')}…`, `With −: x = (${n(-b)} − √${D}) ÷ ${2 * a} = ${x1.toFixed(4).replace('-', '−')}…`,
+          `To 2 decimal places: x = ${fd(x1, 2)} or x = ${fd(x2, 2)}`] };
+    }
+  });
+  TH('h-ctsq', 'Completing the square', (lvl = 2) => {
+    for (;;) {
+      const a = lvl === 3 && Math.random() < .5 ? ri(2, 3) : 1, p = nz(lvl === 1 ? 1 : -6, 6), c = nz(-12, 12), b = 2 * a * p, q0 = c - a * p * p;
+      if (!q0) continue;
+      const sq = `(x${sg(p)})²`, form = `${a === 1 ? '' : a}${sq}${sg(q0)}`, Q = quadStr(a, b, c);
+      const steps = a === 1 ? [`Halve the number of x: ${n(b)} ÷ 2 = ${n(p)}`, `x²${tx(b)} = ${sq} − ${p * p}`, `So ${Q} = ${sq} − ${p * p}${sg(c)}`, `${n(-p * p)}${sg(c)} = ${n(q0)}`]
+        : [`Take ${a} out of the x terms: ${Q} = ${a}(x²${tx(2 * p)})${sg(c)}`, `Complete the square inside: x²${tx(2 * p)} = ${sq} − ${p * p}`, `${a}(${sq} − ${p * p})${sg(c)} = ${a}${sq} − ${a * p * p}${sg(c)}`, `${n(-a * p * p)}${sg(c)} = ${n(q0)}`];
+      if (a === 1 && lvl > 1 && Math.random() < .4) return { q: `By completing the square, find the coordinates of the turning point of y = ${Q}.`, kind: 'pair', x: -p, y: q0, show: `(${n(-p)}, ${n(q0)})`, hint: 'Type it like (3, −2)',
+        steps: [...steps, `y = ${form}`, `The turning point is where the bracket is 0: x = ${n(-p)}, and then y = ${n(q0)}`] };
+      return { q: `Write ${Q} in the form ${a === 1 ? '(x + p)² + q' : 'a(x + p)² + q'}.`, kind: 'ctsq', ca: a, cp: p, cq: q0, show: form, hint: a === 1 ? 'Type it like (x + 3)^2 − 4' : 'Type it like 2(x + 3)^2 − 4',
+        steps: [...steps, `Answer: ${form}`] };
+    }
+  });
+  TH('h-fact2', 'Factorising harder quadratics', (lvl = 2) => {
+    if (lvl === 3 && Math.random() < .3) { let p, q; do { p = ri(2, 5); q = ri(1, 9); } while (gcd(p, q) !== 1);
+      return { q: `Factorise ${quadStr(p * p, 0, -q * q)}`, kind: 'fact2', A: p * p, B: 0, C: -q * q, show: `(${p}x + ${q})(${p}x − ${q})`, hint: 'Type it like (2x + 3)(2x − 3)',
+        steps: [`Both terms are squares: ${p * p}x² = (${p}x)² and ${q * q} = ${q}²`, 'The difference of two squares: a² − b² = (a + b)(a − b)', `Answer: (${p}x + ${q})(${p}x − ${q})`] }; }
+    for (;;) {
+      const p = lvl === 1 ? ri(2, 3) : ri(2, 5), r = lvl === 3 ? ri(2, 3) : 1, q = lvl === 1 ? ri(1, 7) : nz(-7, 7), s = lvl === 1 ? ri(1, 7) : nz(-7, 7);
+      if (gcd(p, q) !== 1 || gcd(r, s) !== 1) continue;
+      const A = p * r, B = p * s + q * r, C = q * s, m1 = p * s, m2 = q * r; if (!B) continue;
+      const f2 = `(${xt(r, s)})`, ans = `(${xt(p, q)})${f2}`;
+      return { q: `Factorise ${quadStr(A, B, C)}`, kind: 'fact2', A, B, C, show: ans, hint: 'Type it like (2x + 1)(x − 3)',
+        steps: [`Multiply the x² number by the number on its own: ${A} × ${par(C)} = ${A * C}`, `Two numbers that multiply to ${A * C} and add to ${n(B)} are ${n(m1)} and ${n(m2)}`,
+          `Split the middle term: ${A}x²${tx(m1)}${tx(m2)}${sg(C)}`, `Factorise in pairs: ${xt(p, 0)}${f2}${Math.abs(q) === 1 ? (q < 0 ? ' − ' : ' + ') : sg(q)}${f2}`, `Answer: ${ans}`] };
+    }
+  });
+  TH('h-algfrac', 'Simplifying algebraic fractions', (lvl = 2) => {
+    if (lvl === 1 || Math.random() < .25) { const p = ri(2, 9);
+      return { q: `Simplify fully: (x² − ${p * p})/(x + ${p})`, kind: 'lin', v: 'x', a: 1, b: -p, show: `x − ${p}`, hint: 'Type it like x + 3',
+        steps: [`The top is a difference of two squares: x² − ${p * p} = (x + ${p})(x − ${p})`, `(x + ${p}) is on the top and the bottom, so cancel it`, `Answer: x − ${p}`] }; }
+    let p, q; do { p = nz(-8, 8); q = nz(-8, 8); } while (p === q || p + q === 0);
+    const k = lvl === 3 && Math.random() < .5 && gcd(2, Math.abs(p)) === 1 ? 2 : 1, top = quadStr(k, k * q + p, p * q), den = k === 1 ? `x${sg(p)}` : `2x${sg(p)}`;
+    return { q: `Simplify fully: (${top})/(${den})`, kind: 'lin', v: 'x', a: 1, b: q, show: `x${sg(q)}`, hint: 'Type it like x + 3',
+      steps: [`Factorise the top: ${top} = (${den})(x${sg(q)})`, `(${den}) is on the top and the bottom, so cancel it`, `Answer: x${sg(q)}`] };
+  });
+  TH('h-qineq', 'Quadratic inequalities', (lvl = 2) => {
+    let a, b; do { a = nz(-8, 8); b = nz(-8, 8); } while (a >= b);
+    const B = -(a + b), C = a * b, inside = Math.random() < .5, eq = lvl === 3 && Math.random() < .5, sym = inside ? (eq ? '≤' : '<') : (eq ? '≥' : '>');
+    const lhs = lvl === 1 ? `(x${sg(-a)})(x${sg(-b)})` : quadStr(1, B, C), show = inside ? `${n(a)} ${sym} x ${sym} ${n(b)}` : `x ${eq ? '≤' : '<'} ${n(a)} or x ${sym} ${n(b)}`;
+    return { q: `Solve ${lhs} ${sym} 0`, kind: 'ineq', lo: a, hi: b, inside, eq, show, hint: inside ? 'Type it like −2 < x < 3 (use <= for ≤)' : 'Type it like x < −2 or x > 3 (use >= for ≥)',
+      steps: [`Find where it equals 0: (x${sg(-a)})(x${sg(-b)}) = 0, so x = ${n(a)} or x = ${n(b)}`, `The graph is a ∪-shaped curve crossing the x-axis at ${n(a)} and ${n(b)}`,
+        inside ? `${sym} 0 means ${eq ? 'on or ' : ''}below the axis, which is between the two values` : `${sym} 0 means ${eq ? 'on or ' : ''}above the axis, which is outside the two values`, `Answer: ${show}`] };
+  });
+  TH('h-func', 'Composite and inverse functions', (lvl = 2) => {
+    const a = ri(2, 5), b = nz(-9, 9), f = `${a}x${sg(b)}`, c = ri(2, 4), d = nz(-6, 6), F = x => a * x + b, Fs = x => `${a} × ${par(x)}${sg(b)}`;
+    const G = pick(lvl === 1 ? [0, 1] : [0, 1, 2]), g = [`x²`, `${c}x${sg(d)}`, `x²${sg(d)}`][G], Gv = x => [x * x, c * x + d, x * x + d][G], Gs = x => [`${par(x)}²`, `${c} × ${par(x)}${sg(d)}`, `${par(x)}²${sg(d)}`][G];
+    const t = lvl === 1 ? 0 : ri(0, 2), k = nz(-5, 6);
+    if (t === 2) { const x0 = nz(-6, 9), v = F(x0);
+      return { q: `f(x) = ${f}. Work out f⁻¹(${n(v)}).`, kind: 'num', v: x0, show: n(x0),
+        steps: [`f⁻¹ undoes f, so solve ${f} = ${n(v)}`, `${a}x = ${n(v)} − ${par(b)} = ${n(v - b)}`, `x = ${n(v - b)} ÷ ${a} = ${n(x0)}`] }; }
+    const intro = `f(x) = ${f} and g(x) = ${g}.`;
+    if (t === 0) { const gk = Gv(k), v = F(gk);
+      return { q: `${intro} Work out fg(${n(k)}).`, kind: 'num', v, show: n(v),
+        steps: [`fg(${n(k)}) means do g first: g(${n(k)}) = ${Gs(k)} = ${n(gk)}`, `Then do f: f(${n(gk)}) = ${Fs(gk)} = ${n(v)}`] }; }
+    const fk = F(k), v = Gv(fk);
+    return { q: `${intro} Work out gf(${n(k)}).`, kind: 'num', v, show: n(v),
+      steps: [`gf(${n(k)}) means do f first: f(${n(k)}) = ${Fs(k)} = ${n(fk)}`, `Then do g: g(${n(fk)}) = ${Gs(fk)} = ${n(v)}`] };
+  });
+  TH('h-iter', 'Iteration', (lvl = 2) => {
+    for (;;) {
+      const x0 = pick([1, 1.5, 2, 2.5, 3]), p = ri(2, 9), q = ri(1, 4), steps = lvl === 1 ? 2 : 3;
+      const F = pick([[`∛(${p} + ${q}xₙ)`, x => Math.cbrt(p + q * x), x => `∛(${p} + ${q} × ${x})`], [`√(${p} + ${q}/xₙ)`, x => Math.sqrt(p + q / x), x => `√(${p} + ${q}/${x})`],
+        [`${p}/(xₙ² + ${q})`, x => p / (x * x + q), x => `${p}/(${x}² + ${q})`]]);
+      const xs = [x0]; for (let i = 0; i < steps; i++) xs.push(F[1](xs[i]));
+      if (!xs.every(Number.isFinite)) continue;
+      const v = rd(xs[steps], 3), show = (i, x) => i === 0 ? String(x) : x.toFixed(6) + '…';
+      return { q: `Use the iteration formula xₙ₊₁ = ${F[0]} with x₀ = ${x0} to find x${subN(steps)}. Give your answer to 3 decimal places.`, kind: 'num', v, tol: .0011, show: fd(xs[steps], 3), hint: 'Use the ANS key so nothing is rounded too early',
+        steps: [`Start with x₀ = ${x0}`, ...xs.slice(1).map((x, i) => `x${subN(i + 1)} = ${F[2](show(i, xs[i]))} = ${x.toFixed(6)}…`), `To 3 decimal places, x${subN(steps)} = ${fd(xs[steps], 3)}`] };
+    }
+  });
+  TH('h-sine', 'The sine rule', (lvl = 2) => {
+    for (;;) {
+      if (lvl === 1 || Math.random() < .55) {
+        const A = ri(30, 80), B = ri(30, 100); if (A + B > 160) continue;
+        const a = ri(5, 20), b = a * Math.sin(B * deg) / Math.sin(A * deg);
+        return { q: `In triangle ABC, angle A = ${A}°, angle B = ${B}° and BC = ${a} cm. Work out the length of AC to 1 decimal place.`, kind: 'num', v: rd(b, 1), tol: .051, suf: 'cm', show: fd(b, 1) + ' cm',
+          steps: ['Each side goes with the angle opposite it: BC is opposite A, and AC is opposite B', 'Sine rule: AC ÷ sin B = BC ÷ sin A', `AC = ${a} × sin ${B}° ÷ sin ${A}°`, `AC = ${b.toFixed(4)}… = ${fd(b, 1)} cm`] };
+      }
+      const A = ri(40, 110), a = ri(8, 20), b = ri(4, a - 1), sB = b * Math.sin(A * deg) / a, Bd = Math.asin(sB) / deg;
+      return { q: `In triangle ABC, angle A = ${A}°, BC = ${a} cm and AC = ${b} cm. Work out angle B to 1 decimal place.`, kind: 'num', v: rd(Bd, 1), tol: .051, suf: '°', show: fd(Bd, 1) + '°',
+        steps: ['BC is opposite angle A, and AC is opposite angle B', 'Sine rule for an angle: sin B ÷ AC = sin A ÷ BC', `sin B = ${b} × sin ${A}° ÷ ${a} = ${sB.toFixed(4)}…`, `B = sin⁻¹(${sB.toFixed(4)}…) = ${Bd.toFixed(3)}… = ${fd(Bd, 1)}°`] };
+    }
+  });
+  TH('h-cosine', 'The cosine rule', (lvl = 2) => {
+    if (lvl === 1 || Math.random() < .55) {
+      const b = ri(4, 15), c = ri(4, 15), A = ri(25, 120), a2 = b * b + c * c - 2 * b * c * Math.cos(A * deg), a = Math.sqrt(a2);
+      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and angle A = ${A}°. Work out the length of BC to 1 decimal place.`, kind: 'num', v: rd(a, 1), tol: .051, suf: 'cm', show: fd(a, 1) + ' cm',
+        steps: ['Two sides and the angle between them: use the cosine rule', 'BC² = AB² + AC² − 2 × AB × AC × cos A', `BC² = ${c}² + ${b}² − 2 × ${c} × ${b} × cos ${A}° = ${a2.toFixed(4)}…`, `BC = √${a2.toFixed(4)}… = ${a.toFixed(4)}… = ${fd(a, 1)} cm`] };
+    }
+    for (;;) {
+      const b = ri(4, 15), c = ri(4, 15), a = ri(Math.abs(b - c) + 2, b + c - 2), num = b * b + c * c - a * a, den = 2 * b * c, Ad = Math.acos(num / den) / deg;
+      if (!(Ad > 15 && Ad < 165)) continue;
+      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and BC = ${a} cm. Work out angle A to 1 decimal place.`, kind: 'num', v: rd(Ad, 1), tol: .051, suf: '°', show: fd(Ad, 1) + '°',
+        steps: ['Three sides known: use the cosine rule for an angle', 'cos A = (AB² + AC² − BC²) ÷ (2 × AB × AC)', `cos A = (${c}² + ${b}² − ${a}²) ÷ (2 × ${c} × ${b}) = ${num} ÷ ${den}`, `A = cos⁻¹(${num} ÷ ${den}) = ${Ad.toFixed(3)}… = ${fd(Ad, 1)}°`] };
+    }
+  });
+  TH('h-areasin', 'Area of a triangle (½ab sin C)', (lvl = 2) => {
+    const a = ri(4, 20), b = ri(4, 20);
+    if (lvl === 3 && Math.random() < .4) { const area = rd(.5 * a * b * Math.sin(ri(20, 80) * deg), 1), half = a * b / 2, sC = area / half, Cd = Math.asin(sC) / deg;
+      return { q: `A triangle has sides of ${a} cm and ${b} cm and an area of ${area} cm². The angle between those two sides is acute. Work out the angle to 1 decimal place.`, kind: 'num', v: rd(Cd, 1), tol: .051, suf: '°', show: fd(Cd, 1) + '°',
+        steps: ['Area = ½ × a × b × sin C', `${area} = ½ × ${a} × ${b} × sin C, which is ${n(half)} × sin C`, `sin C = ${area} ÷ ${n(half)} = ${sC.toFixed(4)}…`, `C = sin⁻¹(${sC.toFixed(4)}…) = ${Cd.toFixed(3)}… = ${fd(Cd, 1)}°`] }; }
+    const C = ri(20, 150), A = .5 * a * b * Math.sin(C * deg);
+    return { q: `Triangle PQR has PQ = ${a} cm, PR = ${b} cm and angle QPR = ${C}°. Work out its area to 1 decimal place.`, kind: 'num', v: rd(A, 1), tol: .051, suf: 'cm²', show: fd(A, 1) + ' cm²',
+      steps: ['Two sides and the angle between them: area = ½ab sin C', `Area = ½ × ${a} × ${b} × sin ${C}°`, `Area = ${A.toFixed(4)}… = ${fd(A, 1)} cm²`] };
+  });
+  TH('h-bounds', 'Upper and lower bounds', (lvl = 2) => {
+    const t = lvl === 1 ? 0 : ri(1, 3), up = Math.random() < .5, UL = up ? 'upper' : 'lower', pm = up ? '+' : '−';
+    if (t === 0) { let x10; do x10 = ri(21, 99); while (x10 % 10 === 0); const x = x10 / 10, v = clean(x + (up ? .05 : -.05));
+      return { q: `A length is ${n(x)} cm, correct to 1 decimal place. Write down its ${UL} bound.`, kind: 'num', v, suf: 'cm', show: n(v) + ' cm',
+        steps: ['Correct to 1 decimal place means it could be up to 0.05 either side (half of 0.1)', `${up ? 'Upper' : 'Lower'} bound: ${n(x)} ${pm} 0.05 = ${n(v)}`] }; }
+    if (t === 1) { const w = ri(4, 20), hh = ri(3, 15), W = w + (up ? .5 : -.5), H = hh + (up ? .5 : -.5), v = W * H;
+      return { q: `A rectangle measures ${w} cm by ${hh} cm, each correct to the nearest cm. Work out the ${UL} bound for its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²',
+        steps: [`The ${UL} bounds of the sides: ${w} ${pm} 0.5 = ${n(W)}   and   ${hh} ${pm} 0.5 = ${n(H)}`, `${up ? 'Biggest' : 'Smallest'} area: ${n(W)} × ${n(H)} = ${n(v)} cm²`] }; }
+    if (t === 2) { const d = ri(10, 60) * 10, s = ri(20, 90), D = d + (up ? 5 : -5), Tm = s + (up ? -.5 : .5), v = D / Tm;
+      return { q: `A runner covers ${d} m, correct to the nearest 10 m, in ${s} seconds, correct to the nearest second. Work out the ${UL} bound for the average speed. Give your answer to 2 decimal places.`, kind: 'num', v: rd(v, 2), tol: .0051, suf: 'm/s', show: fd(v, 2) + ' m/s',
+        steps: [`Distance: between ${d - 5} m and ${d + 5} m. Time: between ${s - .5} s and ${s + .5} s`, `Speed = distance ÷ time. The ${up ? 'biggest' : 'smallest'} speed uses the ${up ? 'biggest distance and the smallest time' : 'smallest distance and the biggest time'}`,
+          `${up ? 'Upper' : 'Lower'} bound = ${D} ÷ ${Tm} = ${v.toFixed(4)}… = ${fd(v, 2)} m/s`] }; }
+    const a = ri(30, 90), b = ri(10, a - 5), A = a + (up ? .5 : -.5), Bb = b + (up ? -.5 : .5), v = A - Bb;
+    return { q: `Two lengths are ${a} cm and ${b} cm, each correct to the nearest cm. Work out the ${UL} bound for the difference between them.`, kind: 'num', v, suf: 'cm', show: n(v) + ' cm',
+      steps: [`To make the difference ${up ? 'biggest' : 'smallest'}, take the ${UL} bound of the longer length and the ${up ? 'lower' : 'upper'} bound of the shorter`, `${n(A)} − ${n(Bb)} = ${n(v)} cm`] };
+  });
+  TH('h-prop', 'Direct and inverse proportion', (lvl = 2) => {
+    const f = pick(lvl === 1 ? ['x', 'x²'] : ['x', 'x²', 'x³', '√x', '1/x', '1/x²']), inv = f[0] === '1', pw = { x: 1, 'x²': 2, 'x³': 3, '√x': .5, '1/x': 1, '1/x²': 2 }[f];
+    let x0, x1; do { x0 = f === '√x' ? ri(1, 10) ** 2 : ri(2, inv ? 6 : 10); x1 = f === '√x' ? ri(1, 12) ** 2 : ri(2, inv ? 6 : 10); } while (x0 === x1);
+    const P = x => Math.round(x ** pw), k = inv ? ri(1, 4) * lcm(P(x0), P(x1)) : ri(2, 9), y0 = inv ? k / P(x0) : k * P(x0), y1 = inv ? k / P(x1) : k * P(x1);
+    const what = { x: 'x', 'x²': 'the square of x', 'x³': 'the cube of x', '√x': 'the square root of x', '1/x': 'x', '1/x²': 'the square of x' }[f], eqn = inv ? `y = k/${f.slice(2)}` : `y = k${f}`;
+    const val = x => ({ x: String(x), 'x²': `${x}²`, 'x³': `${x}³`, '√x': `√${x}`, '1/x': String(x), '1/x²': `${x}²` })[f];
+    const steps = [`Write it as an equation: ${eqn}`];
+    if (f === 'x³' || f === '√x') steps.push(`${val(x0)} = ${P(x0)}   and   ${val(x1)} = ${P(x1)}`);
+    if (inv) steps.push(`Put in x = ${x0} and y = ${y0}: k = ${y0} × ${P(x0)} = ${k}`, `When x = ${x1}: y = ${k} ÷ ${P(x1)} = ${n(y1)}`);
+    else steps.push(`Put in x = ${x0} and y = ${y0}: k = ${y0} ÷ ${P(x0)} = ${k}`, `When x = ${x1}: y = ${k} × ${P(x1)} = ${n(y1)}`);
+    return { q: `y is ${inv ? 'inversely' : 'directly'} proportional to ${what}. When x = ${x0}, y = ${n(y0)}. Work out y when x = ${x1}.`, kind: 'num', v: y1, show: n(y1), steps };
+  });
+  TH('h-cond', 'Probability without replacement', (lvl = 2) => {
+    const c = pick([['red', 'blue'], ['green', 'yellow'], ['black', 'white']]), r = ri(2, 7), b = ri(2, 7), T = r + b, t = lvl === 1 ? 0 : ri(0, lvl === 3 ? 2 : 1), den = T * (T - 1);
+    const num = t === 0 ? r * (r - 1) : t === 1 ? 2 * r * b : r * (r - 1) + b * (b - 1), [sn, sd] = simp(num, den);
+    const ask = t === 0 ? `both are ${c[0]}` : t === 1 ? 'one of each colour is taken' : 'both are the same colour';
+    const steps = t === 0 ? [`First ${c[0]}: ${r}/${T}`, `One ${c[0]} has gone, so ${r - 1} of the ${T - 1} left are ${c[0]}: ${r - 1}/${T - 1}`, `Multiply along the branches: ${r}/${T} × ${r - 1}/${T - 1} = ${num}/${den}`]
+      : t === 1 ? [`${cap(c[0])} then ${c[1]}: ${r}/${T} × ${b}/${T - 1} = ${r * b}/${den}`, `${cap(c[1])} then ${c[0]}: ${b}/${T} × ${r}/${T - 1} = ${r * b}/${den}`, `Add the two ways: ${r * b}/${den} + ${r * b}/${den} = ${num}/${den}`]
+      : [`Both ${c[0]}: ${r}/${T} × ${r - 1}/${T - 1} = ${r * (r - 1)}/${den}`, `Both ${c[1]}: ${b}/${T} × ${b - 1}/${T - 1} = ${b * (b - 1)}/${den}`, `Add them: ${r * (r - 1)}/${den} + ${b * (b - 1)}/${den} = ${num}/${den}`];
+    if (sd !== den) steps.push(`Simplify: ${num}/${den} = ${fs(sn, sd)}`);
+    return { q: `A bag has ${r} ${c[0]} and ${b} ${c[1]} counters. Two counters are taken at random, without replacement. What is the probability that ${ask}?`, kind: 'frac', n: sn, d: sd, simplest: false, show: fs(sn, sd), hint: 'Type a fraction like 5/14', steps };
+  });
+  TH('h-circle', 'Circles: equations and tangents', (lvl = 2) => {
+    const [p, q0, r] = pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [7, 24, 25], [9, 12, 15]]), sw = Math.random() < .5, x = (sw ? q0 : p) * pick([1, -1]), y = (sw ? p : q0) * pick([1, -1]), t = lvl === 1 ? 0 : lvl === 2 ? ri(0, 1) : ri(1, 2);
+    if (t === 0) return { q: `A circle has equation x² + y² = ${r * r}. What is its radius?`, kind: 'num', v: r, show: String(r),
+      steps: ['x² + y² = r² is a circle with its centre at (0, 0) and radius r', `r² = ${r * r}, so r = √${r * r} = ${r}`] };
+    const [gn, gd] = simp(y, x), [tn, td] = simp(-x, y), pt = `(${n(x)}, ${n(y)})`, eq = `x² + y² = ${r * r}`;
+    const steps = [`Gradient of the radius from (0, 0) to ${pt}: ${n(y)} ÷ ${par(x)} = ${fs(gn, gd)}`, 'A tangent is at right angles to the radius, so flip the gradient and change its sign', `Gradient of the tangent: ${fs(tn, td)}`];
+    if (t === 1) return { q: `The point ${pt} lies on the circle ${eq}. Work out the gradient of the tangent to the circle at this point.`, kind: 'frac', n: tn, d: td, simplest: false, show: fs(tn, td), hint: 'Type a fraction like −3/4', steps };
+    const [cn, cd] = simp(r * r, y);
+    return { q: `The point ${pt} lies on the circle ${eq}. The tangent at this point crosses the y-axis at (0, c). Work out c.`, kind: 'frac', n: cn, d: cd, simplest: false, show: fs(cn, cd), hint: 'Type a fraction like 25/4',
+      steps: [...steps, `Use y = mx + c through ${pt}: ${n(y)} = ${pf(tn, td)} × ${par(x)} + c`, `c = ${n(y)} − ${pf(tn, td)} × ${par(x)} = ${fs(cn, cd)}`] };
+  });
+  TH('h-perp', 'Perpendicular lines', (lvl = 2) => {
+    const [mn, md] = pick([[2, 1], [3, 1], [4, 1], [5, 1], [-2, 1], [-3, 1], [1, 2], [1, 3], [-1, 2], [2, 3], [-3, 4], [3, 4], [-1, 1], [1, 1]]), [pn, pd] = simp(-md, mn), c0 = nz(-9, 9);
+    const L = `y = ${gradStr(mn, md)}x${sg(c0)}`;
+    if (lvl === 1 || Math.random() < .4) return { q: `A line has equation ${L}. Write down the gradient of a line perpendicular to it.`, kind: 'frac', n: pn, d: pd, simplest: false, show: fs(pn, pd), hint: 'Type a whole number or a fraction like −1/2',
+      steps: ['Perpendicular gradients multiply to −1', `Flip the gradient and change its sign: ${fs(...simp(mn, md))} becomes ${fs(pn, pd)}`, `Check: ${pf(mn, md)} × ${pf(pn, pd)} = −1`] };
+    const x1 = nz(-4, 4) * pd, y1 = nz(-9, 9), c = y1 - pn * x1 / pd, ans = `y = ${gradStr(pn, pd)}x${c ? sg(c) : ''}`;
+    return { q: `Line L has equation ${L}. Find the equation of the line that is perpendicular to L and passes through (${n(x1)}, ${n(y1)}).`, kind: 'line', gm: pn / pd, gc: c, show: ans, hint: 'Type it like y = −2x + 5 (y = 1/2x + 3 is fine)',
+      steps: [`The gradient of L is ${fs(...simp(mn, md))}, so the perpendicular gradient is ${fs(pn, pd)}`, `Use y = mx + c through (${n(x1)}, ${n(y1)}): ${n(y1)} = ${pf(pn, pd)} × ${par(x1)} + c`, `c = ${n(y1)} − ${pf(pn, pd)} × ${par(x1)} = ${n(c)}`, `Answer: ${ans}`] };
+  });
+  TH('h-qseq', 'Quadratic sequences: nth term', (lvl = 2) => {
+    const a = lvl === 1 ? 1 : pick(lvl === 3 ? [1, 2, 3, -1, -2] : [1, 2, 3]), b = ri(-6, 6), c = ri(-6, 6), T = k => a * k * k + b * k + c, ks = [1, 2, 3, 4, 5], terms = ks.map(T);
+    const d1 = ks.slice(1).map(k => T(k) - T(k - 1)), rest = ks.map(k => T(k) - a * k * k), an = polyStr([0, 0, a], 'n'), ans = polyStr([c, b, a], 'n');
+    return { q: `Find the nth term of the quadratic sequence ${terms.map(n).join(', ')}, …`, kind: 'poly', v: 'n', co: [c, b, a], show: ans, hint: 'Type it like 2n^2 + 3n − 1',
+      steps: [`First differences: ${d1.map(n).join(', ')}`, `The second difference is ${n(2 * a)}, so the n² number is ${n(2 * a)} ÷ 2 = ${n(a)}`, `Take ${an} away from each term: ${rest.map(n).join(', ')}`,
+        `What is left is linear, with nth term ${polyStr([c, b], 'n')}`, `nth term: ${ans}`] };
+  });
+  TH('h-expand3', 'Expanding triple brackets', (lvl = 2) => {
+    const a = nz(lvl === 1 ? 1 : -6, 6), b = nz(lvl === 1 ? 1 : -6, 6), c = nz(lvl === 1 ? 1 : -6, 6), two = [a * b, a + b, 1], co = [a * b * c, a * b + c * (a + b), a + b + c, 1];
+    return { q: `Expand and simplify (x${sg(a)})(x${sg(b)})(x${sg(c)})`, kind: 'poly', v: 'x', co, show: polyStr(co), hint: 'Type it like x^3 + 2x^2 − 5x − 6',
+      steps: [`Expand the first two brackets: (x${sg(a)})(x${sg(b)}) = ${polyStr(two)}`, `Multiply by x: ${polyStr([0, ...two])}`, `Multiply by ${n(c)}: ${polyStr(two.map(v => v * c))}`, `Collect like terms: ${polyStr(co)}`] };
+  });
+  TH('h-transf', 'Transforming graphs', (lvl = 2) => {
+    const px = nz(-5, 5), py = nz(-5, 5), k = nz(-4, 4), t = ri(0, lvl === 1 ? 1 : 3);
+    const [g, [x, y], why] = [[`y = f(x)${sg(k)}`, [px, py + k], `Adding ${n(k)} outside f moves the graph ${k > 0 ? 'up' : 'down'} by ${Math.abs(k)}`],
+      [`y = f(x${sg(k)})`, [px - k, py], `Adding ${n(k)} inside the bracket moves the graph ${k > 0 ? 'left' : 'right'} by ${Math.abs(k)}: the opposite way to the sign`],
+      ['y = −f(x)', [px, -py], 'A minus sign outside f reflects the graph in the x-axis, so the y-coordinate changes sign'],
+      ['y = f(−x)', [-px, py], 'A minus sign inside the bracket reflects the graph in the y-axis, so the x-coordinate changes sign']][t];
+    return { q: `The graph of y = f(x) has a turning point at (${n(px)}, ${n(py)}). Write down the coordinates of the turning point of the graph of ${g}.`, kind: 'pair', x, y, show: `(${n(x)}, ${n(y)})`, hint: 'Type it like (3, −2)',
+      steps: [why, `(${n(px)}, ${n(py)}) moves to (${n(x)}, ${n(y)})`] };
+  });
+  TH('h-simsh', 'Similar shapes: area and volume', (lvl = 2) => {
+    const t = lvl === 1 ? ri(0, 1) : lvl === 2 ? ri(0, 1) : ri(1, 2);
+    if (t === 2) { const [p, q] = pick([[1, 2], [1, 3], [2, 3], [2, 5], [4, 5], [1, 4]]), m = ri(1, 6), j = ri(1, 5), s1 = m * p * p, s2 = m * q * q, V1 = j * p ** 3, V2 = j * q ** 3, k = q / p;
+      return { q: `Two similar solids have surface areas of ${s1} cm² and ${s2} cm². The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, kind: 'num', v: V2, suf: 'cm³', show: V2 + ' cm³',
+        steps: [`Area scale factor: ${s2} ÷ ${s1} = ${n(k * k)}`, `Length scale factor: √${n(k * k)} = ${n(k)}`, `Volume scale factor: ${n(k)}³ = ${n(k ** 3)}`, `Volume: ${V1} × ${n(k ** 3)} = ${V2} cm³`] }; }
+    const k = pick(lvl === 1 ? [2, 3, 4] : [2, 3, 4, 1.5, 2.5]), l1 = ri(2, 8) * 2, l2 = l1 * k;
+    if (t === 0) { const A1 = ri(3, 30), A2 = clean(A1 * k * k);
+      return { q: `Two similar shapes have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller shape has an area of ${A1} cm². Work out the area of the larger shape.`, kind: 'num', v: A2, suf: 'cm²', show: n(A2) + ' cm²',
+        steps: [`Length scale factor: ${n(l2)} ÷ ${l1} = ${n(k)}`, `Area scale factor: ${n(k)}² = ${n(k * k)}`, `Area: ${A1} × ${n(k * k)} = ${n(A2)} cm²`] }; }
+    const V1 = ri(2, 20) * 8, V2 = clean(V1 * k ** 3);
+    return { q: `Two similar solids have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, kind: 'num', v: V2, suf: 'cm³', show: n(V2) + ' cm³',
+      steps: [`Length scale factor: ${n(l2)} ÷ ${l1} = ${n(k)}`, `Volume scale factor: ${n(k)}³ = ${n(clean(k ** 3))}`, `Volume: ${V1} × ${n(clean(k ** 3))} = ${n(V2)} cm³`] };
+  });
+  TH('h-histo', 'Histograms', (lvl = 2) => {
+    for (;;) {
+      const lo = ri(0, 8) * 5, w = pick([5, 10, 15, 20, 25, 30, 40]), hi = lo + w, fd0 = pick([0.4, 0.6, 0.8, 1.2, 1.5, 2, 2.4, 3, 3.5, 4, 5]), f = clean(fd0 * w);
+      if (!Number.isInteger(f)) continue;
+      if (lvl === 1 || Math.random() < .5) return { q: `In a histogram, the class ${lo} < t ≤ ${hi} has a frequency of ${f}. Work out the frequency density for this class.`, kind: 'num', v: fd0, show: n(fd0),
+        steps: ['Frequency density = frequency ÷ class width', `Class width: ${hi} − ${lo} = ${w}`, `Frequency density: ${f} ÷ ${w} = ${n(fd0)}`] };
+      return { q: `In a histogram, the bar for the class ${lo} < t ≤ ${hi} has a frequency density of ${n(fd0)}. How many are in this class?`, kind: 'num', v: f, show: String(f),
+        steps: ['Frequency = frequency density × class width', `Class width: ${hi} − ${lo} = ${w}`, `Frequency: ${n(fd0)} × ${w} = ${f}`] };
+    }
+  });
+  TH('h-3d', 'Pythagoras and trigonometry in 3D', (lvl = 2) => {
+    if (lvl === 3 && Math.random() < .5) { const a = ri(3, 12), b = ri(3, 12), c = ri(2, 10), base = Math.sqrt(a * a + b * b), th = Math.atan(c / base) / deg;
+      return { q: `A cuboid measures ${a} cm by ${b} cm and is ${c} cm high. Work out the angle between the longest diagonal and the base, to 1 decimal place.`, kind: 'num', v: rd(th, 1), tol: .051, suf: '°', show: fd(th, 1) + '°',
+        steps: [`Diagonal of the base: √(${a}² + ${b}²) = √${a * a + b * b} = ${base.toFixed(4)}…`, `The height, ${c} cm, is opposite the angle and the base diagonal is next to it`, `tan θ = ${c} ÷ ${base.toFixed(4)}…`, `θ = ${th.toFixed(3)}… = ${fd(th, 1)}°`] }; }
+    const exact = lvl === 1 || Math.random() < .4, [a, b, c, e] = exact ? pick([[2, 3, 6, 7], [1, 4, 8, 9], [2, 6, 9, 11], [3, 4, 12, 13], [2, 10, 11, 15], [4, 4, 7, 9], [6, 6, 7, 11], [1, 2, 2, 3], [4, 8, 8, 12], [2, 5, 14, 15], [8, 9, 12, 17]]) : [ri(2, 15), ri(2, 15), ri(2, 15), 0];
+    const S2 = a * a + b * b + c * c, d = Math.sqrt(S2);
+    return { q: `A cuboid measures ${a} cm by ${b} cm by ${c} cm. Work out the length of its longest diagonal (from one corner to the opposite corner)${exact ? '' : ', to 1 decimal place'}.`, kind: 'num', v: exact ? e : rd(d, 1), tol: exact ? undefined : .051, suf: 'cm', show: (exact ? e : fd(d, 1)) + ' cm',
+      steps: ['In 3D: diagonal² = length² + width² + height²', `d² = ${a}² + ${b}² + ${c}² = ${S2}`, exact ? `d = √${S2} = ${e} cm` : `d = √${S2} = ${d.toFixed(4)}… = ${fd(d, 1)} cm`] };
+  });
+  TH('h-simq', 'Simultaneous equations (one quadratic)', (lvl = 2) => {
+    for (;;) {
+      const m = nz(-3, 4), k = nz(-6, 6), r1 = nz(-5, 5), r2 = nz(-5, 5); if (r1 >= r2) continue;
+      const b = m - (r1 + r2), c = k + r1 * r2, y1 = m * r1 + k, y2 = m * r2 + k, line = `${m === 1 ? '' : m === -1 ? '−' : n(m)}x${sg(k)}`, Q = quadStr(1, b, c);
+      return { q: `Solve the simultaneous equations y = ${Q} and y = ${line}`, kind: 'pairs', sols: [[r1, y1], [r2, y2]], show: `x = ${n(r1)}, y = ${n(y1)} or x = ${n(r2)}, y = ${n(y2)}`, hint: 'Type both pairs, like x = 1, y = 3 or x = −2, y = 0',
+        steps: [`Both equal y, so ${Q} = ${line}`, `Rearrange so one side is 0: ${quadStr(1, b - m, c - k)} = 0`, `Factorise: (x${sg(-r1)})(x${sg(-r2)}) = 0, so x = ${n(r1)} or x = ${n(r2)}`,
+          `Put each x into y = ${line}: y = ${n(m)} × ${par(r1)}${sg(k)} = ${n(y1)}   and   y = ${n(m)} × ${par(r2)}${sg(k)} = ${n(y2)}`, `Answer: ${`x = ${n(r1)}, y = ${n(y1)} or x = ${n(r2)}, y = ${n(y2)}`}`] };
+    }
   });
 
 
@@ -702,6 +973,18 @@ const LEARN = (() => {
     }
     return { A, B, C };
   }
+  /* a polynomial up to a cube in x (or n), any reasonable way: x^3, x³, terms in any order. co[i] is the coefficient of the i-th power */
+  function parsePoly(s, v = 'x') {
+    s = norm(s).toLowerCase().replace(/\s/g, '').replace(/[×*]/g, '').replace(/²/g, '^2').replace(/³/g, '^3');
+    if (!s || !new RegExp(`^[-+0-9${v}^.]+$`).test(s)) return null;
+    const co = [0, 0, 0, 0], k = c => c === '' || c === '+' ? 1 : c === '-' ? -1 : Number(c);
+    for (const t of s.match(/[+-]?[^+-]+/g) || []) {
+      const m = t.match(new RegExp(`^([+-]?[0-9.]*)(${v}(?:\\^([0-3]))?)?$`)); if (!m || (!m[2] && !/\d/.test(m[1]))) return null;
+      const c = m[2] ? k(m[1]) : Number(m[1]); if (!Number.isFinite(c)) return null;
+      co[m[2] ? (m[3] ? +m[3] : 1) : 0] += c;
+    }
+    return co;
+  }
   const UNSUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9, '⁻': '-' };
   function parseSF(s) {
     s = norm(s).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g, c => '^' + UNSUP[c]).replace(/\^(?=\^)/g, '').replace(/\s/g, '').replace(/\^-\^/g, '^-');
@@ -755,7 +1038,64 @@ const LEARN = (() => {
     if (q.kind === 'roots') {
       const xs = (s.replace(/[−–]/g, '-').match(/-?\d+(\.\d+)?/g) || []).map(Number);
       if (xs.length < 2) return { valid: false, msg: 'Type both answers, like x = 2 or x = -5' };
-      return { valid: true, ok: xs.length === 2 && [...xs].sort((a, b) => a - b).join() === [...q.r].sort((a, b) => a - b).join() };
+      const a = [...xs].sort((p, r) => p - r), b = [...q.r].sort((p, r) => p - r), tol = (q.tol || 0) + 1e-9;
+      return { valid: true, ok: xs.length === 2 && a.every((v, i) => Math.abs(v - b[i]) <= tol) };
+    }
+    if (q.kind === 'pairs') { /* two (x, y) solutions, in either order */
+      const v = (s.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+      if (v.length !== 4) return { valid: false, msg: 'Type both pairs, like x = 1, y = 3 or x = -2, y = 0' };
+      const same = (p, r) => p[0] === r[0] && p[1] === r[1], [A, B] = q.sols, P = [v[0], v[1]], R = [v[2], v[3]];
+      if ((same(P, A) && same(R, B)) || (same(P, B) && same(R, A))) return { valid: true, ok: true };
+      const xs = [v[0], v[1]].sort((p, r) => p - r).join(), ys = [v[2], v[3]].sort((p, r) => p - r).join();
+      return xs === [A[0], B[0]].sort((p, r) => p - r).join() && ys === [A[1], B[1]].sort((p, r) => p - r).join() ? { valid: true, ok: false, msg: 'Right numbers: write each x with its own y, like x = 1, y = 3 or x = -2, y = 0' } : { valid: true, ok: false };
+    }
+    if (q.kind === 'poly') {
+      const r = parsePoly(s, q.v); if (!r) return { valid: false, msg: q.v === 'n' ? 'Type it like 2n^2 + 3n - 1' : 'Type it like x^3 + 2x^2 - 5x - 6' };
+      return { valid: true, ok: r.every((c, i) => c === (q.co[i] || 0)) };
+    }
+    if (q.kind === 'ctsq') {
+      const t = s.toLowerCase().replace(/\s/g, '').replace(/²/g, '^2'), m = t.match(/^(\d*)\(x([+-]\d+)\)\^2([+-]\d+)?$/);
+      if (!m) { const e = parseQuad(s); return e && e.A === q.ca && e.B === 2 * q.ca * q.cp && e.C === q.ca * q.cp * q.cp + q.cq ? { valid: true, ok: false, msg: 'That is the same expression. Write it with a squared bracket.' } : { valid: false, msg: q.ca === 1 ? 'Type it like (x + 3)^2 - 4' : 'Type it like 2(x + 3)^2 - 4' }; }
+      return { valid: true, ok: (m[1] ? +m[1] : 1) === q.ca && +m[2] === q.cp && (m[3] ? +m[3] : 0) === q.cq };
+    }
+    if (q.kind === 'fact2') {
+      const t = s.toLowerCase().replace(/\s/g, '').replace(/²/g, '^2'), BR = '\\((-?\\d*)x([+-]\\d+)\\)', two = t.match(new RegExp('^' + BR + BR + '$')), sq = t.match(new RegExp('^' + BR + '\\^2$'));
+      const k = c => c === '' ? 1 : c === '-' ? -1 : +c, f = two ? [k(two[1]), +two[2], k(two[3]), +two[4]] : sq ? [k(sq[1]), +sq[2], k(sq[1]), +sq[2]] : null;
+      if (!f) { const e = parseQuad(s); return e && e.A === q.A && e.B === q.B && e.C === q.C ? { valid: true, ok: false, msg: 'That is the expanded form. Put it into two brackets.' } : { valid: false, msg: 'Type it like (2x + 1)(x - 3)' }; }
+      return { valid: true, ok: f[0] * f[2] === q.A && f[0] * f[3] + f[1] * f[2] === q.B && f[1] * f[3] === q.C };
+    }
+    if (q.kind === 'ineq') {
+      const t = s.toLowerCase().replace(/\s/g, '').replace(/≤|=<|<=/g, 'L').replace(/≥|=>|>=/g, 'G').replace(/</g, 'l').replace(/>/g, 'g'), N = '(-?\\d+(?:\\.\\d+)?)';
+      const wrongEnds = q.eq ? 'Right region, but the end values are included here: use ≤ (type <=).' : 'Right region, but the end values are not included: use <.';
+      const m = t.match(new RegExp(`^${N}([lL])x([lL])${N}$`));
+      if (m) {
+        if (+m[1] !== q.lo || +m[4] !== q.hi) return { valid: true, ok: false };
+        if (!q.inside) return { valid: true, ok: false, msg: 'Right values, but this curve is above the axis outside them, not between.' };
+        return (q.eq ? m[2] === 'L' && m[3] === 'L' : m[2] === 'l' && m[3] === 'l') ? { valid: true, ok: true } : { valid: true, ok: false, msg: wrongEnds };
+      }
+      const parts = t.split(/or|,|;|\|/).filter(Boolean).map(p => p.match(new RegExp(`^x([lLgG])${N}$`)));
+      if (parts.length === 2 && parts.every(Boolean)) {
+        const lt = parts.find(p => /[lL]/.test(p[1])), gt = parts.find(p => /[gG]/.test(p[1]));
+        if (lt && gt) {
+          if (+lt[2] !== q.lo || +gt[2] !== q.hi) return { valid: true, ok: false };
+          if (q.inside) return { valid: true, ok: false, msg: 'Right values, but this curve is below the axis between them, not outside.' };
+          return (q.eq ? lt[1] === 'L' && gt[1] === 'G' : lt[1] === 'l' && gt[1] === 'g') ? { valid: true, ok: true } : { valid: true, ok: false, msg: q.eq ? 'Right region, but the end values are included here: use ≤ and ≥.' : 'Right region, but the end values are not included: use < and >.' };
+        }
+      }
+      return { valid: false, msg: q.inside ? 'Type it like -2 < x < 3' : 'Type it like x < -2 or x > 3' };
+    }
+    if (q.kind === 'line') { /* y = mx + c, with the gradient as a whole number, a fraction or a decimal */
+      const t = s.toLowerCase().replace(/\s/g, '').replace(/[½⅓⅔¼¾]/g, c => ({ '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4' })[c]).replace(/[()×*]/g, '');
+      const m0 = t.match(/^y=(.+)$/); if (!m0) return { valid: false, msg: 'Type it like y = -2x + 5' };
+      let gm = 0, gc = 0, seen = false;
+      for (const term of m0[1].match(/[+-]?[^+-]+/g) || []) {
+        const x = term.match(/^([+-]?)(\d+(?:\.\d+)?)?(?:\/(\d+))?x(?:\/(\d+))?$/), c = term.match(/^([+-]?\d+(?:\.\d+)?)(?:\/(\d+))?$/);
+        if (x) { gm += (x[1] === '-' ? -1 : 1) * (x[2] ? +x[2] : 1) / ((x[3] ? +x[3] : 1) * (x[4] ? +x[4] : 1)); seen = true; }
+        else if (c) gc += +c[1] / (c[2] ? +c[2] : 1);
+        else return { valid: false, msg: 'Type it like y = -2x + 5' };
+      }
+      if (!seen) return { valid: false, msg: 'Type it like y = -2x + 5' };
+      return { valid: true, ok: Math.abs(gm - q.gm) < 1e-9 && Math.abs(gc - q.gc) < 1e-9 };
     }
     if (q.kind === 'pair') {
       const t = s.toLowerCase().replace(/[−–]/g, '-'), mx = t.match(/x\s*=\s*(-?\d+(?:\.\d+)?)/), my = t.match(/y\s*=\s*(-?\d+(?:\.\d+)?)/), all = t.match(/-?\d+(\.\d+)?/g) || [];
@@ -803,6 +1143,6 @@ const LEARN = (() => {
     return BANK;
   }
   /* topics whose questions change with level (1 easier, 3 harder) */
-  const LEVELLED = new Set(['solve-1', 'expand', 'cs-binary', 'cs-hex', 'cs-add', 'cs-size', 'fr-verbs', 'es-verbs', ...Object.keys(M).filter(id => M[id].tier === 'H')]);
+  const LEVELLED = new Set(['solve-1', 'expand', 'cs-binary', 'cs-hex', 'cs-add', 'cs-size', 'fr-verbs', 'es-verbs', ...Object.keys(M).filter(id => M[id].tier === 'H' || M[id].lv)]);
   return { TUNE, LEVELLED, MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();

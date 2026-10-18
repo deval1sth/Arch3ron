@@ -467,7 +467,7 @@ function missionPlan(label) {
   if (/lit|quote|essay|macbeth|carol|journey/.test(L)) return { id: 'lit', title: 'Quotes and an essay plan', steps: ['Warm up: quote and context questions until you get 5 right', 'Then plan one essay below: thesis and three paragraphs', 'Each paragraph: point, quote, method, effect, context'] };
   if (/english lang|language|timed answer|writing/.test(L)) return { id: 'lang', title: 'English Language practice', steps: ['Pick a question type and read the method', 'Write your answer on paper, timed', 'Check it against the method, then plan a piece of writing'] };
   if (/\bre\b|religio/.test(L)) return { id: 're', title: 'RE: key terms and a 12-mark plan', steps: ['Answer key-term questions until you get 5 right', 'Plan a 12-mark answer below: both sides, then a justified conclusion'] };
-  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? ['Start with Corbettmaths 5-a-day (Foundation) on paper', ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
+  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? [`Start with Corbettmaths 5-a-day (${tierFor('Maths') === 'H' ? 'Higher' : 'Foundation'}) on paper`, ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
   const own = ME.selfSubject(label); if (own) return own; /* a subject with no question bank yet: revise it your own way */
   return { id: 'choose', title: 'Choose what to study', steps: ['Pick a subject below', ...PRACTISE_STEPS.slice(0, 2)] };
 }
@@ -485,6 +485,13 @@ function currentSid() {
   /* the set whose subject needs it most right now, so doing fewer sets than planned never skips the same subjects every week */
   const pr = x => setPriority(x.s.label);
   return open.reduce((a, b) => pr(b) > pr(a) ? b : a).s.id;
+}
+/* today's sets in the order Begin hands them out: the one in progress (or picked) first, the rest by need, done ones last.
+   Lists showed plan order while Begin picked by need, so the top of the list was not what you got. */
+function todayQueue() {
+  const list = todayTrain(), now = timerActive() && T.mode === 'focus' ? T.sid : currentSid(), pr = x => setPriority(x.s.label);
+  const rank = x => x.s.id === now && x.left > 0 ? Infinity : x.left > 0 ? pr(x) : -Infinity;
+  return list.map(x => [x, rank(x)]).sort((a, b) => b[1] - a[1] || 0).map(a => a[0]);
 }
 function ringEl(compact) {
   const r = h('div', { class: 'ring' + (T.mode === 'break' ? ' brk' : '') + (T.run ? ' live' : '') + (compact ? ' compact' : '') });
@@ -546,7 +553,7 @@ function vHome() {
       h('div', { class: 'focus-links' },
         B(CHOOSE ? 'Close' : 'Choose something else', 'choose', 'link'), h('span', { 'aria-hidden': 'true' }, '·'), B("Today's plan", 'go', 'link', { 'data-tab': 'today' })),
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
-        open.map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
+        todayQueue().filter(x => x.left > 0).map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
     todayBar(),
     dailyCard(),
@@ -858,7 +865,7 @@ function vToday() {
     S.deload && h('div', { class: 'banner' }, icon('moon'), h('div', null, h('b', null, 'Deload week'), h('p', null, 'Half volume on purpose. Recovery is part of the programme.'))),
     card('Sessions', B([icon('edit'), 'Edit week'], 'go', 'ghost sm', { 'data-tab': 'plan' }),
       plan.length ? plan.map(s => sessionRow(s, day)) : h('p', { class: 'muted' }, 'Nothing planned today. Rest is training too.')),
-    card('Daily extras', null, FINISHERS.map((f, i) => h('label', { class: 'chk' + (day.f[i] ? ' d' : '') },
+    card('Daily extras', null, FINISHERS.map(f => tierFor('Maths') === 'H' ? f.replace('(Foundation)', '(Higher)') : f).map((f, i) => h('label', { class: 'chk' + (day.f[i] ? ' d' : '') },
       h('input', { type: 'checkbox', checked: !!day.f[i], 'data-act': 'fin', 'data-i': i }), checkBox(), h('span', null, f)))));
 }
 function sessionRow(s, day) {
@@ -877,6 +884,14 @@ function sessionRow(s, day) {
    Schemes (exam.js, papers.js): [points] one mark each · {any, max} capped · {lv, look} levels-based. */
 let EXRES = null;
 const paperOf = id => (S.exam && S.exam.paper && S.exam.paper.id === id && S.exam.paper) || EXAMS.find(p => p.id === id); /* a PPP paper is built fresh and lives with its run */
+/* Higher students see Higher papers and Foundation students Foundation ones; untiered papers (English, RE...) suit everyone.
+   With no tier chosen yet, both are shown. */
+function tierFor(subj) {
+  const ids = subj === 'Maths' ? ['maths'] : subj === 'Science' ? ['combined', 'biology', 'chemistry', 'physics'] : [];
+  const s = S.me && S.me.subs.find(x => ids.includes(x.id));
+  return s && s.tier ? s.tier[0] : null;
+}
+const paperFits = p => !p.tier || !tierFor(p.subj) || tierFor(p.subj) === p.tier;
 function qMax(q) { const s = q[2]; return Array.isArray(s) ? s.length : s.lv ? s.lv[0][1] : s.max; }
 function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.look; }
 const qX = q => q[3] || {};
@@ -890,7 +905,7 @@ function vExam() {
   const run = S.exam && paperOf(S.exam.pid), tops = {};
   for (const sc of S.scores) for (const t of sc.tp) { const k = sc.subj + '|' + t.topic; const o = tops[k] = tops[k] || { subj: sc.subj, topic: t.topic, got: 0, max: 0 }; o.got += t.got; o.max += t.max; }
   const topics = Object.values(tops).sort((a, b) => a.got / a.max - b.got / b.max);
-  const groups = [...new Set(EXAMS.map(groupOf))];
+  const shown = EXAMS.filter(paperFits).sort((a, b) => !!b.tier - !!a.tier), groups = [...new Set(EXAMS.map(groupOf))].filter(g => shown.some(p => groupOf(p) === g)); /* full papers before 6-mark sets */
   return h('div', { class: 'stack narrow' },
     subHero('Mocks', 'Exam practice', 'mocks', 'Write your answer, then mark it against the mark scheme like an examiner. Scores go into Past papers, by paper and by topic.'),
     EXRES && examReport(EXRES),
@@ -901,7 +916,7 @@ function vExam() {
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
       h('div', { class: 'chips' }, mySubjects().map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
     groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
-      h('ul', { class: 'list' }, EXAMS.filter(p => groupOf(p) === g).map(p => {
+      h('ul', { class: 'list' }, shown.filter(p => groupOf(p) === g).map(p => {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
         h('div', { class: 'num' }, h('b', null, best), h('small', null, done.length ? `best of ${done.length}` : 'not tried')),

@@ -96,13 +96,13 @@ const hallBtn = () => isDesk() && TAB === 'examq' && S.exam && B([icon('flame'),
 /* ---------- Study desk: on a computer a set is three columns: session | question | board and notes ---------- */
 const deskMode = () => isDesk() && !HALL;
 function deskWorking(M, title, meta) {
-  const list = todayTrain(), cur = T.sid;
+  const list = todayQueue(), cur = T.sid;
   return h('div', { class: 'desk' },
     h('aside', { class: 'card desk-s', 'aria-label': 'This set' },
       h('div', { class: 'ds-timer' }, ringEl(true), h('div', null, h('p', { class: 'eyebrow' }, T.run ? 'In the zone' : 'Paused'), h('b', null, title), h('small', null, meta))),
       h('div', { class: 'row' }, B(T.run ? [icon('pause'), 'Pause'] : [icon('play'), 'Resume'], 'tgl', 'primary sm'), B('End', 'rst', 'ghost sm')),
       h('div', { class: 'ds-m' }, h('p', { class: 'eyebrow' }, 'Your mission'), h('h2', null, M.title), M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)))),
-      list.length > 0 && h('div', { class: 'ds-up' }, h('p', { class: 'eyebrow' }, 'Today'),
+      list.length > 0 && h('div', { class: 'ds-up' }, h('p', { class: 'eyebrow' }, 'Today, most needed first'),
         h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: (x.left ? '' : 'done') + (x.s.id === cur ? ' now' : '') }, h('span', null, x.s.id === cur ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`)))))),
     h('section', { class: 'card desk-q' }, missionPanel(M)));
 }
@@ -148,7 +148,7 @@ function paintSide() {
   document.body.classList.toggle('has-side', want);
   if (!want) { el?.remove(); return; }
   if (!el) { el = h('aside', { id: 'side', 'aria-label': 'Today' }); document.body.append(el); }
-  const list = todayTrain(), cur = currentSid(), item = list.find(x => x.s.id === cur), act = timerActive(), done = setsOn(dkey());
+  const list = todayQueue(), act = timerActive(), cur = act && T.mode === 'focus' ? T.sid : currentSid(), item = list.find(x => x.s.id === cur), done = setsOn(dkey());
   const status = !act ? 'Ready' : T.mode === 'break' ? (T.run ? 'Resting' : 'Rest paused') : T.run ? (T.rescue ? 'Rescue set' : 'Focusing') : 'Paused';
   el.replaceChildren(
     h('p', { class: 'eyebrow' }, `${DAYFULL[new Date().getDay()]} ${fmtDate(dkey())}`),
@@ -156,7 +156,7 @@ function paintSide() {
       h('div', { class: 'row' }, act ? [B(T.run ? icon('pause') : icon('play'), 'tgl', 'primary icon-only', { 'aria-label': T.run ? 'Pause' : 'Resume' }), B('End', 'rst', 'ghost sm')]
         : B([icon('play'), 'Begin'], 'sideBegin', 'primary sm'))),
     h('div', { class: 'sd-next' }, h('small', null, act && T.mode === 'focus' ? 'Now' : 'Next up'), h('b', null, act && T.rescue ? 'Rescue set' : item ? setTitle(item.s.label) : list.length ? 'Bonus set' : 'Free study')),
-    list.length ? h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: x.left ? '' : 'done' }, h('span', null, x.s.id === cur && act ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`))))
+    list.length ? h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: (x.left ? '' : 'done') + (x.s.id === cur && x.left ? ' now' : '') }, h('span', null, x.s.id === cur && act ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`))))
       : h('p', { class: 'muted xs' }, 'No sets planned today.'),
     h('p', { class: 'muted xs' }, `${done} ${done === 1 ? 'set' : 'sets'} done today · mocks in ${daysToMocks()} days`),
     h('div', { class: 'sd-links' }, B("Today's plan", 'go', 'link', { 'data-tab': 'today' }), !act && B('Rescue set', 'rescue', 'link'), B('Shortcuts (?)', 'keysHelp', 'link')));

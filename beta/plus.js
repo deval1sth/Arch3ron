@@ -201,7 +201,7 @@ const PLUSACT = {
   },
   doSkip() { DN_I++; render(); },
   mockGo(el) {
-    const p = el.dataset.id ? paperOf(el.dataset.id) : EXAMS.filter(e => e.subj === el.dataset.subj).sort((a, b) => subjPts(a.subj).filter(x => x.paper.startsWith(a.name)).length - subjPts(b.subj).filter(x => x.paper.startsWith(b.name)).length)[0];
+    const p = el.dataset.id ? paperOf(el.dataset.id) : EXAMS.filter(e => e.subj === el.dataset.subj && paperFits(e)).sort((a, b) => subjPts(a.subj).filter(x => x.paper.startsWith(a.name)).length - subjPts(b.subj).filter(x => x.paper.startsWith(b.name)).length)[0];
     if (!p) return toast('No practice paper for that subject yet');
     MOCK_PID = p.id; go('mockstart'); scrollTo({ top: 0 });
   },
@@ -987,6 +987,14 @@ function pppBank(ids, used, track, left) {
   }
   return null;
 }
+/* on the Higher tier the written questions come from the Higher papers, keeping to the topics of the paper being built */
+const HIGHER_OF = { m1: 'mh1', m2: 'mh2', b1: 'bh', b2: 'bh', c1: 'ch', c2: 'ch', p1: 'ph', p2: 'ph' };
+function pppPool(pid) {
+  const p = paperOf(pid), hp = HIGHER_OF[pid] && paperOf(HIGHER_OF[pid]);
+  if (!hp || tierFor(p.subj) !== 'H') return p.qs.map((q, j) => ({ q, pid, sig: `w|${pid}|${j}` }));
+  const keep = p.subj === 'Maths' ? null : new Set(p.qs.map(q => q[0]));
+  return hp.qs.map((q, j) => ({ q, pid: hp.id, sig: `w|${hp.id}|${j}` })).filter(o => !keep || keep.has(o.q[0]));
+}
 function pppBuild(track, k) {
   const sp = PPP_SPEC[track][k], used = new Set(S.pused || []), g = PPP_G(track), srcFrom = new Set(), out = [];
   let spag = (sp.spag || []).slice();
@@ -1003,7 +1011,7 @@ function pppBuild(track, k) {
       if (!qX(q).same || !out.length) push(qq, grp, '', pid); else out.push([q[0], q[1], q[2], Object.assign({}, q[3], { grp })]);
     });
   } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
-    const pool = (wps || []).flatMap(pid => paperOf(pid).qs.map((q, j) => ({ q, pid, sig: `w|${pid}|${j}` }))).filter(o => !qX(o.q).same && (!wt || wt.includes(o.q[0])));
+    const pool = (wps || []).flatMap(pid => pppPool(pid)).filter(o => !qX(o.q).same && (!wt || wt.includes(o.q[0])));
     let left = marks; const items = [];
     const order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))], isLong = o => o.q[2].lv && qMax(o.q) >= 6;
     const longs = order.filter(isLong).slice(0, sp.long || 0);
