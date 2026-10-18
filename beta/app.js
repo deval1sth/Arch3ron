@@ -97,7 +97,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
+const BACKS = { friends: 'Friends', lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -111,7 +111,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, friends: [], readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -127,6 +127,7 @@ function normalize(raw) {
   const r = obj(raw), s = freshState();
   s.xp = Math.max(0, Math.round(num(r.xp)));
   s.mock = isKey(r.mock) ? r.mock : s.mock; /* the beta has no old placeholder dates to correct */
+  s.friends = FRIENDS.clean(r.friends);
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
@@ -821,6 +822,7 @@ function vTools() {
       tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
       tool('profile', 'star', 'Profile', `${badgeCount()} badges · emblem and mastery`),
       tool('me', 'user', 'Settings', 'Subjects, grades, timer, backup'),
+      tool('friends', 'user', 'Friends', `${S.friends.length} ${S.friends.length === 1 ? 'friend' : 'friends'} · this week's effort`),
       tool('lab', 'shield', 'Experimental', labOpen() ? 'Unlocked on this device' : 'Locked')));
 }
 
@@ -1408,8 +1410,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
-const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
+const PARENT = { friends: 'tools', lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const VIEWS = { friends: vFriends, lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1561,6 +1563,15 @@ const ACT = {
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
   board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
+  frSort(el) { FR_SORT = el.dataset.k; render(); },
+  frShare() { FRIENDS.share(); },
+  async frCopy() { const c = FRIENDS.code(); try { await navigator.clipboard.writeText(c); toast('Code copied'); } catch (e) { prompt('Copy your code:', c); } },
+  frAdd() {
+    const got = FRIENDS.parse(DRAFT.fr || '');
+    if (!got.length) { toast('No friend code found in that. Paste the whole link or code.'); return; }
+    const n = FRIENDS.add(got); DRAFT.fr = ''; toast(n ? `${n} ${n === 1 ? 'friend' : 'friends'} added or updated` : 'Nothing new in that code'); render();
+  },
+  frDel(el) { const f = S.friends.find(x => x.i === el.dataset.i); if (f && confirm(`Remove ${f.n}?`)) { S.friends = S.friends.filter(x => x !== f); save(); render(); } },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
   exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
@@ -1747,7 +1758,7 @@ FXS.init();
 if (S.achV !== 2) { S.ach = {}; S.achV = 2; save(); } /* tiers got harder: recount once, silently */
 checkAch(true);
 render({ enter: true });
-ME.start();
+ME.start(); FRIENDS.boot();
 if (T.run && T.end <= Date.now()) timerDone();
 if (bootNote) setTimeout(() => toast(bootNote), 600);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

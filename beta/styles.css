@@ -1240,3 +1240,14 @@ html.su-open{overflow:hidden}
 .me-card h2{margin:0}.me-card .eyebrow{margin:0}
 .me-card .row{margin-top:12px;flex-wrap:wrap}
 .btn.danger-t{color:var(--danger)}
+/* friends (friends.js) */
+.fr-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.fr-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);background:var(--sunk)}
+.fr-row.me{background:var(--y-soft);box-shadow:inset 0 0 0 1.5px var(--y)}
+.fr-n{width:18px;text-align:center;color:var(--m);font-weight:700;font-variant-numeric:tabular-nums}
+.fr-v{display:flex;flex-direction:column;align-items:center;min-width:44px}
+.fr-v b{font-variant-numeric:tabular-nums}.fr-v small{font-size:11px;color:var(--m)}
+.fr-list.old .fr-row{opacity:.6}
+#frIn{width:100%;font:inherit;padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--field);color:var(--t);resize:vertical}
+.pill.lvl{background:var(--y-soft);color:var(--y3)}
+@media (max-width:420px){.fr-v{min-width:36px}.fr-row{gap:6px;padding:8px}}

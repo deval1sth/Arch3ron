@@ -1,7 +1,7 @@
 /* Archeron Beta service worker: a separate test copy at /beta/ with its own cache names and storage.
    Bump VERSION on every release. Only ever deletes its own old caches, never the main app's. */
-const VERSION = 'archeron-beta-1.1.0';
-const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'vocab.js', 'data.js', 'content.js', 'bank2.js', 'bank3.js', 'defs.js', 'defs2.js', 'chem.js', 'exam.js', 'papers.js', 'fx.js', 'sfx.js', 'learn.js', 'demo.js', 'board.js', 'guides.js', 'study.js', 'plus.js', 'desk.js', 'stats.js', 'me.js', 'app.js', 'manifest.json', 'icon.svg',
+const VERSION = 'archeron-beta-1.2.0';
+const FILES = ['./', 'index.html', 'styles.css', 'transitions.css', 'vocab.js', 'data.js', 'content.js', 'bank2.js', 'bank3.js', 'defs.js', 'defs2.js', 'chem.js', 'exam.js', 'papers.js', 'fx.js', 'sfx.js', 'learn.js', 'demo.js', 'board.js', 'guides.js', 'study.js', 'plus.js', 'desk.js', 'stats.js', 'me.js', 'friends.js', 'app.js', 'manifest.json', 'icon.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'fonts/bricolage.woff', 'fonts/kalam-400.woff2', 'fonts/kalam-700.woff2', 'fonts/atkinson-400.woff', 'fonts/atkinson-700.woff', 'fonts/atkinson-italic.woff'];
 
 self.addEventListener('install', e => {
