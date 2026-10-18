@@ -21,7 +21,7 @@ const FRIENDS = (() => {
   const myId = () => hash(ME.active() + '|archeron').slice(0, 4) + hash(ME.active()).slice(0, 4);
   const avNum = av => av && av.k === 'a' ? av.i : 0;
   function code() {
-    const m = mine(), p = { i: myId(), n: (S.me && S.me.name) || 'Friend', a: avNum(S.me && S.me.av), w: weekStart(), s: m.sets, q: m.right, d: m.days, t: Math.floor(Date.now() / 6e4) };
+    const m = mine(), p = { i: myId(), n: (S.me && S.me.name) || 'Friend', a: avNum(S.me && S.me.av), w: weekStart(), s: m.sets, q: m.right, d: m.days, t: Math.floor(Date.now() / 6e4), c: S.daily && S.daily.d === dkey() ? S.daily.s : -1, cd: dkey() };
     const body = b64(JSON.stringify(p)); return `${VER}-${body}.${hash(body)}`;
   }
   /* every code found in a piece of text, checked; anything malformed is skipped */
@@ -34,6 +34,8 @@ const FRIENDS = (() => {
       const f = { i: typeof p.i === 'string' && /^[0-9a-z]{4,12}$/.test(p.i) ? p.i : null, n: typeof p.n === 'string' ? p.n.replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 24) : '',
         a: int(p.a, 0, 23), w: typeof p.w === 'string' && isDay(p.w) ? p.w : null, s: int(p.s, 0, 2000), q: int(p.q, 0, 100000), d: int(p.d, 0, 7), t: int(p.t, 0, 1e9) };
       if (Object.values(f).some(v => v === null) || !f.n) continue;
+      /* optional: today's Daily five score, only from codes that carry it */
+      f.c = p.c === undefined ? -1 : int(p.c, -1, 5) ?? -1; f.cd = typeof p.cd === 'string' && isDay(p.cd) ? p.cd : '';
       out.push(f);
     }
     return out;
@@ -67,19 +69,19 @@ const FRIENDS = (() => {
   }
   /* saved friends are re-checked on load with the same rules as a pasted code */
   const clean = list => (Array.isArray(list) ? list : []).slice(0, 40).filter(f => f && typeof f.i === 'string' && /^[0-9a-z]{4,12}$/.test(f.i) && typeof f.n === 'string' && f.n.length <= 24 && int(f.a, 0, 23) !== null && typeof f.w === 'string' && isDay(f.w) && int(f.s, 0, 2000) !== null && int(f.q, 0, 100000) !== null && int(f.d, 0, 7) !== null && int(f.t, 0, 1e9) !== null)
-    .map(f => ({ i: f.i, n: f.n.replace(/[\u0000-\u001f\u007f<>]/g, ''), a: f.a, w: f.w, s: f.s, q: f.q, d: f.d, t: f.t }));
+    .map(f => ({ i: f.i, n: f.n.replace(/[\u0000-\u001f\u007f<>]/g, ''), a: f.a, w: f.w, s: f.s, q: f.q, d: f.d, t: f.t, c: int(f.c, -1, 5) ?? -1, cd: typeof f.cd === 'string' && isDay(f.cd) ? f.cd : '' }));
   return { mine, code, parse, add, share, link, boot, myId, clean };
 })();
 
 let FR_SORT = 'sets';
 function vFriends() {
-  const ws = weekStart(), m = FRIENDS.mine(), me = { i: 'me', n: (S.me && S.me.name) || 'You', a: S.me && S.me.av, s: m.sets, q: m.right, d: m.days, me: true };
+  const ws = weekStart(), m = FRIENDS.mine(), me = { i: 'me', n: (S.me && S.me.name) || 'You', a: S.me && S.me.av, s: m.sets, q: m.right, d: m.days, me: true, c: S.daily && S.daily.d === dkey() ? S.daily.s : -1, cd: dkey() };
   const key = { sets: 's', right: 'q', days: 'd' }[FR_SORT];
   const now = [me, ...S.friends.filter(f => f.w === ws)].sort((a, b) => b[key] - a[key] || b.s - a.s);
   const old = S.friends.filter(f => f.w !== ws);
   const row = (f, i) => h('li', { class: 'fr-row' + (f.me ? ' me' : '') },
     h('span', { class: 'fr-n' }, i == null ? '' : String(i + 1)), ME.avatarEl(f.me ? f.a : { k: 'a', i: f.a }, 40),
-    h('b', { class: 'grow' }, f.n + (f.me ? ' (you)' : '')),
+    h('span', { class: 'grow fr-who' }, h('b', null, f.n + (f.me ? ' (you)' : '')), f.cd === dkey() && f.c >= 0 && h('small', null, `Daily five today: ${f.c}/5`)),
     h('span', { class: 'fr-v' }, h('b', null, String(f.s)), h('small', null, 'sets')), h('span', { class: 'fr-v' }, h('b', null, String(f.q)), h('small', null, 'right')), h('span', { class: 'fr-v' }, h('b', null, `${f.d}/7`), h('small', null, 'days')),
     !f.me && B(icon('x'), 'frDel', 'ghost icon-only sm', { 'data-i': f.i, 'aria-label': `Remove ${f.n}` }));
   return h('div', { class: 'stack narrow' },
@@ -87,7 +89,7 @@ function vFriends() {
     card('This week', h('span', { class: 'muted' }, 'resets every Monday'),
       h('div', { class: 'chips' }, [['sets', 'Sets'], ['right', 'Questions right'], ['days', 'Days studied']].map(([k, l]) => chip(l, FR_SORT === k, 'frSort', { 'data-k': k }))),
       h('ol', { class: 'fr-list' }, now.map(row)),
-      S.friends.length ? h('p', { class: 'muted xs' }, 'Every set counts, however small. Friends' numbers update when they send you a new code.') : h('p', { class: 'muted xs' }, 'No friends yet. Share your link below and paste theirs.')),
+      S.friends.length ? h('p', { class: 'muted xs' }, 'Every set counts, however small. Your friends’ numbers update when they send you a new code.') : h('p', { class: 'muted xs' }, 'No friends yet. Share your link below and paste theirs.')),
     card('Your friend link', null, h('p', { class: 'muted xs' }, 'Send it after you study. It carries this week\'s effort, so send a new one whenever you want your friends to see your progress.'),
       h('div', { class: 'row' }, B([icon('upload'), 'Share my link'], 'frShare', 'primary'), B('Copy code only', 'frCopy', 'ghost'))),
     card('Add a friend', null, h('p', { class: 'muted xs' }, 'Paste the link or code a friend sent you. You can paste several at once.'),
