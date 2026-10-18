@@ -3,10 +3,10 @@
    pauses exactly with animation-play-state. Speed is a per-device convenience in localStorage. */
 'use strict';
 const BOARD = (() => {
-  const SPEEDS = [['Slow', 1.5], ['Steady', 1], ['Quick', .55]], CH = 72, SAY = 420, HOLD = 900;
+  const SPEEDS = [['Slow', 1.35], ['Steady', 1], ['Quick', .6]], CH = 72, SAY = 420, HOLD = 1000;
   const KEY = 'archeron-board-speed';
   let D = null, i = 0, playing = false, timer = 0, t0 = 0, dur = 0, left = 0, ended = false, tryFirst = false, waiting = false;
-  let root = null, opts = {}, back = null, sp = 1;
+  let root = null, opts = {}, back = null, sp = 0; /* Slow until the student picks otherwise: they are learning, not skimming */
   try { const s = localStorage.getItem(KEY); if (s !== null && +s >= 0 && +s < SPEEDS.length) sp = +s; } catch (e) {}
   const reduced = () => document.documentElement.classList.contains('rm');
   const k = () => SPEEDS[sp][1];
@@ -18,10 +18,14 @@ const BOARD = (() => {
   function ink(s, start, animate) {
     const out = el('span', 'bm'), per = CH * k();
     /* [[...]] becomes one .hlg group, so the board can fly it in from the line above as a unit */
-    let t = start, hi = false, word = null, grp = null;
+    let t = start, hi = false, word = null, grp = null, result = false;
+    /* a human pen: each stroke varies a little, the pen lifts after = and operators, and the result after = is written more carefully */
+    const stroke = () => per * (.72 + Math.random() * .56) * (result ? 1.3 : 1);
     const unit = (node, w) => { if (animate) { node.style.setProperty('--d', Math.round(t) + 'ms'); t += w; } if (hi) node.classList.add('hl'); return node; };
     const flush = () => { if (word) { (grp || out).append(word); word = null; } };
-    const char = c => { if (c === ' ') { flush(); (grp || out).append(hi ? el('span', 'hl', ' ') : ' '); t += per * .35; return; } if (!word) word = el('span', 'bw'); word.append(unit(el('span', 'bc', c), per)); };
+    const char = c => { if (c === ' ') { flush(); (grp || out).append(hi ? el('span', 'hl', ' ') : ' '); t += per * (.3 + Math.random() * .25); return; }
+      if (!word) word = el('span', 'bw'); word.append(unit(el('span', 'bc', c), stroke()));
+      if (c === '=') { result = true; t += per * 1.4; } else if ('+−×÷:'.includes(c)) t += per * .6; };
     /* proper notation: any plain 3/4 is drawn as a stacked fraction (units like km/h are left alone),
        and √ gets a bar over everything it covers */
     s = s.replace(/(^|[^\w.{/])(\d+)\/(\d+)(?![\w./}])/g, '$1{$2/$3}');
@@ -85,8 +89,8 @@ const BOARD = (() => {
     if (L.op && L.math) {
       row.classList.add('has-op');
       const arrow = side => { const a = el('span', 'bop ' + side, el('span', 'bopl', L.op)); a.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 34 46" aria-hidden="true"><path pathLength="1" d="M30 4 C6 6 4 34 26 42"/><path pathLength="1" d="M26 42 l-8 -1 M26 42 l-4 -7"/></svg>');
-        if (go) a.style.setProperty('--d', '0ms'); return a; };
-      t += 520 * k();
+        if (go) a.style.setProperty('--d', Math.round(700 * k()) + 'ms'); return a; }; /* a beat to think before the arrows come */
+      t += 1300 * k();
       const [n, d] = ink(L.math, t, go); t += d;
       row.append(el('span', 'bopw', arrow('l'), n, arrow('r')));
       if (L.say) { const s = el('p', 'bs after', L.say); if (go) s.style.setProperty('--d', Math.round(t) + 'ms'); row.append(s); t += SAY * k(); }
@@ -101,7 +105,9 @@ const BOARD = (() => {
       const b = btn('Why?', 'why', 'link xs'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', w.id);
       row.append(b, w);
     }
-    return [row, R ? HOLD * k() : t + HOLD * k() * (L.kind === 'answer' ? 1.4 : 1)];
+    /* let it sink in: longer after the answer, an arrow step or the question, shorter after a passing remark */
+    const sink = { answer: 1.9, q: 1.3, idea: 1.5, check: 1.1 }[L.kind] || (L.op ? 1.45 : L.fig ? 1.3 : 1);
+    return [row, R ? HOLD * k() * sink : t + HOLD * k() * sink];
   }
 
   /* ---------- playback: rows are added and removed one at a time, never rebuilt mid-lesson ---------- */
