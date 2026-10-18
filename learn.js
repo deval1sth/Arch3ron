@@ -222,6 +222,8 @@ const LEARN = (() => {
   /* ---------- Maths: harder algebra, trigonometry and percentages, on both tiers. Each takes a level (1 easier, 3 harder) ---------- */
   const TH = (id, name, gen) => { M[id] = { name, gen, tier: 'H' }; }, TB = (id, name, gen) => { M[id] = { name, gen, lv: true }; };
   const nz = (a, b) => { let v; do v = ri(a, b); while (!v); return v; };
+  /* a picture drawn from the question's own numbers (pics.js); questions work without one */
+  const pic = (f, ...a) => typeof PIC !== 'undefined' && PIC[f] ? PIC[f](...a) : undefined;
   const quadStr = (A, B, C) => [A === 1 ? 'x²' : A === -1 ? '−x²' : n(A) + 'x²', B ? (B < 0 ? ' − ' : ' + ') + (Math.abs(B) === 1 ? '' : Math.abs(B)) + 'x' : '', C ? sg(C) : ''].join('');
   const brk = p => `(x${sg(p)})`;
   TB('h-dbl', 'Expanding double brackets', (lvl = 2) => {
@@ -259,14 +261,14 @@ const LEARN = (() => {
     const deg = Math.PI / 180, ang = ri(lvl === 1 ? 30 : 15, lvl === 1 ? 60 : 75), H = ri(6, 30), O = H * Math.sin(ang * deg), A = H * Math.cos(ang * deg), f = ri(lvl === 3 ? 0 : 1, 3);
     const r1 = v => Math.round(v * 10) / 10;
     if (f === 0) { const o = r1(O), a = r1(A), t = r1(Math.atan(o / a) / deg);
-      return { q: `A right-angled triangle has opposite ${o} cm and adjacent ${a} cm to the angle θ. Find θ to 1 decimal place.`, kind: 'num', v: t, tol: .051, suf: '°', show: t.toFixed(1) + '°',
+      return { q: `A right-angled triangle has opposite ${o} cm and adjacent ${a} cm to the angle θ. Find θ to 1 decimal place.`, pic: pic('right', Math.atan(o / a) / deg, { ang: '?', opp: o + ' cm', adj: a + ' cm' }), kind: 'num', v: t, tol: .051, suf: '°', show: t.toFixed(1) + '°',
         steps: ['Opposite and adjacent: use TAN (TOA)', `tan θ = ${o} ÷ ${a}`, `θ = tan⁻¹(${o} ÷ ${a}) = ${(Math.atan(o / a) / deg).toFixed(3)}… = ${t.toFixed(1)}°`] }; }
-    if (f === 1) { const v = r1(O); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side opposite the angle, to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+    if (f === 1) { const v = r1(O); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side opposite the angle, to 1 decimal place.`, pic: pic('right', ang, { ang: ang + '°', hyp: H + ' cm', opp: '?' }), kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
       steps: ['Hypotenuse known, opposite wanted: use SIN (SOH)', `opposite = ${H} × sin ${ang}°`, `= ${O.toFixed(3)}… = ${v.toFixed(1)} cm`] }; }
-    if (f === 2) { const v = r1(A); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side adjacent to the angle, to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+    if (f === 2) { const v = r1(A); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side adjacent to the angle, to 1 decimal place.`, pic: pic('right', ang, { ang: ang + '°', hyp: H + ' cm', adj: '?' }), kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
       steps: ['Hypotenuse known, adjacent wanted: use COS (CAH)', `adjacent = ${H} × cos ${ang}°`, `= ${A.toFixed(3)}… = ${v.toFixed(1)} cm`] }; }
     const a = ri(5, 20), o = a * Math.tan(ang * deg), v = r1(o);
-    return { q: `A right-angled triangle has angle ${ang}° and the side adjacent to it is ${a} cm. Find the opposite side to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+    return { q: `A right-angled triangle has angle ${ang}° and the side adjacent to it is ${a} cm. Find the opposite side to 1 decimal place.`, pic: pic('right', ang, { ang: ang + '°', adj: a + ' cm', opp: '?' }), kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
       steps: ['Adjacent known, opposite wanted: use TAN (TOA)', `opposite = ${a} × tan ${ang}°`, `= ${o.toFixed(3)}… = ${v.toFixed(1)} cm`] };
   });
   TB('h-ind', 'Laws of indices', (lvl = 2) => {
@@ -418,34 +420,34 @@ const LEARN = (() => {
       if (lvl === 1 || Math.random() < .55) {
         const A = ri(30, 80), B = ri(30, 100); if (A + B > 160) continue;
         const a = ri(5, 20), b = a * Math.sin(B * deg) / Math.sin(A * deg);
-        return { q: `In triangle ABC, angle A = ${A}°, angle B = ${B}° and BC = ${a} cm. Work out the length of AC to 1 decimal place.`, kind: 'num', v: rd(b, 1), tol: .051, suf: 'cm', show: fd(b, 1) + ' cm',
+        return { q: `In triangle ABC, angle A = ${A}°, angle B = ${B}° and BC = ${a} cm. Work out the length of AC to 1 decimal place.`, pic: pic('tri', [a, b, a * Math.sin((180 - A - B) * deg) / Math.sin(A * deg)], { names: ['A', 'B', 'C'], sides: [a + ' cm', '?', ''], angles: [A + '°', B + '°', ''] }), kind: 'num', v: rd(b, 1), tol: .051, suf: 'cm', show: fd(b, 1) + ' cm',
           steps: ['Each side goes with the angle opposite it: BC is opposite A, and AC is opposite B', 'Sine rule: AC ÷ sin B = BC ÷ sin A', `AC = ${a} × sin ${B}° ÷ sin ${A}°`, `AC = ${b.toFixed(4)}… = ${fd(b, 1)} cm`] };
       }
       const A = ri(40, 110), a = ri(8, 20), b = ri(4, a - 1), sB = b * Math.sin(A * deg) / a, Bd = Math.asin(sB) / deg;
-      return { q: `In triangle ABC, angle A = ${A}°, BC = ${a} cm and AC = ${b} cm. Work out angle B to 1 decimal place.`, kind: 'num', v: rd(Bd, 1), tol: .051, suf: '°', show: fd(Bd, 1) + '°',
+      return { q: `In triangle ABC, angle A = ${A}°, BC = ${a} cm and AC = ${b} cm. Work out angle B to 1 decimal place.`, pic: pic('tri', [a, b, a * Math.sin((180 - A - Bd) * deg) / Math.sin(A * deg)], { names: ['A', 'B', 'C'], sides: [a + ' cm', b + ' cm', ''], angles: [A + '°', '?', ''] }), kind: 'num', v: rd(Bd, 1), tol: .051, suf: '°', show: fd(Bd, 1) + '°',
         steps: ['BC is opposite angle A, and AC is opposite angle B', 'Sine rule for an angle: sin B ÷ AC = sin A ÷ BC', `sin B = ${b} × sin ${A}° ÷ ${a} = ${sB.toFixed(4)}…`, `B = sin⁻¹(${sB.toFixed(4)}…) = ${Bd.toFixed(3)}… = ${fd(Bd, 1)}°`] };
     }
   });
   TH('h-cosine', 'The cosine rule', (lvl = 2) => {
     if (lvl === 1 || Math.random() < .55) {
       const b = ri(4, 15), c = ri(4, 15), A = ri(25, 120), a2 = b * b + c * c - 2 * b * c * Math.cos(A * deg), a = Math.sqrt(a2);
-      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and angle A = ${A}°. Work out the length of BC to 1 decimal place.`, kind: 'num', v: rd(a, 1), tol: .051, suf: 'cm', show: fd(a, 1) + ' cm',
+      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and angle A = ${A}°. Work out the length of BC to 1 decimal place.`, pic: pic('tri', [a, b, c], { names: ['A', 'B', 'C'], sides: ['?', b + ' cm', c + ' cm'], angles: [A + '°', '', ''] }), kind: 'num', v: rd(a, 1), tol: .051, suf: 'cm', show: fd(a, 1) + ' cm',
         steps: ['Two sides and the angle between them: use the cosine rule', 'BC² = AB² + AC² − 2 × AB × AC × cos A', `BC² = ${c}² + ${b}² − 2 × ${c} × ${b} × cos ${A}° = ${a2.toFixed(4)}…`, `BC = √${a2.toFixed(4)}… = ${a.toFixed(4)}… = ${fd(a, 1)} cm`] };
     }
     for (;;) {
       const b = ri(4, 15), c = ri(4, 15), a = ri(Math.abs(b - c) + 2, b + c - 2), num = b * b + c * c - a * a, den = 2 * b * c, Ad = Math.acos(num / den) / deg;
       if (!(Ad > 15 && Ad < 165)) continue;
-      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and BC = ${a} cm. Work out angle A to 1 decimal place.`, kind: 'num', v: rd(Ad, 1), tol: .051, suf: '°', show: fd(Ad, 1) + '°',
+      return { q: `In triangle ABC, AB = ${c} cm, AC = ${b} cm and BC = ${a} cm. Work out angle A to 1 decimal place.`, pic: pic('tri', [a, b, c], { names: ['A', 'B', 'C'], sides: [a + ' cm', b + ' cm', c + ' cm'], angles: ['?', '', ''] }), kind: 'num', v: rd(Ad, 1), tol: .051, suf: '°', show: fd(Ad, 1) + '°',
         steps: ['Three sides known: use the cosine rule for an angle', 'cos A = (AB² + AC² − BC²) ÷ (2 × AB × AC)', `cos A = (${c}² + ${b}² − ${a}²) ÷ (2 × ${c} × ${b}) = ${num} ÷ ${den}`, `A = cos⁻¹(${num} ÷ ${den}) = ${Ad.toFixed(3)}… = ${fd(Ad, 1)}°`] };
     }
   });
   TH('h-areasin', 'Area of a triangle (½ab sin C)', (lvl = 2) => {
     const a = ri(4, 20), b = ri(4, 20);
     if (lvl === 3 && Math.random() < .4) { const area = rd(.5 * a * b * Math.sin(ri(20, 80) * deg), 1), half = a * b / 2, sC = area / half, Cd = Math.asin(sC) / deg;
-      return { q: `A triangle has sides of ${a} cm and ${b} cm and an area of ${area} cm². The angle between those two sides is acute. Work out the angle to 1 decimal place.`, kind: 'num', v: rd(Cd, 1), tol: .051, suf: '°', show: fd(Cd, 1) + '°',
+      return { q: `A triangle has sides of ${a} cm and ${b} cm and an area of ${area} cm². The angle between those two sides is acute. Work out the angle to 1 decimal place.`, pic: pic('tri', [Math.sqrt(a * a + b * b - 2 * a * b * Math.cos(Cd * deg)), b, a], { sides: ['', b + ' cm', a + ' cm'], angles: ['?', '', ''], inner: 'area ' + area + ' cm²' }), kind: 'num', v: rd(Cd, 1), tol: .051, suf: '°', show: fd(Cd, 1) + '°',
         steps: ['Area = ½ × a × b × sin C', `${area} = ½ × ${a} × ${b} × sin C, which is ${n(half)} × sin C`, `sin C = ${area} ÷ ${n(half)} = ${sC.toFixed(4)}…`, `C = sin⁻¹(${sC.toFixed(4)}…) = ${Cd.toFixed(3)}… = ${fd(Cd, 1)}°`] }; }
     const C = ri(20, 150), A = .5 * a * b * Math.sin(C * deg);
-    return { q: `Triangle PQR has PQ = ${a} cm, PR = ${b} cm and angle QPR = ${C}°. Work out its area to 1 decimal place.`, kind: 'num', v: rd(A, 1), tol: .051, suf: 'cm²', show: fd(A, 1) + ' cm²',
+    return { q: `Triangle PQR has PQ = ${a} cm, PR = ${b} cm and angle QPR = ${C}°. Work out its area to 1 decimal place.`, pic: pic('tri', [Math.sqrt(a * a + b * b - 2 * a * b * Math.cos(C * deg)), b, a], { names: ['P', 'Q', 'R'], sides: ['', b + ' cm', a + ' cm'], angles: [C + '°', '', ''], inner: 'area ?' }), kind: 'num', v: rd(A, 1), tol: .051, suf: 'cm²', show: fd(A, 1) + ' cm²',
       steps: ['Two sides and the angle between them: area = ½ab sin C', `Area = ½ × ${a} × ${b} × sin ${C}°`, `Area = ${A.toFixed(4)}… = ${fd(A, 1)} cm²`] };
   });
   TH('h-bounds', 'Upper and lower bounds', (lvl = 2) => {
@@ -454,7 +456,7 @@ const LEARN = (() => {
       return { q: `A length is ${n(x)} cm, correct to 1 decimal place. Write down its ${UL} bound.`, kind: 'num', v, suf: 'cm', show: n(v) + ' cm',
         steps: ['Correct to 1 decimal place means it could be up to 0.05 either side (half of 0.1)', `${up ? 'Upper' : 'Lower'} bound: ${n(x)} ${pm} 0.05 = ${n(v)}`] }; }
     if (t === 1) { const w = ri(4, 20), hh = ri(3, 15), W = w + (up ? .5 : -.5), H = hh + (up ? .5 : -.5), v = W * H;
-      return { q: `A rectangle measures ${w} cm by ${hh} cm, each correct to the nearest cm. Work out the ${UL} bound for its area.`, kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²',
+      return { q: `A rectangle measures ${w} cm by ${hh} cm, each correct to the nearest cm. Work out the ${UL} bound for its area.`, pic: pic('rect', w, hh, w + ' cm', hh + ' cm'), kind: 'num', v, suf: 'cm²', show: n(v) + ' cm²',
         steps: [`The ${UL} bounds of the sides: ${w} ${pm} 0.5 = ${n(W)}   and   ${hh} ${pm} 0.5 = ${n(H)}`, `${up ? 'Biggest' : 'Smallest'} area: ${n(W)} × ${n(H)} = ${n(v)} cm²`] }; }
     if (t === 2) { const d = ri(10, 60) * 10, s = ri(20, 90), D = d + (up ? 5 : -5), Tm = s + (up ? -.5 : .5), v = D / Tm;
       return { q: `A runner covers ${d} m, correct to the nearest 10 m, in ${s} seconds, correct to the nearest second. Work out the ${UL} bound for the average speed. Give your answer to 2 decimal places.`, kind: 'num', v: rd(v, 2), tol: .0051, suf: 'm/s', show: fd(v, 2) + ' m/s',
@@ -484,26 +486,26 @@ const LEARN = (() => {
       : t === 1 ? [`${cap(c[0])} then ${c[1]}: ${r}/${T} × ${b}/${T - 1} = ${r * b}/${den}`, `${cap(c[1])} then ${c[0]}: ${b}/${T} × ${r}/${T - 1} = ${r * b}/${den}`, `Add the two ways: ${r * b}/${den} + ${r * b}/${den} = ${num}/${den}`]
       : [`Both ${c[0]}: ${r}/${T} × ${r - 1}/${T - 1} = ${r * (r - 1)}/${den}`, `Both ${c[1]}: ${b}/${T} × ${b - 1}/${T - 1} = ${b * (b - 1)}/${den}`, `Add them: ${r * (r - 1)}/${den} + ${b * (b - 1)}/${den} = ${num}/${den}`];
     if (sd !== den) steps.push(`Simplify: ${num}/${den} = ${fs(sn, sd)}`);
-    return { q: `A bag has ${r} ${c[0]} and ${b} ${c[1]} counters. Two counters are taken at random, without replacement. What is the probability that ${ask}?`, kind: 'frac', n: sn, d: sd, simplest: false, show: fs(sn, sd), hint: 'Type a fraction like 5/14', steps };
+    return { q: `A bag has ${r} ${c[0]} and ${b} ${c[1]} counters. Two counters are taken at random, without replacement. What is the probability that ${ask}?`, pic: pic('tree', c, r, b), kind: 'frac', n: sn, d: sd, simplest: false, show: fs(sn, sd), hint: 'Type a fraction like 5/14', steps };
   });
   TH('h-circle', 'Circles: equations and tangents', (lvl = 2) => {
     const [p, q0, r] = pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [7, 24, 25], [9, 12, 15]]), sw = Math.random() < .5, x = (sw ? q0 : p) * pick([1, -1]), y = (sw ? p : q0) * pick([1, -1]), t = lvl === 1 ? 0 : lvl === 2 ? ri(0, 1) : ri(1, 2);
-    if (t === 0) return { q: `A circle has equation x² + y² = ${r * r}. What is its radius?`, kind: 'num', v: r, show: String(r),
+    if (t === 0) return { q: `A circle has equation x² + y² = ${r * r}. What is its radius?`, pic: pic('circle', r * r, null), kind: 'num', v: r, show: String(r),
       steps: ['x² + y² = r² is a circle with its centre at (0, 0) and radius r', `r² = ${r * r}, so r = √${r * r} = ${r}`] };
     const [gn, gd] = simp(y, x), [tn, td] = simp(-x, y), pt = `(${n(x)}, ${n(y)})`, eq = `x² + y² = ${r * r}`;
     const steps = [`Gradient of the radius from (0, 0) to ${pt}: ${n(y)} ÷ ${par(x)} = ${fs(gn, gd)}`, 'A tangent is at right angles to the radius, so flip the gradient and change its sign', `Gradient of the tangent: ${fs(tn, td)}`];
-    if (t === 1) return { q: `The point ${pt} lies on the circle ${eq}. Work out the gradient of the tangent to the circle at this point.`, kind: 'frac', n: tn, d: td, simplest: false, show: fs(tn, td), hint: 'Type a fraction like −3/4', steps };
+    if (t === 1) return { q: `The point ${pt} lies on the circle ${eq}. Work out the gradient of the tangent to the circle at this point.`, pic: pic('circle', r * r, [x, y], true), kind: 'frac', n: tn, d: td, simplest: false, show: fs(tn, td), hint: 'Type a fraction like −3/4', steps };
     const [cn, cd] = simp(r * r, y);
-    return { q: `The point ${pt} lies on the circle ${eq}. The tangent at this point crosses the y-axis at (0, c). Work out c.`, kind: 'frac', n: cn, d: cd, simplest: false, show: fs(cn, cd), hint: 'Type a fraction like 25/4',
+    return { q: `The point ${pt} lies on the circle ${eq}. The tangent at this point crosses the y-axis at (0, c). Work out c.`, pic: pic('circle', r * r, [x, y], true), kind: 'frac', n: cn, d: cd, simplest: false, show: fs(cn, cd), hint: 'Type a fraction like 25/4',
       steps: [...steps, `Use y = mx + c through ${pt}: ${n(y)} = ${pf(tn, td)} × ${par(x)} + c`, `c = ${n(y)} − ${pf(tn, td)} × ${par(x)} = ${fs(cn, cd)}`] };
   });
   TH('h-perp', 'Perpendicular lines', (lvl = 2) => {
     const [mn, md] = pick([[2, 1], [3, 1], [4, 1], [5, 1], [-2, 1], [-3, 1], [1, 2], [1, 3], [-1, 2], [2, 3], [-3, 4], [3, 4], [-1, 1], [1, 1]]), [pn, pd] = simp(-md, mn), c0 = nz(-9, 9);
     const L = `y = ${gradStr(mn, md)}x${sg(c0)}`;
-    if (lvl === 1 || Math.random() < .4) return { q: `A line has equation ${L}. Write down the gradient of a line perpendicular to it.`, kind: 'frac', n: pn, d: pd, simplest: false, show: fs(pn, pd), hint: 'Type a whole number or a fraction like −1/2',
+    if (lvl === 1 || Math.random() < .4) return { q: `A line has equation ${L}. Write down the gradient of a line perpendicular to it.`, pic: pic('line', mn / md, c0, L), kind: 'frac', n: pn, d: pd, simplest: false, show: fs(pn, pd), hint: 'Type a whole number or a fraction like −1/2',
       steps: ['Perpendicular gradients multiply to −1', `Flip the gradient and change its sign: ${fs(...simp(mn, md))} becomes ${fs(pn, pd)}`, `Check: ${pf(mn, md)} × ${pf(pn, pd)} = −1`] };
     const x1 = nz(-4, 4) * pd, y1 = nz(-9, 9), c = y1 - pn * x1 / pd, ans = `y = ${gradStr(pn, pd)}x${c ? sg(c) : ''}`;
-    return { q: `Line L has equation ${L}. Find the equation of the line that is perpendicular to L and passes through (${n(x1)}, ${n(y1)}).`, kind: 'line', gm: pn / pd, gc: c, show: ans, hint: 'Type it like y = −2x + 5 (y = 1/2x + 3 is fine)',
+    return { q: `Line L has equation ${L}. Find the equation of the line that is perpendicular to L and passes through (${n(x1)}, ${n(y1)}).`, pic: pic('line', mn / md, c0, 'L', [x1, y1]), kind: 'line', gm: pn / pd, gc: c, show: ans, hint: 'Type it like y = −2x + 5 (y = 1/2x + 3 is fine)',
       steps: [`The gradient of L is ${fs(...simp(mn, md))}, so the perpendicular gradient is ${fs(pn, pd)}`, `Use y = mx + c through (${n(x1)}, ${n(y1)}): ${n(y1)} = ${pf(pn, pd)} × ${par(x1)} + c`, `c = ${n(y1)} − ${pf(pn, pd)} × ${par(x1)} = ${n(c)}`, `Answer: ${ans}`] };
   });
   TH('h-qseq', 'Quadratic sequences: nth term', (lvl = 2) => {
@@ -524,39 +526,39 @@ const LEARN = (() => {
       [`y = f(x${sg(k)})`, [px - k, py], `Adding ${n(k)} inside the bracket moves the graph ${k > 0 ? 'left' : 'right'} by ${Math.abs(k)}: the opposite way to the sign`],
       ['y = −f(x)', [px, -py], 'A minus sign outside f reflects the graph in the x-axis, so the y-coordinate changes sign'],
       ['y = f(−x)', [-px, py], 'A minus sign inside the bracket reflects the graph in the y-axis, so the x-coordinate changes sign']][t];
-    return { q: `The graph of y = f(x) has a turning point at (${n(px)}, ${n(py)}). Write down the coordinates of the turning point of the graph of ${g}.`, kind: 'pair', x, y, show: `(${n(x)}, ${n(y)})`, hint: 'Type it like (3, −2)',
+    return { q: `The graph of y = f(x) has a turning point at (${n(px)}, ${n(py)}). Write down the coordinates of the turning point of the graph of ${g}.`, pic: pic('turning', px, py), kind: 'pair', x, y, show: `(${n(x)}, ${n(y)})`, hint: 'Type it like (3, −2)',
       steps: [why, `(${n(px)}, ${n(py)}) moves to (${n(x)}, ${n(y)})`] };
   });
   TH('h-simsh', 'Similar shapes: area and volume', (lvl = 2) => {
     const t = lvl === 1 ? ri(0, 1) : lvl === 2 ? ri(0, 1) : ri(1, 2);
     if (t === 2) { const [p, q] = pick([[1, 2], [1, 3], [2, 3], [2, 5], [4, 5], [1, 4]]), m = ri(1, 6), j = ri(1, 5), s1 = m * p * p, s2 = m * q * q, V1 = j * p ** 3, V2 = j * q ** 3, k = q / p;
-      return { q: `Two similar solids have surface areas of ${s1} cm² and ${s2} cm². The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, kind: 'num', v: V2, suf: 'cm³', show: V2 + ' cm³',
+      return { q: `Two similar solids have surface areas of ${s1} cm² and ${s2} cm². The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, pic: pic('similar', k, true, '', '', `${s1} cm², ${V1} cm³`, `${s2} cm², V = ?`), kind: 'num', v: V2, suf: 'cm³', show: V2 + ' cm³',
         steps: [`Area scale factor: ${s2} ÷ ${s1} = ${n(k * k)}`, `Length scale factor: √${n(k * k)} = ${n(k)}`, `Volume scale factor: ${n(k)}³ = ${n(k ** 3)}`, `Volume: ${V1} × ${n(k ** 3)} = ${V2} cm³`] }; }
     const k = pick(lvl === 1 ? [2, 3, 4] : [2, 3, 4, 1.5, 2.5]), l1 = ri(2, 8) * 2, l2 = l1 * k;
     if (t === 0) { const A1 = ri(3, 30), A2 = clean(A1 * k * k);
-      return { q: `Two similar shapes have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller shape has an area of ${A1} cm². Work out the area of the larger shape.`, kind: 'num', v: A2, suf: 'cm²', show: n(A2) + ' cm²',
+      return { q: `Two similar shapes have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller shape has an area of ${A1} cm². Work out the area of the larger shape.`, pic: pic('similar', k, false, l1 + ' cm', n(l2) + ' cm', A1 + ' cm²', 'area ?'), kind: 'num', v: A2, suf: 'cm²', show: n(A2) + ' cm²',
         steps: [`Length scale factor: ${n(l2)} ÷ ${l1} = ${n(k)}`, `Area scale factor: ${n(k)}² = ${n(k * k)}`, `Area: ${A1} × ${n(k * k)} = ${n(A2)} cm²`] }; }
     const V1 = ri(2, 20) * 8, V2 = clean(V1 * k ** 3);
-    return { q: `Two similar solids have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, kind: 'num', v: V2, suf: 'cm³', show: n(V2) + ' cm³',
+    return { q: `Two similar solids have matching lengths of ${l1} cm and ${n(l2)} cm. The smaller solid has a volume of ${V1} cm³. Work out the volume of the larger solid.`, pic: pic('similar', k, true, l1 + ' cm', n(l2) + ' cm', 'V = ' + V1 + ' cm³', 'V = ?'), kind: 'num', v: V2, suf: 'cm³', show: n(V2) + ' cm³',
       steps: [`Length scale factor: ${n(l2)} ÷ ${l1} = ${n(k)}`, `Volume scale factor: ${n(k)}³ = ${n(clean(k ** 3))}`, `Volume: ${V1} × ${n(clean(k ** 3))} = ${n(V2)} cm³`] };
   });
   TH('h-histo', 'Histograms', (lvl = 2) => {
     for (;;) {
       const lo = ri(0, 8) * 5, w = pick([5, 10, 15, 20, 25, 30, 40]), hi = lo + w, fd0 = pick([0.4, 0.6, 0.8, 1.2, 1.5, 2, 2.4, 3, 3.5, 4, 5]), f = clean(fd0 * w);
       if (!Number.isInteger(f)) continue;
-      if (lvl === 1 || Math.random() < .5) return { q: `In a histogram, the class ${lo} < t ≤ ${hi} has a frequency of ${f}. Work out the frequency density for this class.`, kind: 'num', v: fd0, show: n(fd0),
+      if (lvl === 1 || Math.random() < .5) return { q: `In a histogram, the class ${lo} < t ≤ ${hi} has a frequency of ${f}. Work out the frequency density for this class.`, pic: pic('histo', lo, hi, null, f), kind: 'num', v: fd0, show: n(fd0),
         steps: ['Frequency density = frequency ÷ class width', `Class width: ${hi} − ${lo} = ${w}`, `Frequency density: ${f} ÷ ${w} = ${n(fd0)}`] };
-      return { q: `In a histogram, the bar for the class ${lo} < t ≤ ${hi} has a frequency density of ${n(fd0)}. How many are in this class?`, kind: 'num', v: f, show: String(f),
+      return { q: `In a histogram, the bar for the class ${lo} < t ≤ ${hi} has a frequency density of ${n(fd0)}. How many are in this class?`, pic: pic('histo', lo, hi, fd0, null), kind: 'num', v: f, show: String(f),
         steps: ['Frequency = frequency density × class width', `Class width: ${hi} − ${lo} = ${w}`, `Frequency: ${n(fd0)} × ${w} = ${f}`] };
     }
   });
   TH('h-3d', 'Pythagoras and trigonometry in 3D', (lvl = 2) => {
     if (lvl === 3 && Math.random() < .5) { const a = ri(3, 12), b = ri(3, 12), c = ri(2, 10), base = Math.sqrt(a * a + b * b), th = Math.atan(c / base) / deg;
-      return { q: `A cuboid measures ${a} cm by ${b} cm and is ${c} cm high. Work out the angle between the longest diagonal and the base, to 1 decimal place.`, kind: 'num', v: rd(th, 1), tol: .051, suf: '°', show: fd(th, 1) + '°',
+      return { q: `A cuboid measures ${a} cm by ${b} cm and is ${c} cm high. Work out the angle between the longest diagonal and the base, to 1 decimal place.`, pic: pic('cuboid', a, c, b, { w: a + ' cm', h: c + ' cm', d: b + ' cm' }, { base: true }), kind: 'num', v: rd(th, 1), tol: .051, suf: '°', show: fd(th, 1) + '°',
         steps: [`Diagonal of the base: √(${a}² + ${b}²) = √${a * a + b * b} = ${base.toFixed(4)}…`, `The height, ${c} cm, is opposite the angle and the base diagonal is next to it`, `tan θ = ${c} ÷ ${base.toFixed(4)}…`, `θ = ${th.toFixed(3)}… = ${fd(th, 1)}°`] }; }
     const exact = lvl === 1 || Math.random() < .4, [a, b, c, e] = exact ? pick([[2, 3, 6, 7], [1, 4, 8, 9], [2, 6, 9, 11], [3, 4, 12, 13], [2, 10, 11, 15], [4, 4, 7, 9], [6, 6, 7, 11], [1, 2, 2, 3], [4, 8, 8, 12], [2, 5, 14, 15], [8, 9, 12, 17]]) : [ri(2, 15), ri(2, 15), ri(2, 15), 0];
     const S2 = a * a + b * b + c * c, d = Math.sqrt(S2);
-    return { q: `A cuboid measures ${a} cm by ${b} cm by ${c} cm. Work out the length of its longest diagonal (from one corner to the opposite corner)${exact ? '' : ', to 1 decimal place'}.`, kind: 'num', v: exact ? e : rd(d, 1), tol: exact ? undefined : .051, suf: 'cm', show: (exact ? e : fd(d, 1)) + ' cm',
+    return { q: `A cuboid measures ${a} cm by ${b} cm by ${c} cm. Work out the length of its longest diagonal (from one corner to the opposite corner)${exact ? '' : ', to 1 decimal place'}.`, pic: pic('cuboid', a, c, b, { w: a + ' cm', h: c + ' cm', d: b + ' cm', top: 'diagonal = ?' }, { diag: true }), kind: 'num', v: exact ? e : rd(d, 1), tol: exact ? undefined : .051, suf: 'cm', show: (exact ? e : fd(d, 1)) + ' cm',
       steps: ['In 3D: diagonal² = length² + width² + height²', `d² = ${a}² + ${b}² + ${c}² = ${S2}`, exact ? `d = √${S2} = ${e} cm` : `d = √${S2} = ${d.toFixed(4)}… = ${fd(d, 1)} cm`] };
   });
   TH('h-simq', 'Simultaneous equations (one quadratic)', (lvl = 2) => {
@@ -593,15 +595,17 @@ const LEARN = (() => {
   E('wave', 'Wave speed', 'v = f × λ', ['v', 'v', 'wave speed', 'm/s'], [['f', 'f', 'frequency', 'Hz', [2, 5, 10, 50, 100, 200, 500, 1000]], ['lam', 'λ', 'wavelength', 'm', [.1, .2, .5, 1.5, 2, 3, 4]]], '{f} × {lam}', { f: ['f = v ÷ λ', '{v} ÷ {lam}'], lam: ['λ = v ÷ f', '{v} ÷ {f}'] }, v => v.f * v.lam);
 
   const fill = (tpl, v) => tpl.replace(/\{(\w+)\}/g, (_, k) => n(v[k]));
+  /* a labelled sketch for the physics equations that have one in pics.js; the unknown is "?" */
+  const physPic = (e, v, find) => typeof PIC === 'undefined' ? undefined : PIC.phys(e.id, Object.fromEntries([e.out, ...e.ins].map(i => [i[0], i[0] === find ? '?' : `${n(v[i[0]])} ${i[3]}`]))) || undefined;
   function genPhys(e) {
     const v = {}; for (const [k, , , , vals] of e.ins) v[k] = pick(vals);
     const [ok, osym, oname, ounit] = e.out; v[ok] = clean(e.f(v));
     const keys = Object.keys(e.re), desc = list => list.map(i => `${i[1]} = ${n(v[i[0]])} ${i[3]}`).join(', ');
     if (!keys.length || Math.random() < .5)
-      return { q: `Find the ${oname} when ${desc(e.ins)}.`, sub: e.name, kind: 'num', v: v[ok], dm: { pid: e.id, v, find: ok }, rel: .005, suf: ounit, show: `${n(v[ok])} ${ounit}`,
+      return { q: `Find the ${oname} when ${desc(e.ins)}.`, sub: e.name, pic: physPic(e, v, ok), kind: 'num', v: v[ok], dm: { pid: e.id, v, find: ok }, rel: .005, suf: ounit, show: `${n(v[ok])} ${ounit}`,
         steps: [`Equation: ${e.eq}`, `${osym} = ${fill(e.sub, v)}`, `= ${n(v[ok])} ${ounit}`] };
     const k = pick(keys), inn = e.ins.find(i => i[0] === k), known = [[ok, osym, oname, ounit], ...e.ins.filter(i => i[0] !== k)];
-    return { q: `Find the ${inn[2]} when ${desc(known)}.`, sub: e.name + ' · rearranging', kind: 'num', v: v[k], dm: { pid: e.id, v, find: k }, rel: .005, suf: inn[3], show: `${n(v[k])} ${inn[3]}`,
+    return { q: `Find the ${inn[2]} when ${desc(known)}.`, sub: e.name + ' · rearranging', pic: physPic(e, v, k), kind: 'num', v: v[k], dm: { pid: e.id, v, find: k }, rel: .005, suf: inn[3], show: `${n(v[k])} ${inn[3]}`,
       steps: [`Equation: ${e.eq}`, `Rearrange: ${e.re[k][0]}`, `${inn[1]} = ${fill(e.re[k][1], v)}`, `= ${n(v[k])} ${inn[3]}`] };
   }
 
@@ -704,11 +708,11 @@ const LEARN = (() => {
 
   CT('bc-mag', 'biology', 'Magnification', () => {
     const real = pick([.01, .02, .05, .1, .2, .5]), mg = pick([40, 50, 100, 200, 400, 500]), img = clean(real * mg), f = ri(0, 2);
-    if (f === 0) return { q: `A cell is ${n(real)} mm wide. In a drawing it is ${n(img)} mm wide. What is the magnification?`, kind: 'num', v: mg, pre: '×', show: '×' + mg,
+    if (f === 0) return { q: `A cell is ${n(real)} mm wide. In a drawing it is ${n(img)} mm wide. What is the magnification?`, pic: pic('cell', n(img) + ' mm', n(real) + ' mm', '×?'), kind: 'num', v: mg, pre: '×', show: '×' + mg,
       steps: ['Magnification = image size ÷ real size', `= ${n(img)} ÷ ${n(real)}`, `= ×${mg}`] };
-    if (f === 1) return { q: `A cell ${n(real)} mm wide is viewed at ×${mg}. How wide is the image?`, kind: 'num', v: img, suf: 'mm', show: n(img) + ' mm',
+    if (f === 1) return { q: `A cell ${n(real)} mm wide is viewed at ×${mg}. How wide is the image?`, pic: pic('cell', '?', n(real) + ' mm', '×' + mg), kind: 'num', v: img, suf: 'mm', show: n(img) + ' mm',
       steps: ['Image size = magnification × real size', `= ${mg} × ${n(real)}`, `= ${n(img)} mm`] };
-    return { q: `The image of a cell is ${n(img)} mm wide at ×${mg}. What is its real size?`, kind: 'num', v: real, suf: 'mm', show: n(real) + ' mm',
+    return { q: `The image of a cell is ${n(img)} mm wide at ×${mg}. What is its real size?`, pic: pic('cell', n(img) + ' mm', '?', '×' + mg), kind: 'num', v: real, suf: 'mm', show: n(real) + ' mm',
       steps: ['Real size = image size ÷ magnification', `= ${n(img)} ÷ ${mg}`, `= ${n(real)} mm`] };
   });
   CT('bc-osmosis', 'biology', 'Percentage change in mass', () => {
@@ -744,12 +748,12 @@ const LEARN = (() => {
   });
   CT('cc-rf', 'chemistry', 'Rf values', () => {
     const sol = ri(50, 90) / 10, spot = ri(10, sol * 10 - 5) / 10, rf = d2(spot / sol);
-    return { q: `In chromatography the solvent moved ${sol.toFixed(1)} cm and a spot moved ${spot.toFixed(1)} cm. Calculate the Rf value to 2 d.p.`, kind: 'num', v: rf, tol: .006, show: rf.toFixed(2),
+    return { q: `In chromatography the solvent moved ${sol.toFixed(1)} cm and a spot moved ${spot.toFixed(1)} cm. Calculate the Rf value to 2 d.p.`, pic: pic('chrom', sol, spot), kind: 'num', v: rf, tol: .006, show: rf.toFixed(2),
       steps: ['Rf = distance moved by the spot ÷ distance moved by the solvent', `= ${spot.toFixed(1)} ÷ ${sol.toFixed(1)} = ${rf.toFixed(2)}`, 'Rf is always less than 1 and has no units'] };
   });
   CT('cc-rate', 'chemistry', 'Mean rate of reaction', () => {
     const v = pick([20, 30, 40, 45, 60, 80, 90, 120]), t = pick([10, 15, 20, 30, 40, 60]), r = d2(v / t);
-    return { q: `A reaction produced ${v} cm³ of gas in ${t} seconds. Calculate the mean rate of reaction to 2 d.p.`, kind: 'num', v: r, tol: .006, suf: 'cm³/s', show: n(r) + ' cm³/s',
+    return { q: `A reaction produced ${v} cm³ of gas in ${t} seconds. Calculate the mean rate of reaction to 2 d.p.`, pic: pic('gas', v + ' cm³', t + ' s'), kind: 'num', v: r, tol: .006, suf: 'cm³/s', show: n(r) + ' cm³/s',
       steps: ['Mean rate = quantity of product ÷ time', `= ${v} ÷ ${t} = ${n(r)} cm³/s`] };
   });
 

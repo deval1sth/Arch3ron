@@ -1110,6 +1110,8 @@ html.bd-open{overflow:hidden}
 html.rm .bd,html.rm .bd-scrim{animation:none}
 /* board diagrams (demo.js FIG): lines draw, labels and dots fade in */
 .bfig{display:block;width:100%;height:auto;margin:6px 0 2px;overflow:visible}
+.qpic-w{margin:2px 0 14px;padding:10px 12px;border-radius:var(--r-sm);background:var(--sunk);border:1px solid var(--line2)}
+.qpic-w .qpic{max-width:380px;margin:0 auto}
 .bfig .fl{fill:none;stroke:var(--hi);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .bfig .fl.hy{stroke:var(--y)}.bfig .fl.thin{stroke-width:1.6}.bfig .fl.thick{stroke-width:4.5}
 .bfig .fl.dash{stroke-dasharray:6 5}

@@ -747,6 +747,7 @@ function drillPanel() {
   return h('section', { class: 'card qcard ' + st },
     h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), LEARN.LEVELLED.has(q.id) && h('span', { class: 'pill lvl', title: 'Questions get harder as you get them right' }, 'Level ' + levelOf(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
     h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
+    DEMO.picOf(q) && h('div', { class: 'qpic-w' }, PIC.el(DEMO.picOf(q))),
     def && st !== 'ask' && DRAFT.dr.trim() && h('p', { class: 'yours' }, h('b', null, 'You wrote: '), DRAFT.dr.trim()),
     answerBox,
     st === 'ask' && !mcq && q.hint && h('p', { class: 'muted xs' }, q.hint),

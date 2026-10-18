@@ -167,6 +167,9 @@ const DEMO = (() => {
       return fig(X(terms.length), 104, `Sequence ${terms.join(', ')}: ${step} each time.`, parts); }
   };
 
+  /* sketches of the question itself (the knowns and a "?"), also shown on the question card */
+  for (const k of ['rtri', 'tri', 'trap', 'circle', 'line', 'tri3', 'point', 'poly', 'bag', 'circuit', 'wave', 'force']) { const f = FIG[k]; FIG[k] = (...a) => Object.assign(f(...a), { pic: true }); }
+
   /* ---------- Maths ---------- */
   B['solve-1'] = q => {
     const { a, b, c } = q.dm, x = (c - b) / a, k = Math.abs(b);
@@ -639,6 +642,8 @@ const DEMO = (() => {
     let d = null;
     try { d = f && (q.dm || q.co) ? f(q) : null; } catch (err) { d = { lines: [], checks: [['built without errors', false]] }; }
     if (!d) { if (!q.steps || !q.steps.length) return null; d = fromSteps(q); }
+    /* the question's own picture opens the board, unless the demo already sketches it */
+    if (q.pic && !d.lines.some(l => l.fig && l.fig.pic)) { const i = d.lines.findIndex(l => l.kind === 'q'); if (i >= 0 && !d.lines[i].fig) d.lines[i].fig = q.pic; else d.lines.splice(i + 1, 0, { say: 'Sketch it and label what you know.', fig: q.pic }); }
     /* any sum worth doing on paper gets its written method right after it (at most three per demo) */
     const withWork = []; let wn = 0;
     for (const l of d.lines) { withWork.push(l); const w = wn < 3 && l.math && l.kind !== 'check' && l.kind !== 'q' && written(l.math); if (w) { withWork.push({ say: w.say, fig: w.fig, work: w.sum }); wn++; } }
@@ -668,5 +673,12 @@ const DEMO = (() => {
     }
     return out;
   }
-  return { build, selfTest, builders: Object.keys(B), written, WM };
+  /* the picture for a question card: the question's own, else the sketch its demo opens with */
+  const PICS = new WeakMap();
+  function picOf(q) {
+    if (!q) return null;
+    if (!PICS.has(q)) { let f = q.pic || null; if (!f) try { const d = build(q); const l = d && d.ok && d.lines.find(x => x.fig && x.fig.pic); f = l ? l.fig : null; } catch (e) {} PICS.set(q, f); }
+    return PICS.get(q);
+  }
+  return { build, picOf, selfTest, builders: Object.keys(B), written, WM };
 })();
