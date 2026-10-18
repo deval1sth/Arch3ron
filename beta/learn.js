@@ -93,8 +93,9 @@ const LEARN = (() => {
     if (f === 2) return work(`−${a} × ${b}`, -a * b, ['Negative × positive = negative', `${a} × ${b} = ${a * b}, so the answer is ${n(-a * b)}`]);
     return work(`−${a} × −${b}`, a * b, ['Negative × negative = positive', `${a} × ${b} = ${a * b}`]);
   });
-  T('solve-1', 'Solving equations', () => {
-    const a = ri(2, 9); let x, b; do x = ri(-5, 12); while (!x); do b = ri(-20, 20); while (!b);
+  T('solve-1', 'Solving equations', (lvl = 2) => {
+    /* level 1: small positive numbers; level 3: bigger, with negatives */
+    const a = lvl === 1 ? ri(2, 5) : lvl === 3 ? ri(3, 12) : ri(2, 9); let x, b; do x = lvl === 1 ? ri(1, 10) : lvl === 3 ? ri(-9, 15) : ri(-5, 12); while (!x); do b = lvl === 1 ? ri(1, 15) : lvl === 3 ? ri(-40, 40) : ri(-20, 20); while (!b);
     const c = a * x + b;
     return { q: `Solve ${a}x${sg(b)} = ${n(c)}`, kind: 'num', v: x, dm: { a, b, c }, pre: 'x =', show: 'x = ' + n(x),
       steps: [`${b < 0 ? 'Add' : 'Subtract'} ${Math.abs(b)} on both sides: ${a}x = ${n(c - b)}`, `Divide both sides by ${a}: x = ${n(c - b)} ÷ ${a} = ${n(x)}`] };
@@ -118,8 +119,8 @@ const LEARN = (() => {
     return { q: `If a = ${n(a)} and b = ${n(b)}, work out a² + ${q}b.`, kind: 'num', v, dm: { a, b, q, sq: true }, show: n(v),
       steps: [`${par(a)}² = ${a * a}${a < 0 ? ' (a negative squared is positive)' : ''}`, `${q} × ${par(b)} = ${n(q * b)}`, `${a * a} + ${par(q * b)} = ${n(v)}`] };
   });
-  T('expand', 'Expanding brackets', () => {
-    const k = ri(2, 9), p = ri(1, 5), m = ri(1, 12), neg = Math.random() < .5, A = k * p, B = k * (neg ? -m : m), px = (p === 1 ? '' : p) + 'x';
+  T('expand', 'Expanding brackets', (lvl = 2) => {
+    const k = lvl === 3 ? ri(4, 12) : ri(2, 9), p = lvl === 1 ? 1 : lvl === 3 ? ri(2, 7) : ri(1, 5), m = lvl === 3 ? ri(5, 20) : ri(1, 12), neg = lvl > 1 && Math.random() < .5, A = k * p, B = k * (neg ? -m : m), px = (p === 1 ? '' : p) + 'x';
     return { q: `Expand ${k}(${px} ${neg ? '−' : '+'} ${m})`, kind: 'lin', dm: { k, p, m: neg ? -m : m }, v: 'x', a: A, b: B, show: lin(A, B, 'x'), hint: 'Type it like 6x + 15',
       steps: [`Multiply everything inside the bracket by ${k}`, `${k} × ${px} = ${A}x`, `${k} × ${neg ? '−' : ''}${m} = ${n(B)}`, `Answer: ${lin(A, B, 'x')}`] };
   });
@@ -218,6 +219,85 @@ const LEARN = (() => {
     return { q: `Round ${x} to ${sf} significant figure${sf > 1 ? 's' : ''}.`, kind: 'num', v: ans, dm: { x, sf }, rel: 1e-9, show: String(ans),
       steps: [`The first significant figure is the first non-zero digit: ${ds[0]}`, `The digit after ${sf} s.f. is ${ds[sf]}, so round ${up ? 'up' : 'down'}`, big ? 'Fill the remaining places with zeros to keep the size of the number' : 'Keep the leading zeros', `Answer: ${ans}`] };
   });
+  /* ---------- Maths: AQA Higher. Only shown to students on the Higher tier. Each takes a level (1 easier, 3 harder) ---------- */
+  const TH = (id, name, gen) => { M[id] = { name, gen, tier: 'H' }; };
+  const nz = (a, b) => { let v; do v = ri(a, b); while (!v); return v; };
+  const quadStr = (A, B, C) => [A === 1 ? 'x²' : A === -1 ? '−x²' : n(A) + 'x²', B ? (B < 0 ? ' − ' : ' + ') + (Math.abs(B) === 1 ? '' : Math.abs(B)) + 'x' : '', C ? sg(C) : ''].join('');
+  const brk = p => `(x${sg(p)})`;
+  TH('h-dbl', 'Expanding double brackets', (lvl = 2) => {
+    const p = lvl === 3 ? ri(2, 4) : 1, a = nz(lvl === 1 ? 1 : -9, 9), b = nz(lvl === 1 ? 1 : -9, 9), A = p, B = p * b + a, C = a * b;
+    const px = p === 1 ? 'x' : p + 'x';
+    return { q: `Expand and simplify (${px}${sg(a)})(x${sg(b)})`, kind: 'quad', A, B, C, show: quadStr(A, B, C), hint: 'Type it like x^2 + 5x + 6',
+      steps: [`First: ${px} × x = ${p === 1 ? '' : p}x²`, `Outside: ${px} × ${par(b)} = ${n(p * b)}x`, `Inside: ${n(a)} × x = ${n(a)}x`, `Last: ${n(a)} × ${par(b)} = ${n(C)}`,
+        `Collect the x terms: ${n(p * b)} + ${par(a)} = ${n(B)}`, `Answer: ${quadStr(A, B, C)}`] };
+  });
+  TH('h-fact', 'Factorising quadratics', (lvl = 2) => {
+    let p, q; do { p = nz(lvl === 1 ? 1 : -9, 9); q = nz(lvl === 1 ? 1 : -9, 9); } while (p + q === 0);
+    const B = p + q, C = p * q;
+    return { q: `Factorise ${quadStr(1, B, C)}`, kind: 'fact', r: [p, q], show: brk(p) + brk(q), hint: 'Type it like (x + 2)(x + 3)',
+      steps: [`Find two numbers that multiply to ${n(C)} and add to ${n(B)}`, `${n(p)} × ${par(q)} = ${n(C)}   and   ${n(p)} + ${par(q)} = ${n(B)}`, `Answer: ${brk(p)}${brk(q)}`] };
+  });
+  TH('h-quad', 'Solving quadratics', (lvl = 2) => {
+    let p, q; do { p = nz(-9, lvl === 1 ? -1 : 9); q = nz(-9, lvl === 1 ? -1 : 9); } while (p === q || p + q === 0);
+    const B = -(p + q), C = p * q;
+    return { q: `Solve ${quadStr(1, B, C)} = 0`, kind: 'roots', r: [p, q], show: `x = ${n(p)} or x = ${n(q)}`, hint: 'Type both answers, like x = 2 or x = −5',
+      steps: [`Factorise: two numbers that multiply to ${n(C)} and add to ${n(B)} are ${n(-p)} and ${n(-q)}`, `${brk(-p)}${brk(-q)} = 0`,
+        `So x${sg(-p)} = 0, giving x = ${n(p)}`, `or x${sg(-q)} = 0, giving x = ${n(q)}`] };
+  });
+  TH('h-sim', 'Simultaneous equations', (lvl = 2) => {
+    for (;;) {
+      const x = lvl === 1 ? ri(1, 6) : nz(-6, 9), y = lvl === 1 ? ri(1, 6) : nz(-6, 9), a1 = ri(1, 5), b1 = ri(1, 5), a2 = ri(1, 5), b2 = lvl === 1 ? -ri(1, 4) : nz(-5, 5);
+      const det = a1 * b2 - a2 * b1; if (!det) continue;
+      const c1 = a1 * x + b1 * y, c2 = a2 * x + b2 * y, e = (A, B2, Cc) => `${A === 1 ? '' : A}x${B2 < 0 ? ' − ' : ' + '}${Math.abs(B2) === 1 ? '' : Math.abs(B2)}y = ${n(Cc)}`;
+      return { q: `Solve the simultaneous equations:  ${e(a1, b1, c1)}  and  ${e(a2, b2, c2)}`, kind: 'pair', x, y, show: `x = ${n(x)}, y = ${n(y)}`, hint: 'Type it like x = 2, y = −3',
+        steps: [`Make the y terms match: multiply the first equation by ${par(b2)} and the second by ${b1}`, `${n(a1 * b2)}x + ${par(b1 * b2)}y = ${n(c1 * b2)}`, `${n(a2 * b1)}x + ${par(b2 * b1)}y = ${n(c2 * b1)}`,
+          `Subtract to remove y: ${n(a1 * b2)} − ${par(a2 * b1)} = ${n(det)}, and ${n(c1 * b2)} − ${par(c2 * b1)} = ${n(c1 * b2 - c2 * b1)}`, `${n(det)}x = ${n(c1 * b2 - c2 * b1)}, so x = ${n(c1 * b2 - c2 * b1)} ÷ ${par(det)} = ${n(x)}`,
+          `Substitute into the first equation: ${b1}y = ${n(c1)} − ${par(a1 * x)} = ${n(c1 - a1 * x)}, so y = ${n(y)}`, `Check in the second: ${a2} × ${par(x)} + ${par(b2)} × ${par(y)} = ${n(c2)} ✓`] };
+    }
+  });
+  TH('h-trig', 'Trigonometry (SOH CAH TOA)', (lvl = 2) => {
+    const deg = Math.PI / 180, ang = ri(lvl === 1 ? 30 : 15, lvl === 1 ? 60 : 75), H = ri(6, 30), O = H * Math.sin(ang * deg), A = H * Math.cos(ang * deg), f = ri(lvl === 3 ? 0 : 1, 3);
+    const r1 = v => Math.round(v * 10) / 10;
+    if (f === 0) { const o = r1(O), a = r1(A), t = r1(Math.atan(o / a) / deg);
+      return { q: `A right-angled triangle has opposite ${o} cm and adjacent ${a} cm to the angle θ. Find θ to 1 decimal place.`, kind: 'num', v: t, tol: .051, suf: '°', show: t.toFixed(1) + '°',
+        steps: ['Opposite and adjacent: use TAN (TOA)', `tan θ = ${o} ÷ ${a}`, `θ = tan⁻¹(${o} ÷ ${a}) = ${(Math.atan(o / a) / deg).toFixed(3)}… = ${t.toFixed(1)}°`] }; }
+    if (f === 1) { const v = r1(O); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side opposite the angle, to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+      steps: ['Hypotenuse known, opposite wanted: use SIN (SOH)', `opposite = ${H} × sin ${ang}°`, `= ${O.toFixed(3)}… = ${v.toFixed(1)} cm`] }; }
+    if (f === 2) { const v = r1(A); return { q: `A right-angled triangle has hypotenuse ${H} cm and angle ${ang}°. Find the side adjacent to the angle, to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+      steps: ['Hypotenuse known, adjacent wanted: use COS (CAH)', `adjacent = ${H} × cos ${ang}°`, `= ${A.toFixed(3)}… = ${v.toFixed(1)} cm`] }; }
+    const a = ri(5, 20), o = a * Math.tan(ang * deg), v = r1(o);
+    return { q: `A right-angled triangle has angle ${ang}° and the side adjacent to it is ${a} cm. Find the opposite side to 1 decimal place.`, kind: 'num', v, tol: .051, suf: 'cm', show: v.toFixed(1) + ' cm',
+      steps: ['Adjacent known, opposite wanted: use TAN (TOA)', `opposite = ${a} × tan ${ang}°`, `= ${o.toFixed(3)}… = ${v.toFixed(1)} cm`] };
+  });
+  TH('h-ind', 'Laws of indices', (lvl = 2) => {
+    const L = pick(['a', 'x', 'y', 'm']), f = ri(0, lvl === 1 ? 1 : 2), m = ri(2, 9), k = ri(2, lvl === 3 ? 9 : 6);
+    if (f === 0) return { q: `Simplify ${L}${sup(m)} × ${L}${sup(k)}`, kind: 'num', v: m + k, pre: L + '^', show: L + sup(m + k), hint: 'Type just the new power',
+      steps: ['Multiplying powers of the same letter: add the powers', `${m} + ${k} = ${m + k}`, `Answer: ${L}${sup(m + k)}`] };
+    if (f === 1) { const big = m + k; return { q: `Simplify ${L}${sup(big)} ÷ ${L}${sup(k)}`, kind: 'num', v: m, pre: L + '^', show: L + sup(m), hint: 'Type just the new power',
+      steps: ['Dividing powers of the same letter: subtract the powers', `${big} − ${k} = ${m}`, `Answer: ${L}${sup(m)}`] }; }
+    return { q: `Simplify (${L}${sup(m)})${sup(k)}`, kind: 'num', v: m * k, pre: L + '^', show: L + sup(m * k), hint: 'Type just the new power',
+      steps: ['A power of a power: multiply the powers', `${m} × ${k} = ${m * k}`, `Answer: ${L}${sup(m * k)}`] };
+  });
+  TH('h-revpct', 'Reverse percentages', (lvl = 2) => {
+    const p = pick(lvl === 1 ? [10, 20, 25, 50] : [5, 10, 15, 20, 25, 30, 40]), up = Math.random() < .5, orig = ri(4, 60) * 4, m = (100 + (up ? p : -p)) / 100, now = clean(orig * m);
+    return { q: `After a ${p}% ${up ? 'increase' : 'decrease'}, a price is £${money(now)}. What was the original price?`, kind: 'num', v: orig, tol: .005, pre: '£', show: '£' + money(orig),
+      steps: [`The new price is ${up ? 100 + p : 100 - p}% of the original: multiplier ${n(m)}`, 'Undo the multiplier: divide by it', `£${money(now)} ÷ ${n(m)} = £${money(orig)}`] };
+  });
+  TH('h-surd', 'Simplifying surds', (lvl = 2) => {
+    const b = pick([2, 3, 5, 6, 7, 10, 11]), a = ri(2, lvl === 3 ? 9 : 5), nn = a * a * b;
+    return { q: `Simplify √${nn}`, kind: 'surd', a, b, show: `${a}√${b}`, hint: 'Type it like 4√3 (or 4 root 3)',
+      steps: [`Find the biggest square number that goes into ${nn}: ${a * a}`, `${nn} = ${a * a} × ${b}`, `√${nn} = √${a * a} × √${b} = ${a}√${b}`] };
+  });
+  TH('h-recur', 'Recurring decimals to fractions', (lvl = 2) => {
+    if (lvl === 1 || Math.random() < .3) { const d = ri(1, 8), [sn, sd] = simp(d, 9);
+      return { q: `Write 0.${d}${d}${d}… (${d} recurring) as a fraction in its simplest form.`, kind: 'frac', n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 5/9',
+        steps: [`Let x = 0.${d}${d}${d}…`, `10x = ${d}.${d}${d}${d}…`, `Subtract: 10x − x = 9x = ${d}`, `x = ${d}/9${sd !== 9 ? ' = ' + fs(sn, sd) : ''}`] }; }
+    let ab; do ab = ri(10, 98); while (ab % 11 === 0);
+    const s = String(ab), [sn, sd] = simp(ab, 99);
+    return { q: `Write 0.${s}${s}${s}… (${s} recurring) as a fraction in its simplest form.`, kind: 'frac', n: sn, d: sd, show: fs(sn, sd), hint: 'Type a fraction like 5/11',
+      steps: [`Let x = 0.${s}${s}…`, `100x = ${s}.${s}${s}…`, `Subtract: 100x − x = 99x = ${ab}`, `x = ${ab}/99${sd !== 99 ? ' = ' + fs(sn, sd) : ''}`] };
+  });
+
 
   /* ---------- Physics: AQA equations to recall, forwards and rearranged ---------- */
   const P = {};
@@ -470,7 +550,7 @@ const LEARN = (() => {
   /* ---------- registry ---------- */
   const QDECKS = { 'q-mac': ['mac', 'Macbeth quotes'], 'q-acc': ['acc', 'A Christmas Carol quotes'], 'q-je': ['je', "Journey's End quotes"] };
   const TOPIC = {};
-  for (const id of Object.keys(M)) TOPIC[id] = { name: M[id].name, subject: 'maths', type: 'calc' };
+  for (const id of Object.keys(M)) TOPIC[id] = { name: M[id].name, subject: 'maths', type: 'calc', tier: M[id].tier || null };
   for (const k of Object.keys(P)) TOPIC['p-' + k] = { name: P[k].name, subject: 'physics', type: 'calc' };
   for (const [id, c] of Object.entries(C)) TOPIC[id] = { name: c.name, subject: c.subject, type: 'calc' };
   for (const [id, r] of Object.entries(R)) TOPIC[id] = { name: r.name, subject: r.subject, type: 'recall', size: r.items.length };
@@ -487,12 +567,12 @@ const LEARN = (() => {
   ].map(([id, name, icon, subj]) => ({ id, name, icon, subj, topics: Object.keys(TOPIC).filter(t => TOPIC[t].subject === id) }));
   const trackOf = id => TOPIC[id] ? TOPIC[id].subject : 'maths';
   const name = id => TOPIC[id] ? TOPIC[id].name : id;
-  function gen(id) {
+  function gen(id, lvl) { /* lvl 1–3 picks easier or harder numbers where a generator supports it; others ignore it */
     let q = null;
     try {
-      if (M[id]) q = M[id].gen();
+      if (M[id]) q = M[id].gen(lvl);
       else if (id.startsWith('p-') && P[id.slice(2)]) q = genPhys(P[id.slice(2)]);
-      else if (C[id]) q = C[id].gen();
+      else if (C[id]) q = C[id].gen(lvl);
       else if (R[id]) q = genRecall(id);
       else if (QDECKS[id]) q = genQuote(QDECKS[id][0]);
       else if (DF[id]) q = genDef(id);
@@ -530,6 +610,20 @@ const LEARN = (() => {
       else { const k = Number(t); if (!Number.isFinite(k)) return null; b += k; }
     }
     return { a, b };
+  }
+  /* ax² + bx + c typed any reasonable way: x^2, x², terms in any order */
+  function parseQuad(s) {
+    s = norm(s).toLowerCase().replace(/\s/g, '').replace(/[×*]/g, '').replace(/²/g, '^2');
+    if (!s || !/^[-+0-9x^.]+$/.test(s)) return null;
+    const terms = s.match(/[+-]?[^+-]+/g); if (!terms) return null;
+    let A = 0, B = 0, C = 0;
+    for (const t of terms) {
+      const k = c => c === '' || c === '+' ? 1 : c === '-' ? -1 : Number(c);
+      if (t.endsWith('x^2')) { const v = k(t.slice(0, -3)); if (!Number.isFinite(v)) return null; A += v; }
+      else if (t.endsWith('x')) { const v = k(t.slice(0, -1)); if (!Number.isFinite(v)) return null; B += v; }
+      else { const v = Number(t); if (!Number.isFinite(v) || /x|\^/.test(t)) return null; C += v; }
+    }
+    return { A, B, C };
   }
   const UNSUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9, '⁻': '-' };
   function parseSF(s) {
@@ -570,6 +664,34 @@ const LEARN = (() => {
       if (same && (Math.abs(r.m) < 1 || Math.abs(r.m) >= 10)) return { valid: true, ok: false, msg: 'Right value, but the first number must be between 1 and 10.' };
       return { valid: true, ok: same };
     }
+    if (q.kind === 'quad') {
+      const r = parseQuad(s); if (!r) return { valid: false, msg: 'Type it like x^2 + 5x + 6' };
+      return { valid: true, ok: r.A === q.A && r.B === q.B && r.C === q.C };
+    }
+    if (q.kind === 'fact') {
+      const t = s.toLowerCase().replace(/\s/g, '').replace(/[−–]/g, '-');
+      const sq = t.match(/^\(x([+-]\d+)\)(?:\^2|²)$/), m = t.match(/^\(x([+-]\d+)\)\(x([+-]\d+)\)$/);
+      const got = sq ? [+sq[1], +sq[1]] : m ? [+m[1], +m[2]] : null;
+      if (!got) { const e = parseQuad(s); return e && e.A === 1 && e.B === q.r[0] + q.r[1] && e.C === q.r[0] * q.r[1] ? { valid: true, ok: false, msg: 'That is the expanded form. Put it into two brackets.' } : { valid: false, msg: 'Type it like (x + 2)(x + 3)' }; }
+      return { valid: true, ok: [...got].sort((a, b) => a - b).join() === [...q.r].sort((a, b) => a - b).join() };
+    }
+    if (q.kind === 'roots') {
+      const xs = (s.replace(/[−–]/g, '-').match(/-?\d+(\.\d+)?/g) || []).map(Number);
+      if (xs.length < 2) return { valid: false, msg: 'Type both answers, like x = 2 or x = -5' };
+      return { valid: true, ok: xs.length === 2 && [...xs].sort((a, b) => a - b).join() === [...q.r].sort((a, b) => a - b).join() };
+    }
+    if (q.kind === 'pair') {
+      const t = s.toLowerCase().replace(/[−–]/g, '-'), mx = t.match(/x\s*=\s*(-?\d+(?:\.\d+)?)/), my = t.match(/y\s*=\s*(-?\d+(?:\.\d+)?)/), all = t.match(/-?\d+(\.\d+)?/g) || [];
+      const x = mx ? +mx[1] : all.length === 2 ? +all[0] : null, y = my ? +my[1] : all.length === 2 ? +all[1] : null;
+      if (x == null || y == null) return { valid: false, msg: 'Type it like x = 2, y = -3' };
+      return { valid: true, ok: x === q.x && y === q.y };
+    }
+    if (q.kind === 'surd') {
+      const m = s.toLowerCase().replace(/\s/g, '').match(/^(\d*)(?:√|sqrt|root|r)\(?(\d+)\)?$/); if (!m) return { valid: false, msg: 'Type it like 4√3 or 4 root 3' };
+      const a = m[1] ? +m[1] : 1, b = +m[2];
+      if (a === q.a && b === q.b) return { valid: true, ok: true };
+      return a * a * b === q.a * q.a * q.b ? { valid: true, ok: false, msg: 'Same value, but it can be simplified further.' } : { valid: true, ok: false };
+    }
     if (q.kind === 'formula' || q.kind === 'coef') return CHEM.check(q, s);
     if (q.kind === 'word') {
       const a = s.toLowerCase().replace(/[^a-z']/g, ''), b = q.w.toLowerCase();
@@ -590,5 +712,7 @@ const LEARN = (() => {
     for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
-  return { TUNE, MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
+  /* topics whose questions change with level (1 easier, 3 harder) */
+  const LEVELLED = new Set(['solve-1', 'expand', ...Object.keys(M).filter(id => M[id].tier === 'H')]);
+  return { TUNE, LEVELLED, MATHS, PHYS, PEQ: P, QUOTES, RECALL, SUBJECTS, TOPIC, gen, check, defTicks, selfTest, name, trackOf, bank, setItemInfo: f => { itemInfo = f; }, setQuoteSource: f => { quoteSource = f; } };
 })();

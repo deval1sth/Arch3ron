@@ -111,7 +111,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -128,6 +128,7 @@ function normalize(raw) {
   s.xp = Math.max(0, Math.round(num(r.xp)));
   s.mock = isKey(r.mock) ? r.mock : s.mock; /* the beta has no old placeholder dates to correct */
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
+  for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
   s.theme = THEMES.some(t => t[0] === r.theme) ? r.theme : OLD_HL[r.theme] || 'lime'; s.achV = num(r.achV);
   s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
@@ -259,7 +260,17 @@ const subjectsPractised = () => LEARN.SUBJECTS.filter(s => s.topics.reduce((n, t
 const today = () => dayNum(dkey());
 LEARN.setItemInfo(key => { const m = S.items[key]; return m ? { n: m[0], r: m[1], s: m[2], ago: today() - m[3] } : null; });
 const learned = key => { const m = S.items[key]; return !!m && m[2] >= 2; }; /* right twice in a row, and right last time */
+/* Smart difficulty: each topic has a level 1–3. Four right in a row at a level moves you up (with a small celebration);
+   two misses at a level move you back down, quietly, so a hard patch never feels like a punishment. */
+const levelOf = id => (S.lvl[id] || { l: 1 }).l;
+function levelUp(id, ok) {
+  if (!LEARN.LEVELLED.has(id)) return;
+  const m = S.lvl[id] = S.lvl[id] || { l: 1, r: 0, w: 0 };
+  if (ok) { m.r++; if (m.r >= 4 && m.l < 3) { m.l++; m.r = 0; m.w = 0; toast(`Level up: ${LEARN.name(id)} is now level ${m.l}`, 'big'); } }
+  else { m.r = 0; m.w++; if (m.w >= 2 && m.l > 1) { m.l--; m.w = 0; } }
+}
 function record(id, ok, key) {
+  levelUp(id, ok);
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
   if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
@@ -280,11 +291,13 @@ function addFix(ids, why) {
   if (S.queue.length > 40) S.queue = S.queue.slice(-40);
   return n;
 }
+const higherPull = () => { const a = LEARN.MATHS.map(id => { const k = skill(id); return k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : null; }).filter(x => x != null), m = a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; return m >= .7 ? 1.5 : m >= .5 ? 1 : .6; };
 function pickTopic(track, avoid) {
   const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
+  const pull = higherPull(); /* Higher topics come up more as your Maths gets stronger */
   const w = pool.map(id => {
-    const core = LEARN.TOPIC[id].type === 'eq' ? .3 : 1; /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
+    const core = (LEARN.TOPIC[id].type === 'eq' ? .3 : 1) * (LEARN.TOPIC[id].tier === 'H' ? pull : 1); /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
     const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 * core : core; if (!k.n) return 3 * boost;
     const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
     return (k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3) * boost;
@@ -656,7 +669,7 @@ function nextQ(sameTopic) {
   const due = !sameTopic && DR.retry && DR.retry.find(r => r.at <= DR.count);
   if (due) { DR.retry = DR.retry.filter(r => r !== due); DR.q = due.q; DR.last = due.q.id; DR.state = 'ask'; return; }
   const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
-  DR.q = id && LEARN.gen(id); DR.state = 'ask'; DR.last = id;
+  DR.q = id && LEARN.gen(id, levelOf(id)); DR.state = 'ask'; DR.last = id;
   /* the first question in a not-yet-clicked topic each session starts with a different example, worked on the board */
   DR.exSeen = DR.exSeen || [];
   if (DR.q && lowTopic(id) && !DR.exSeen.includes(id) && typeof DEMO !== 'undefined') {
@@ -700,7 +713,7 @@ function drillPanel() {
       h('input', { id: 'ans', 'data-draft': 'dr', 'data-enter': '1', value: DRAFT.dr, disabled: st !== 'ask', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: 'done', 'aria-label': 'Your answer', placeholder: q.kind === 'coef' ? q.co.map(() => '1').join(' ') : null }),
       q.suf && h('span', { class: 'adorn' }, q.suf));
   return h('section', { class: 'card qcard ' + st },
-    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
+    h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), LEARN.LEVELLED.has(q.id) && h('span', { class: 'pill lvl', title: 'Questions get harder as you get them right' }, 'Level ' + levelOf(q.id)), h('span', null, q.back && st === 'ask' ? 'Back again: one to fix' : DR.run >= 3 ? `${DR.run} in a row` : DR.ok ? `${DR.ok} right` : 'Take your time')),
     h('p', { class: 'qtext' + (q.kind === 'word' ? ' quote' : '') }, q.q),
     def && st !== 'ask' && DRAFT.dr.trim() && h('p', { class: 'yours' }, h('b', null, 'You wrote: '), DRAFT.dr.trim()),
     answerBox,

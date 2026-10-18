@@ -117,10 +117,11 @@ const ME = (() => {
     S.me = me; S.profile.name = me.name; S.mock = me.mock;
     for (const s of me.subs) { const c = byId[s.id]; if (!c) continue; const g = S.grades[c.grade] = S.grades[c.grade] || {}; if (gn(s.cur) != null) g.cur = String(s.cur); if (gn(s.tgt) != null) g.tgt = String(s.tgt); }
     const tracks = new Set(me.subs.flatMap(s => (byId[s.id] || { tracks: [] }).tracks)), lit = me.subs.find(s => s.id === 'englit'), re = me.subs.find(s => s.id === 're');
+    const mathsTier = (me.subs.find(s => s.id === 'maths') || {}).tier; /* Higher-only Maths topics are hidden on Foundation */
     S.hidden = {};
     for (const id of Object.keys(LEARN.TOPIC)) {
       const t = LEARN.TOPIC[id].subject, tx = topicText(id), rl = topicRelig(id);
-      if (!tracks.has(t) || (t === 'englit' && tx && lit && !(lit.texts || []).includes(tx)) || (t === 're' && rl && re && !(re.relig || []).includes(rl))) S.hidden[id] = true;
+      if (!tracks.has(t) || (LEARN.TOPIC[id].tier === 'H' && mathsTier !== 'Higher') || (t === 'englit' && tx && lit && !(lit.texts || []).includes(tx)) || (t === 're' && rl && re && !(re.relig || []).includes(rl))) S.hidden[id] = true;
     }
     if (rebuild) S.plan = buildPlan(me);
     const p = idx.list.find(x => x.id === active); if (p) { p.name = me.name; p.av = me.av; saveIdx(); }
@@ -218,7 +219,7 @@ const ME = (() => {
     if (step === 3) return `<h1>Boards and tiers</h1><p class="muted">Questions in Archeron are written for AQA. Most of the content overlaps with other boards, but the question styles will not always match your papers.</p>
       ${D.subs.map(s => { const c = byId[s.id]; return `<div class="su-card"><b>${esc(c.name)}</b>
         <div class="chips">${BOARDS.map(b => chipB(b, s.board === b, 'board', `data-id="${s.id}" data-v="${b}"`)).join('')}</div>
-        ${c.tier ? `<div class="chips">${['Foundation', 'Higher'].map(t => chipB(t, s.tier === t, 'tier', `data-id="${s.id}" data-v="${t}"`)).join('')}</div>${s.tier === 'Higher' && c.tracks.length ? '<p class="muted xs">Higher-only questions are coming. For now you get the core questions both tiers share.</p>' : ''}` : ''}
+        ${c.tier ? `<div class="chips">${['Foundation', 'Higher'].map(t => chipB(t, s.tier === t, 'tier', `data-id="${s.id}" data-v="${t}"`)).join('')}</div>${s.tier === 'Higher' && c.tracks.length ? (s.id === 'maths' ? '<p class="muted xs">You also get Higher-only topics: quadratics, simultaneous equations, trigonometry, surds and more.</p>' : '<p class="muted xs">Higher-only questions for this subject are coming. For now you get the questions both tiers share.</p>') : ''}` : ''}
         ${s.board !== 'AQA' && c.tracks.length ? `<p class="muted xs">Questions are written for AQA: the content mostly overlaps with ${esc(s.board)}.</p>` : ''}
         ${c.texts ? `<p class="su-l">Your set texts</p><div class="chips">${TEXTS.map(([k, n, kind]) => chipB(`${n} <small>${kind}</small>`, (s.texts || []).includes(k), 'text', `data-v="${k}"`)).join('')}</div><p class="muted xs">Not in Archeron yet: ${Object.values(NOT_YET).join('; ')}.</p>` : ''}
         ${c.relig ? `<p class="su-l">Your religions</p><div class="chips">${RELIG.map(([k, n]) => chipB(n, (s.relig || []).includes(k), 'relig', `data-v="${k}"`)).join('')}</div><p class="muted xs">Not in Archeron yet: ${RELIG_NOT}.</p>` : ''}</div>`; }).join('')}`;
