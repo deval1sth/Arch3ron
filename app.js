@@ -1493,12 +1493,15 @@ function focusKey(el) {
   const parts = ['act', 'draft', 'sid', 'j', 'i', 'id', 'tab', 'k', 'd', 'deck', 'subj', 'field', 'ok', 'track', 'topic', 'v', 'kind'].filter(a => el.dataset[a] != null).map(a => `[data-${a}="${CSS.escape(el.dataset[a])}"]`);
   return parts.length ? el.tagName.toLowerCase() + parts.join('') : null;
 }
+/* Sebastian's idle animations are drawn on the main thread (SVG), so they pause whenever he is scrolled out of sight */
+const SEB_IO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('off', !e.isIntersecting); }) : null;
 function render(o = {}) {
   const fk = o.enter ? null : focusKey(document.activeElement);
   renderedDay = dkey();
   hdr();
   const view = $('#view');
   view.replaceChildren(VIEWS[TAB]());
+  if (SEB_IO) { SEB_IO.disconnect(); for (const r of view.querySelectorAll('.seb-rat')) SEB_IO.observe(r); }
   view.classList.remove('enter'); if (o.enter && !REDUCED) { void view.offsetWidth; view.classList.add('enter'); }
   navPaint();
   if (TAB === 'papers') drawChart();
@@ -1522,12 +1525,14 @@ function revealAboveNav(e) {
   if (r.bottom > nav - 12 || r.top < 70) scrollBy({ top: Math.min(r.bottom - nav + 24, top - 80), behavior: REDUCED ? 'auto' : 'smooth' });
 }
 /* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
+const SCROLLS = {};
 function go(t, focusSel) {
   if (!VIEWS[t]) return;
   if (t !== TAB) SFX.play('click');
   const dir = ORDER(t) >= ORDER(TAB) ? 'fwd' : 'back';
-  const swap = () => { TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, 0); };
-  if (HAS_VT && t !== TAB) { document.documentElement.dataset.dir = dir; document.startViewTransition(swap); }
+  const from = TAB, fromY = scrollY; /* Back to a list returns to where you were in it, like a phone app; anywhere else starts at the top */
+  const swap = () => { SCROLLS[from] = fromY; TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, t === PARENT[from] ? SCROLLS[t] || 0 : 0); };
+  if (HAS_VT && t !== TAB) { document.documentElement.dataset.dir = dir; document.startViewTransition(swap).ready.catch(() => {}); } /* a quick second tap skips the first slide: that is fine */
   else swap();
   setTimeout(() => { const f = focusSel && $(focusSel); (f || $('#view')).focus({ preventScroll: true }); }, HAS_VT ? 60 : 0);
 }
@@ -1783,6 +1788,7 @@ document.addEventListener('pointermove', e => {
   t.classList.add('is-hover'); t.firstElementChild && t.firstElementChild.classList.add('is-tilting');
 });
 document.addEventListener('pointerleave', () => { untilt(tiltEl); tiltEl = null; });
+document.addEventListener('touchstart', () => {}, { passive: true }); /* iPhones only show the press-in on buttons (:active) when the page listens for touches */
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { movePill(false); if (TAB === 'papers') drawChart(); }, 120); });
 setInterval(() => { timerTick(); if (dkey() !== renderedDay) render(); }, 250);
 
@@ -1793,7 +1799,7 @@ applyMotion(); applyTheme(); SFX.setLevel(S.sound);
   const end = () => { if (!i.isConnected) return; i.classList.add('out'); setTimeout(() => i.remove(), 600); };
   const w = $('#welcome'), name = S.profile.name;
   if (w) { w.querySelector('.w1').textContent = name ? `Welcome back, ${name}` : 'Welcome to Archeron'; w.querySelector('.w2').textContent = lifeSets() ? `${lifeSets()} set${lifeSets() === 1 ? '' : 's'} done · ${Math.max(0, daysToMocks())} days to mocks` : 'Your mocks start here'; }
-  if (REDUCED) { i.remove(); return; }
+  if (REDUCED || document.documentElement.classList.contains('no-intro')) { i.remove(); return; } /* the full intro plays on the first open of the day */
   i.addEventListener('click', end); setTimeout(end, 4000);
 })();
 

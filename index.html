@@ -21,7 +21,9 @@
 <script>/* apply the saved page and highlighter before first paint (app.js applyTheme writes this) */
 try { var L = (localStorage.getItem('archeron-look') || '').split(' '), R = document.documentElement, N = L[0] === 'night' || (L[0] === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   if (N) { R.setAttribute('data-mode', 'night'); document.querySelector('meta[name=theme-color]').setAttribute('content', '#121735'); }
-  if (L[1] && L[1] !== 'lime') R.setAttribute('data-hl', L[1]); } catch (e) {}</script>
+  if (L[1] && L[1] !== 'lime') R.setAttribute('data-hl', L[1]); } catch (e) {}
+/* the bat intro plays on the first open of each day; later opens go straight in */
+(function () { try { var d = new Date(), k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); if (localStorage.getItem('archeron-intro') === k) document.documentElement.classList.add('no-intro'); else localStorage.setItem('archeron-intro', k); } catch (e) {} })();</script>
 </head>
 <body>
 <div id="intro" aria-hidden="true">

@@ -65,7 +65,9 @@ header{position:sticky;top:0;z-index:10;display:flex;justify-content:space-betwe
 .logo{display:flex;gap:9px;align-items:center;font-family:var(--head);font-weight:800;letter-spacing:-.015em;font-size:20px;color:var(--y2)}
 .logo svg{width:34px;fill:var(--y)}
 .cd{display:flex;align-items:center;gap:8px}
-.mini-t{cursor:pointer;background:rgba(var(--em-rgb),.12);animation:breathe 2.4s ease-in-out infinite}
+.mini-t{cursor:pointer;position:relative;background:rgba(var(--em-rgb),.12)}
+/* the glow is drawn once and only its opacity animates (box-shadow animation repaints the blurred header every frame for the whole set) */
+.mini-t::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 18px 0 rgba(var(--em-rgb),.25);opacity:0;pointer-events:none;animation:glowO 2.4s ease-in-out infinite}
 
 /* nav: bottom bar on phones, rail on desktop. Sliding pill: Transitions.dev "Tabs sliding" (see transitions.css) */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--glass);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);border-top:1px solid var(--line2);transition:opacity .8s var(--ease)}
@@ -665,7 +667,7 @@ a.btn{color:inherit;text-decoration:none}
 .mb-trk{height:5px;margin-top:8px;border-radius:99px;background:rgba(var(--fg-rgb),.08);overflow:hidden}
 .mb-trk i{display:block;height:100%;border-radius:inherit;background:var(--y);transition:width 1s linear}
 .mockbar.low{border-color:rgba(var(--em-rgb),.55)}.mockbar.low .mb-t,.mockbar.low .mb-l{color:var(--ember)}.mockbar.low .mb-trk i{background:var(--ember)}
-.mockbar.crit{border-color:var(--danger);animation:mbPulse 1.6s ease-in-out infinite}.mockbar.crit .mb-t,.mockbar.crit .mb-l{color:var(--danger)}.mockbar.crit .mb-trk i{background:var(--danger)}
+.mockbar.crit{border-color:var(--danger)}.mockbar.crit::after{content:"";position:absolute;inset:-1px;border-radius:inherit;box-shadow:0 0 0 4px rgba(var(--no-rgb),.22);opacity:0;pointer-events:none;animation:glowO 1.6s ease-in-out infinite}.mockbar.crit .mb-t,.mockbar.crit .mb-l{color:var(--danger)}.mockbar.crit .mb-trk i{background:var(--danger)}
 .mockbar.over{border-color:var(--danger)}.mockbar.over .mb-t{font-size:22px;color:var(--danger)}
 @keyframes mbPulse{50%{box-shadow:0 0 0 4px rgba(var(--no-rgb),.22)}}
 textarea:disabled{opacity:.55}
@@ -1247,3 +1249,8 @@ html.su-open{overflow:hidden}
 .pill.lvl{background:var(--y-soft);color:var(--y3)}
 .gc-l{margin:0 0 10px;padding-left:20px;display:grid;gap:8px;line-height:1.45}
 .su-new{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;line-height:1.45;font-size:14px}
+@keyframes glowO{50%{opacity:1}}
+.seb-rat.off,.seb-rat.off *{animation-play-state:paused}
+.no-intro #intro{display:none}
+/* quick taps never zoom the page (pinch zoom still works) */
+:where(a,button,input,select,textarea,label,summary,[data-act]){touch-action:manipulation}
