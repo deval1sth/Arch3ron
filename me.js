@@ -256,11 +256,13 @@ const ME = (() => {
   }
   function paint(moved, keepFocus) {
     if (!root) return;
+    const was = root.querySelector('.su-body'), keepY = was && !moved ? was.scrollTop : 0; /* a tap redraws the sheet: stay where you were */
     const pct = Math.round((step + 1) / STEPS.length * 100), last = step === STEPS.length - 1, first = step === firstStep();
     root.innerHTML = `<div class="su-top"><span class="su-logo">Archeron</span><div class="su-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Set-up progress"><i style="width:${pct}%"></i></div>${D.edit && !D.check ? btn('✕', 'cancel', 'ghost icon-only', 'aria-label="Close set-up"') : '<span></span>'}</div>
       <div class="su-body">${stepHtml()}${err ? `<p class="su-err" role="alert">${esc(err)}</p>` : ''}</div>
       <div class="su-foot">${first ? '<span></span>' : btn('Back', 'back', 'ghost')}${last ? (D.check ? btn('Build a new week', 'finish', 'ghost') + btn('Keep my plan', 'keepPlan', 'primary') : D.edit ? btn('Keep my plan', 'keepPlan', 'ghost') + btn('Build my new week', 'finish', 'primary') : btn('Start revising', 'finish', 'primary')) : btn(step === -1 ? 'Check my set-up' : 'Next', 'next', 'primary')}</div>`;
     const me = root.querySelector('.su-me'); if (me) me.append(avatarEl(D.av, 56));
+    if (keepY) root.querySelector('.su-body').scrollTop = keepY;
     if (keepFocus) { const f = root.querySelector(keepFocus); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
     else if (moved) { root.querySelector('.su-body').scrollTop = 0; const h1 = root.querySelector('h1'); if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); } }
   }
