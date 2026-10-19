@@ -1254,3 +1254,6 @@ html.su-open{overflow:hidden}
 .no-intro #intro{display:none}
 /* quick taps never zoom the page (pinch zoom still works) */
 :where(a,button,input,select,textarea,label,summary,[data-act]){touch-action:manipulation}
+.set-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 14px;margin-bottom:12px;border-radius:var(--r-sm);background:rgba(var(--y-rgb),.08);border:1px solid rgba(var(--y-rgb),.25)}
+.set-note small{flex-basis:100%;color:var(--m);font-size:13px;line-height:1.45}
+.dots5{display:inline-flex;gap:5px}.dots5 i{width:10px;height:10px;border-radius:50%;background:var(--line);transition:background .2s}.dots5 i.on{background:var(--y)}

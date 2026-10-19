@@ -467,7 +467,9 @@ function missionPlan(label) {
   if (/lit|quote|essay|macbeth|carol|journey/.test(L)) return { id: 'lit', title: 'Quotes and an essay plan', steps: ['Warm up: quote and context questions until you get 5 right', 'Then plan one essay below: thesis and three paragraphs', 'Each paragraph: point, quote, method, effect, context'] };
   if (/english lang|language|timed answer|writing/.test(L)) return { id: 'lang', title: 'English Language practice', steps: ['Pick a question type and read the method', 'Write your answer on paper, timed', 'Check it against the method, then plan a piece of writing'] };
   if (/\bre\b|religio/.test(L)) return { id: 're', title: 'RE: key terms and a 12-mark plan', steps: ['Answer key-term questions until you get 5 right', 'Plan a 12-mark answer below: both sides, then a justified conclusion'] };
-  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: subj === 'maths' && /5-a-day/.test(L) ? [`Start with Corbettmaths 5-a-day (${tierFor('Maths') === 'H' ? 'Higher' : 'Foundation'}) on paper`, ...PRACTISE_STEPS.slice(0, 2)] : PRACTISE_STEPS };
+  /* 5-a-day: five warm-up questions from all over Maths in the app, then one topic for the rest of the set */
+  if (subj === 'maths' && /5-a-day/.test(L)) return { id: 'drill', subj, five: true, title: 'Maths: 5-a-day, then one topic', steps: ['Warm up: 5 quick questions from all over Maths', 'Then one topic, picked for you, until the timer ends', PRACTISE_STEPS[1]] };
+  if (subj) return { id: 'drill', subj, title: `${TRACK_NAME(subj)} practice`, steps: PRACTISE_STEPS };
   const own = ME.selfSubject(label); if (own) return own; /* a subject with no question bank yet: revise it your own way */
   return { id: 'choose', title: 'Choose what to study', steps: ['Pick a subject below', ...PRACTISE_STEPS.slice(0, 2)] };
 }
@@ -572,7 +574,18 @@ function missionCard(M, live) {
   if (!live) return h('section', { class: 'card mission' }, head, steps, M.why || null, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
   return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
 }
+/* every live set says how it ends: with the timer, never after a number of questions (a 5-a-day set counts its warm-up first) */
+function setNote(M) {
+  const live = DR && DR.ctx === 'focus', n = live ? DR.n || 0 : 0, five = M.five && live && DR.five;
+  if (five && n < 5) return h('div', { class: 'set-note' }, h('b', null, `Warm-up: ${n} of 5`), h('span', { class: 'dots5', 'aria-hidden': 'true' }, [0, 1, 2, 3, 4].map(i => h('i', { class: i < n ? 'on' : '' }))),
+    h('small', null, 'After 5, it moves on to one topic until the timer ends.'));
+  return h('div', { class: 'set-note' }, five && h('b', null, `Warm-up done ✓ Now: ${DR.topic ? LEARN.name(DR.topic) : 'one topic'}`),
+    h('small', null, `This set ends when the timer runs out, not after a number of questions${n ? `. ${n} answered so far` : ''}. Keep going until then.`));
+}
 function missionPanel(M) {
+  const panel = missionBody(M); if (panel) panel.prepend(setNote(M)); return panel;
+}
+function missionBody(M) {
   if (M.id === 'rescue') return h('div', { class: 'm-panel' }, drillZone('all'));
   if (M.id === 'fixes') {
     const due = S.mistakes.filter(m => !m.fixed && m.redo <= dkey());
@@ -585,7 +598,7 @@ function missionPanel(M) {
   if (M.id === 'lit') return h('div', { class: 'm-panel' }, drillZone('englit'), planBuilder(['macbeth', 'acc', 'je', 'poetry'], 'focus-lit'));
   if (M.id === 'lang') return h('div', { class: 'm-panel' }, langGuides(), planBuilder(['writing1', 'writing2'], 'focus-lang'), drillZone('englang'));
   if (M.id === 're') return h('div', { class: 'm-panel' }, drillZone('re'), planBuilder(['re'], 'focus-re'));
-  if (M.id === 'drill') return h('div', { class: 'm-panel' }, drillZone(M.subj));
+  if (M.id === 'drill') return h('div', { class: 'm-panel' }, drillZone(M.subj, M.five));
   if (M.id === 'self') return h('div', { class: 'm-panel' }, h('p', { class: 'muted' }, `Use the timer, your notes and past papers from your board. Log any paper you sit so your progress shows up.`), h('div', { class: 'row' }, B([icon('scroll'), 'Log a paper'], 'go', 'primary', { 'data-tab': 'papers' }), B([icon('cards'), 'Flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })));
   return h('div', { class: 'm-panel' },
     h('div', { class: 'chips' }, mySubjects().map(s => chip([icon(s.icon), s.name], FREE_TRACK === s.id, 'freeTrack', { 'data-track': s.id }))),
@@ -707,6 +720,7 @@ function dailyCard(inDrill) {
 function nextQ(sameTopic) {
   if (DR.ctx === 'daily') { DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null; DR.q = (DR.dq || [])[DR.count] || null; DR.state = 'ask'; if (!DR.q && DR.dq) dailyDone(); return; }
   DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null;
+  if (DR.five && !DR.topic && (DR.n || 0) >= 5) DR.topic = pickTopic(DR.track, DR.last); /* warm-up done: one topic for the rest of the set */
   const due = !sameTopic && DR.retry && DR.retry.find(r => r.at <= DR.count);
   if (due) { DR.retry = DR.retry.filter(r => r !== due); DR.q = due.q; DR.last = due.q.id; DR.state = 'ask'; return; }
   const id = sameTopic || DR.topic || pickTopic(DR.track, DR.last);
@@ -718,8 +732,9 @@ function nextQ(sameTopic) {
     if (d && d.ok) { DR.exSeen.push(id); DR.ex = d; DR.state = 'example'; }
   }
 }
-function drillZone(track) {
-  if (!DR || DR.ctx !== 'focus' || DR.track !== track) startDrill(track, null, 'focus');
+function drillZone(track, five) {
+  if (five && DR && DR.ctx === 'focus' && DR.setNo !== lifeSets()) DR = null; /* each 5-a-day set starts its own warm-up */
+  if (!DR || DR.ctx !== 'focus' || DR.track !== track) { startDrill(track, null, 'focus'); DR.setNo = lifeSets(); DR.five = !!five; }
   return drillPanel();
 }
 function vDrill() {
@@ -1546,8 +1561,13 @@ function toast(m, cls = '') {
 
 /* ---------- actions ---------- */
 const findSess = sid => { for (let w = 0; w < 7; w++) { const i = S.plan[w].findIndex(s => s.id === sid); if (i > -1) return { w, i, s: S.plan[w][i] }; } return null; };
+/* one more question done in this drill; in a 5-a-day set the fifth one ends the warm-up and picks the topic for the rest */
+function countAns() {
+  DR.n = (DR.n || 0) + 1;
+  if (DR.five && DR.n === 5 && !DR.topic) { DR.topic = pickTopic(DR.track, DR.q.id); const t = LEARN.name(DR.topic); setTimeout(() => toast(`Warm-up done. Next: ${t} until the timer ends.`, "big"), 600); }
+}
 function finishAnswer(res) {
-  record(DR.q.id, res.ok, DR.q.key);
+  record(DR.q.id, res.ok, DR.q.key); countAns();
   if (!res.ok) queueBack();
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
   if (res.ok) { DR.ok++; DR.run++; S.stat.bestRun = Math.max(S.stat.bestRun, DR.run); } else DR.run = 0;
@@ -1611,7 +1631,7 @@ const ACT = {
     finishAnswer({ valid: true, ok: n === all, msg: n === all ? '' : `${n} of ${all} key points. Learn the model answer word for word.` });
   },
   reveal() {
-    if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); queueBack(); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
+    if (!DR || DR.state !== 'ask') return; record(DR.q.id, false, DR.q.key); countAns(); queueBack(); DR.run = 0; DR.state = 'shown'; render({ focus: '#nextq' });
     SFX.play('reveal');
     /* Show me plays the board straight away when the demo is fully checked; the written method stays underneath */
     const d = typeof DEMO !== 'undefined' && DEMO.build(DR.q);
