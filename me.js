@@ -146,19 +146,26 @@ const ME = (() => {
   /* ---------- the set-up flow: a full-screen sheet over the app ---------- */
   const STEPS = ['You', 'Year', 'Subjects', 'Boards', 'Grades', 'Dates', 'Time', 'Your week'];
   let D = null, step = 0, root = null, err = '', search = '';
+  const dig = v => (String(v || '').match(/[1-9]/) || [''])[0];
   const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   function defaultsFor(year) {
     const now = new Date(), y = now.getFullYear(), m = now.getMonth(), schoolYear = m >= 7 ? y : y - 1; /* September starts the school year */
     return year === 10 ? { mock: `${schoolYear + 1}-06-14`, exams: `${schoolYear + 2}-05-10` } : { mock: `${schoolYear + 1}-01-11`, exams: `${schoolYear + 1}-05-10` };
   }
-  function blank() { const d = defaultsFor(11); return { name: '', av: { k: 'a', i: Math.floor(Math.random() * 24) }, year: 11, subs: [], mock: d.mock, exams: d.exams, avail: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 1, 6: 3, 0: 1 } }; }
-  function open(edit) {
-    D = edit && S.me ? JSON.parse(JSON.stringify(S.me)) : blank(); D.edit = !!edit; step = edit ? 2 : 0; err = ''; search = '';
+  function blank() { const d = defaultsFor(11); return { name: '', av: { k: 'a', i: Math.floor(Math.random() * 24) }, year: 11, subs: [], mock: d.mock, exams: d.exams, avail: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 1, 6: 3, 0: 1 }, ok: true }; }
+  /* check = the one-time welcome for whoever used Archeron before set-up existed: their own set-up, filled in, from the start.
+     Grades come only from what was typed on this device, never from the built-in report. */
+  function open(edit, check) {
+    D = (edit || check) && S.me ? JSON.parse(JSON.stringify(S.me)) : blank(); D.edit = !!(edit || check); D.check = !!check; step = check ? -1 : edit ? 2 : 0; err = ''; search = '';
+    if (check) for (const s of D.subs) { const g = (byId[s.id] && S.grades[byId[s.id].grade]) || {}; s.cur = dig(g.cur); s.tgt = dig(g.tgt); }
     if (!root) { root = document.createElement('div'); root.id = 'su'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Set up Archeron'); document.body.append(root); }
     document.documentElement.classList.add('su-open'); paint();
     root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange);
   }
   function close() { if (!root) return; root.remove(); root = null; document.documentElement.classList.remove('su-open'); }
+  const firstStep = () => D.check ? -1 : D.edit ? 2 : 0;
+  /* once the first person has checked their own set-up, the built-in report grades are no longer used for anyone */
+  function forgetReport() { if (typeof REPORT !== 'undefined') for (const k of Object.keys(REPORT)) delete REPORT[k]; }
   const sub = id => D.subs.find(s => s.id === id);
   function valid() {
     if (step === 0 && !D.name.trim()) return 'Type your name (or a nickname) first.';
@@ -169,7 +176,7 @@ const ME = (() => {
   }
   const ACT = {
     next() { err = valid(); if (err) return paint(); if (step < STEPS.length - 1) { step++; paint(true); } },
-    back() { err = ''; if (step > (D.edit ? 2 : 0)) { step--; paint(true); } else if (D.edit) close(); },
+    back() { err = ''; if (step > firstStep()) { step--; paint(true); } else if (D.edit && !D.check) close(); },
     av(b) { D.av = { k: 'a', i: +b.dataset.i }; paint(); },
     year(b) { D.year = +b.dataset.y; const d = defaultsFor(D.year); D.mock = d.mock; D.exams = d.exams; paint(); },
     subj(b) { const id = b.dataset.id, i = D.subs.findIndex(s => s.id === id);
@@ -184,12 +191,13 @@ const ME = (() => {
     load(b) { D.avail[+b.dataset.w] = +b.dataset.v; err = ''; paint(); },
     photo() { root.querySelector('#su-file').click(); },
     finish() {
-      const me = { name: D.name.trim().slice(0, 24), av: D.av, year: D.year, subs: D.subs.map(s => ({ ...s })), mock: D.mock, exams: D.exams, avail: { ...D.avail } };
+      const me = { name: D.name.trim().slice(0, 24), av: D.av, year: D.year, subs: D.subs.map(s => ({ ...s })), mock: D.mock, exams: D.exams, avail: { ...D.avail }, ok: true };
       apply(me, true); close();
       try { sessionStorage.setItem(WHO, active); } catch (e) {}
       location.reload();
     },
-    keepPlan() { const me = { ...S.me, ...D, subs: D.subs.map(s => ({ ...s })) }; delete me.edit; apply(me, false); close(); render(); toast('Set-up saved. Your plan is unchanged.'); },
+    keepPlan() { const me = { ...S.me, ...D, subs: D.subs.map(s => ({ ...s })), ok: true }; delete me.edit; delete me.check; apply(me, false); close(); forgetReport(); render(); toast('Set-up saved. Your plan is unchanged.'); },
+    skip() { for (const s of S.me.subs) { const g = (byId[s.id] && S.grades[byId[s.id].grade]) || {}; s.cur = dig(g.cur); s.tgt = dig(g.tgt); } S.me.ok = true; save(); close(); forgetReport(); render(); },
     cancel() { close(); }
   };
   function onClick(e) { const b = e.target.closest('[data-su]'); if (!b || b.disabled) return; ACT[b.dataset.su](b); }
@@ -206,6 +214,10 @@ const ME = (() => {
   const chipB = (label, on, act, data) => `<button type="button" class="chip${on ? ' on' : ''}" aria-pressed="${!!on}" data-su="${act}" ${data}>${label}</button>`;
   const ready = c => c.tracks.length ? '<span class="su-tag ok">Practice ready</span>' : '<span class="su-tag">Plan and track</span>';
   function stepHtml() {
+    if (step === -1) return `<h1>Archeron has changed</h1><p class="muted">It now works around you: your subjects, your tiers, your grades and your dates. The next screens are filled in with a guess. Change anything that is not right.</p>
+      <div class="su-card"><b>What is new</b><ul class="su-new"><li>Foundation or Higher for Maths and Science, with Higher-only topics and Higher papers</li><li>Topics get harder as you get them right (levels 1 to 3)</li><li>The Daily five: five Maths questions, the same for everyone each day</li><li>Pictures on questions</li><li>More subjects: History, Computer Science, French and Spanish</li></ul></div>
+      <div class="su-card"><b>What stays the same</b><p class="muted xs">Your progress, your ticks and your weekly plan. Nothing is deleted.</p></div>
+      <div class="row">${btn('Skip, keep everything as it is', 'skip', 'link')}</div>`;
     if (step === 0) return `<h1>Set up Archeron for you</h1><p class="muted">Two minutes. You can change any of this later in Toolkit.</p>
       <label class="su-l" for="su-name">Your name or a nickname</label><input id="su-name" maxlength="24" autocomplete="off" value="${esc(D.name)}" placeholder="e.g. Sam">
       <p class="su-l">Pick a picture</p><div class="su-avs">${Array.from({ length: 24 }, (_, i) => `<button type="button" class="su-av${D.av.k === 'a' && D.av.i === i ? ' on' : ''}" data-su="av" data-i="${i}" aria-label="Avatar ${i + 1}" aria-pressed="${D.av.k === 'a' && D.av.i === i}">${avatarSvg(i)}</button>`).join('')}</div>
@@ -244,10 +256,10 @@ const ME = (() => {
   }
   function paint(moved, keepFocus) {
     if (!root) return;
-    const pct = Math.round((step + 1) / STEPS.length * 100), last = step === STEPS.length - 1, first = step === (D.edit ? 2 : 0);
-    root.innerHTML = `<div class="su-top"><span class="su-logo">Archeron</span><div class="su-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Set-up progress"><i style="width:${pct}%"></i></div>${D.edit ? btn('✕', 'cancel', 'ghost icon-only', 'aria-label="Close set-up"') : '<span></span>'}</div>
+    const pct = Math.round((step + 1) / STEPS.length * 100), last = step === STEPS.length - 1, first = step === firstStep();
+    root.innerHTML = `<div class="su-top"><span class="su-logo">Archeron</span><div class="su-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Set-up progress"><i style="width:${pct}%"></i></div>${D.edit && !D.check ? btn('✕', 'cancel', 'ghost icon-only', 'aria-label="Close set-up"') : '<span></span>'}</div>
       <div class="su-body">${stepHtml()}${err ? `<p class="su-err" role="alert">${esc(err)}</p>` : ''}</div>
-      <div class="su-foot">${first ? '<span></span>' : btn('Back', 'back', 'ghost')}${last ? (D.edit ? btn('Keep my plan', 'keepPlan', 'ghost') + btn('Build my new week', 'finish', 'primary') : btn('Start revising', 'finish', 'primary')) : btn('Next', 'next', 'primary')}</div>`;
+      <div class="su-foot">${first ? '<span></span>' : btn('Back', 'back', 'ghost')}${last ? (D.check ? btn('Build a new week', 'finish', 'ghost') + btn('Keep my plan', 'keepPlan', 'primary') : D.edit ? btn('Keep my plan', 'keepPlan', 'ghost') + btn('Build my new week', 'finish', 'primary') : btn('Start revising', 'finish', 'primary')) : btn(step === -1 ? 'Check my set-up' : 'Next', 'next', 'primary')}</div>`;
     const me = root.querySelector('.su-me'); if (me) me.append(avatarEl(D.av, 56));
     if (keepFocus) { const f = root.querySelector(keepFocus); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
     else if (moved) { root.querySelector('.su-body').scrollTop = 0; const h1 = root.querySelector('h1'); if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); } }
@@ -280,16 +292,15 @@ const ME = (() => {
       cur: GR(s.cur), tgt: GR(s.tgt), texts: s.id === 'englit' ? (Array.isArray(s.texts) ? s.texts : []).filter(k => TEXTS.some(t => t[0] === k)) : undefined,
       relig: s.id === 're' ? (Array.isArray(s.relig) ? s.relig : []).filter(k => RELIG.some(t => t[0] === k)) : undefined }));
     const avail = {}; for (let w = 0; w < 7; w++) avail[w] = Math.min(3, Math.max(0, Math.round(+(r.avail && r.avail[w]) || 0)));
-    return { name: String(r.name || '').slice(0, 24), av, year: r.year === 10 ? 10 : 11, subs, mock: DAY.test(r.mock) ? r.mock : defaultsFor(11).mock, exams: DAY.test(r.exams) ? r.exams : defaultsFor(11).exams, avail };
+    return { name: String(r.name || '').slice(0, 24), av, year: r.year === 10 ? 10 : 11, ok: !!r.ok, subs, mock: DAY.test(r.mock) ? r.mock : defaultsFor(11).mock, exams: DAY.test(r.exams) ? r.exams : defaultsFor(11).exams, avail };
   }
 
-  /* The person who used Archeron before profiles: their set-up is filled in from what the app already knows (subjects, report
-     grades, mock date, the week they built), and their plan, progress and topic choices stay exactly as they were.
-     Only topics that are new to them and not theirs are switched off: Higher-only Maths on Foundation, and the new subjects. */
+  /* The person who used Archeron before profiles: a first guess at their set-up from what was typed on this device (subjects,
+     grades, mock date, the week they built), which they then check on the welcome screens (open with check). Their plan,
+     progress and topic choices stay exactly as they were. Only topics that are new to them and not theirs are switched off. */
   function seedLegacy() {
-    const dig = v => (String(v || '').match(/[1-9]/) || [''])[0], rep = typeof REPORT !== 'undefined' ? REPORT : {};
     const subs = ['maths', 'combined', 'englang', 'englit', 'geography', 'business', 're'].map(id => {
-      const c = byId[id], g = S.grades[c.grade] || {}, r = rep[c.grade] || [], cur = dig(g.cur || r[0]), tgt = dig(g.tgt || r[1]);
+      const c = byId[id], g = S.grades[c.grade] || {}, cur = dig(g.cur), tgt = dig(g.tgt);
       return { id, board: 'AQA', tier: c.tier ? (+tgt && +tgt <= 5 ? 'Foundation' : 'Higher') : null, cur, tgt, texts: id === 'englit' ? TEXTS.map(t => t[0]) : undefined, relig: id === 're' ? RELIG.map(t => t[0]) : undefined };
     });
     const avail = {}; for (let w = 0; w < 7; w++) { const n = (S.plan[w] || []).reduce((a, s) => a + (s.kind === 'train' ? s.sets : 0), 0); avail[w] = n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0; }
@@ -298,13 +309,14 @@ const ME = (() => {
     for (const id of Object.keys(LEARN.TOPIC)) if (!tr.has(LEARN.TOPIC[id].subject) || (LEARN.TOPIC[id].tier === 'H' && mt !== 'Higher')) S.hidden[id] = true;
     const p = idx.list.find(x => x.id === LEGACY); if (p) { p.name = S.me.name; p.av = S.me.av; saveIdx(); }
     save();
-    setTimeout(() => toast('New: Archeron has profiles. Your progress and plan are as they were. Pick a picture and check your tiers in Toolkit, Edit set-up.', 'big'), 1500);
   }
   /* after the app has started: first visit → set-up; several profiles and a new session → who's revising */
   function start() {
     let chosen = null; try { chosen = sessionStorage.getItem(WHO); } catch (e) {}
     if (!S.me && active === LEGACY) seedLegacy();
     if (!S.me) return open(false);
+    if (active === LEGACY && !S.me.ok) return open(false, true);
+    if (S.me.ok && typeof REPORT !== 'undefined' && Object.keys(REPORT).length) { forgetReport(); render(); }
     if (idx.list.length > 1 && !chosen) return picker();
     try { sessionStorage.setItem(WHO, active); } catch (e) {}
   }

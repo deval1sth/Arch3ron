@@ -128,6 +128,7 @@ function normalize(raw) {
   s.xp = Math.max(0, Math.round(num(r.xp)));
   s.mock = isKey(r.mock) ? r.mock : s.mock; /* the beta has no old placeholder dates to correct */
   s.friends = FRIENDS.clean(r.friends);
+  s.guided = !!r.guided;
   s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
@@ -555,6 +556,7 @@ function vHome() {
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
         todayQueue().filter(x => x.left > 0).map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
         chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
+    guideCard(),
     todayBar(),
     dailyCard(),
     missionCard(Object.assign({ why: missionWhy(HT) }, M), false),
@@ -686,6 +688,16 @@ function dailyQs(day = dkey()) {
 }
 const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
 function dailyDone() { if (!dailyDoneToday()) { S.daily = { d: dkey(), s: Math.min(5, DR.ok) }; save(); SFX.play('fanfare'); } }
+/* the first thing a new (or returning) person sees on Focus: what Begin does and what each tab is for, until they close it */
+function guideCard() {
+  if (S.guided) return null;
+  return card('How Archeron works', B('Got it', 'guided', 'ghost sm'),
+    h('ol', { class: 'gc-l' },
+      h('li', null, h('b', null, 'Press Begin. '), `A ${S.timer.focus}-minute timer starts and everything for your next set appears under it.`),
+      h('li', null, h('b', null, 'Follow the steps. '), 'Each set says exactly what to do. When the timer ends, take the short rest.'),
+      h('li', null, h('b', null, 'No need to choose. '), "Begin always picks the set you need most. Today's plan shows the rest in order.")),
+    h('p', { class: 'muted xs' }, 'Learn: practise any topic. Study: guides to the hard topics. Mocks: timed papers. Stats: your progress. Toolkit: your set-up, plan and settings.'));
+}
 function dailyCard(inDrill) {
   if (inDrill || dailyDoneToday()) return card('Daily five', h('span', { class: 'muted' }, 'the same five for everyone today'),
     h('p', { class: 'big-score' }, `${dailyDoneToday() ? S.daily.s : DR.ok} / 5`),
@@ -1567,6 +1579,7 @@ const ACT = {
   skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); } render(); },
   /* bad day: 10 minutes of what you are closest to forgetting, instead of a zero day */
+  guided() { S.guided = true; save(); render(); },
   rescue() {
     if (timerActive() && !(T.mode === 'focus' && !T.run && T.rescue)) return toast('Finish or end the set you are on first.');
     T = { mode: 'focus', left: 600, run: true, end: Date.now() + 600000, sid: null, len: 600, rescue: true }; DR = null; saveT(); go('home');

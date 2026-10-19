@@ -1256,3 +1256,5 @@ html.su-open{overflow:hidden}
 .pill.lvl{background:var(--y-soft);color:var(--y3)}
 @media (max-width:420px){.fr-v{min-width:36px}.fr-row{gap:6px;padding:8px}}
 .fr-who{display:flex;flex-direction:column;min-width:0}.fr-who small{color:var(--m);font-size:12px}
+.gc-l{margin:0 0 10px;padding-left:20px;display:grid;gap:8px;line-height:1.45}
+.su-new{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;line-height:1.45;font-size:14px}

@@ -1245,3 +1245,5 @@ html.su-open{overflow:hidden}
 .me-card .row{margin-top:12px;flex-wrap:wrap}
 .btn.danger-t{color:var(--danger)}
 .pill.lvl{background:var(--y-soft);color:var(--y3)}
+.gc-l{margin:0 0 10px;padding-left:20px;display:grid;gap:8px;line-height:1.45}
+.su-new{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;line-height:1.45;font-size:14px}
