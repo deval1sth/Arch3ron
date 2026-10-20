@@ -36,6 +36,12 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `learn.js`: question generators and answer checking (answers are computed, never hand-typed)
 - `study.js`: Study tab (49 in-depth guides) and the revision-session planner
 - `desk.js`: computer layouts, exam hall mode, keyboard shortcuts, printable papers
+- `seq.js`: "Put it in order" sequences (required practicals, processes, plots, timelines), each tied to a practice topic
+- `slips.js`: mistake detective: names the classic slip behind a wrong number, fraction or expression answer
+- `teach.js`: lessons (built into Focus sets, one new one per subject per day), new facts shown before they are asked,
+  step-by-step hints, and quick question types (fill the gap, match up, put in order). Wraps app.js functions; state in `S.tc`
+- `check.js`: gap finder, grade tests, and exam questions sorted by topic with mark schemes
+- `teach.css`: styles for the four files above
 - `fx.js`: confetti bursts, count-ups, reveal overlays
 - `fonts/`: self-hosted Bricolage Grotesque and Atkinson Hyperlegible Next (OFL)
 - `app.js`: state, migration, views, actions

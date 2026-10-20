@@ -207,6 +207,7 @@ function normalize(raw) {
   const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
   if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
     s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
+  s.tc = obj(r.tc); /* lessons, gap finder, grade tests and exam questions by topic (teach.js, check.js) */
   return s;
 }
 
