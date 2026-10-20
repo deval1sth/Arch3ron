@@ -140,7 +140,7 @@ function lsMove(d) {
 function lsFinish() {
   const first = !taughtOn(LS.lid), M = lessonMeta(LS.lid);
   tcObj('taught')[LS.lid] = dkey(); delete tcObj('lp')[LS.lid];
-  tcObj('lday')[M.subj] = dkey(); if (LS.ctx === 'focus' && S.tc.fl) tcObj('lday')[S.tc.fl.tr] = dkey();
+  ldayAdd(M.subj); if (LS.ctx === 'focus' && S.tc.fl && S.tc.fl.tr !== M.subj) ldayAdd(S.tc.fl.tr);
   if (first) { xp(15); dayEv('lesson'); }
   save(); SFX.play('fanfare');
   setTimeout(() => { const c = document.querySelector('.lesson'); if (c) FXS.burst(c, 60); }, 120);
@@ -191,6 +191,11 @@ function vLesson() {
 VIEWS.lesson = vLesson; PARENT.lesson = 'learn'; BACKS.lesson = 'Lesson';
 
 /* ---------- lessons inside Focus sets: one new lesson per subject per day, then practise it ---------- */
+/* Up to two new lessons per subject per day (was one): in the simulation two did better under every assumption and a
+   lesson in every set did no better than two. A skipped lesson uses up the day, so it is not offered again straight away. */
+const LESSONS_A_DAY = 2;
+const ldayN = tr => { const v = tcObj('lday')[tr]; return v && v.d === dkey() ? v.n : v === dkey() ? 1 : 0; };
+const ldayAdd = (tr, n = 1) => { tcObj('lday')[tr] = { d: dkey(), n: Math.min(LESSONS_A_DAY, ldayN(tr) + n) }; };
 const focusTrack = M => M.id === 'drill' ? M.subj : M.id === 'lit' ? 'englit' : M.id === 're' ? 're' : M.id === 'lang' ? 'englang' : null;
 function focusLesson(tr) {
   const active = timerActive() && T.mode === 'focus', n = lifeSets(), d = dkey(), fl = S.tc && S.tc.fl;
@@ -200,7 +205,7 @@ function focusLesson(tr) {
     if (fl.st === 'todo' && taughtOn(fl.lid) === d && !(LS && LS.lid === fl.lid && LS.ctx === 'focus')) fl.st = 'done'; /* finished, then the app was reopened */
     return Object.assign(lessonMeta(fl.lid) || {}, { topic: fl.topic, st: fl.st });
   }
-  const due = tcObj('lday')[tr] === d ? null : lessonDue(tr);
+  const due = ldayN(tr) >= LESSONS_A_DAY ? null : lessonDue(tr);
   if (active) { TCD().fl = { n, d, tr, lid: due ? due.lid : null, topic: due ? due.topic : null, st: due ? 'todo' : 'none' }; save(); }
   return due ? Object.assign(due, { st: 'todo' }) : null;
 }
@@ -241,24 +246,27 @@ nextQ = function (sameTopic) {
   if (!DR || !DR.q) return;
   DR.hint = 0; DR.slip = null; DR.hid = null; DR.ord = null; DR.mt = null;
   if (TEST_CTX.has(DR.ctx) || DR.state === 'example' || DR.q.back) return;
-  if (!sameTopic && !DR.five && Math.random() < .2) { const alt = quickFor(DR.q.id); if (alt) { DR.q = alt; return; } }
+  /* 35% quick types (was 20%): the 12-week simulation (sim2, Oct 2026) found more learning per minute at 35% under every
+     assumption tested, even with slow match-ups; it rewards even more, but it cannot see that matching is easier than recall */
+  if (!sameTopic && !DR.five && Math.random() < .35) { const alt = quickFor(DR.q.id); if (alt) { DR.q = alt; return; } }
   if (isNewFact(DR.q)) DR.state = 'learn';
 };
-/* new facts: seen first, asked now, and asked again three questions later in a fresh form */
+/* New facts: shown first, then first asked two questions later. Asking straight away and again later took time for
+   little gain: in the simulation, one delayed question beat both (+0.5 to +0.9 points), and a delayed first try is also
+   what the testing-effect research favours. */
 function ltGo() {
   if (!DR || DR.state !== 'learn') return;
-  const q = DR.q, it = LEARN.itemsOf(q.id).find(x => x.k === q.key), again = it ? withId(it.q(), q.id) : Object.assign({}, q);
-  again.back = true; again.lt = true;
-  (DR.retry = DR.retry || []).push({ q: again, at: DR.count + 3 });
-  DR.state = 'ask'; render({ focus: q.kind === 'mcq' ? '#opt0' : '#ans' });
+  const q = Object.assign(DR.q, { back: true, lt: true });
+  (DR.retry = DR.retry || []).push({ q, at: DR.count + 3 });
+  DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' });
 }
 function learnCard(q) {
   return h('section', { class: 'card qcard learn-first' },
     h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q.sub || LEARN.name(q.id)), h('span', { class: 'pill new' }, icon('sparkle'), 'New')),
     h('p', { class: 'fb-h' }, 'Learn this one first'),
     h('div', { class: 'lf-fact' }, h('b', null, q.fact[0]), h('p', null, q.fact[1])),
-    h('p', { class: 'muted xs' }, 'Read it, look away and say it in your head. Then you get asked, now and again in a few questions.'),
-    B('Got it: ask me', 'ltGo', 'primary wide', { id: 'nextq' }));
+    h('p', { class: 'muted xs' }, 'Read it, look away and say it in your head. It comes back as a question in a couple of minutes.'),
+    B('Got it', 'ltGo', 'primary wide', { id: 'nextq' }));
 }
 
 /* ---------- hints: one step of the method at a time; a hinted right answer counts, but does not raise your level ---------- */
@@ -406,7 +414,7 @@ drillPanel = function () {
   try {
     const max = hintMax(q);
     if (DR.state === 'ask') {
-      if (q.lt) { const m = el.querySelector('.drill-meta > span:last-child'); if (m) m.textContent = 'Back again: the new one'; }
+      if (q.lt) { const m = el.querySelector('.drill-meta > span:last-child'); if (m) m.textContent = 'The new one from a moment ago'; }
       if (q.kind === 'mcq' && DR.hid) for (const i of DR.hid) { const o = el.querySelector(`.opt[data-i="${i}"]`); if (o) { o.classList.add('gone'); o.disabled = true; } }
       const hl = hintList(q), box = el.querySelector('#ans, .mcq'); if (hl && box) box.after(hl);
       if (max) {
@@ -438,7 +446,7 @@ Object.assign(ACT, {
   lsBoard() { const st = LS && LS.steps[LS.i]; if (st && st.d) { st.open = true; render(); playBoard(st.d, false, 'Worked example'); } },
   lsPractise() { const t = lsTopic(); if (!t) return; startDrill(LEARN.trackOf(t), t); LS = null; go('drill', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans'); },
   lsCarry() { if (S.tc && S.tc.fl) S.tc.fl.st = 'done'; LS = null; DR = null; save(); render(); },
-  lsSkip() { if (S.tc && S.tc.fl) { S.tc.fl.st = 'skip'; tcObj('lday')[S.tc.fl.tr] = dkey(); } LS = null; DR = null; save(); render(); toast('Skipped. The lesson will be offered again another day.'); },
+  lsSkip() { if (S.tc && S.tc.fl) { S.tc.fl.st = 'skip'; ldayAdd(S.tc.fl.tr, LESSONS_A_DAY); } LS = null; DR = null; save(); render(); toast('Skipped. The lesson will be offered again another day.'); },
   ltGo,
   nudge,
   ordPick(el) { if (!DR || DR.state !== 'ask') return; (DR.ord = DR.ord || []).push(+el.dataset.i); SFX.play('click'); render(); },
