@@ -97,7 +97,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Study', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
+const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Guides', listen: 'Listen', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
   B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
@@ -520,7 +520,7 @@ function vHome() {
     sebastian('break'));
 
   if (restState) return h('div', { class: 'stack home' },
-    resumeCard(), backupNag(),
+    resumeCard(), noticeLine(),
     sebastian(),
     h('section', { class: 'focus calm' },
       h('p', { class: 'eyebrow' }, part),
@@ -543,11 +543,12 @@ function vHome() {
     missionCard(M, true));
 
   const rough = hr >= 18 && list.length > 0 && !todayN && !((S.days[dkey()] || {}).ev || {}).sets; /* evening, sets planned, none done */
+  const wb = welcomeBack();
+  /* One main card, one short list, one notice. Everything else is a tap away: the page had grown to ten blocks and felt
+     like too much (Oct 2026). Sebastian keeps you company on the rest and break screens instead. */
   return h('div', { class: 'stack home' },
     resumeCard(),
-    rough && h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'rescue' }, h('span', { class: 'wc-ic' }, icon('shield')),
-      h('span', { class: 'grow' }, h('b', null, 'Rough day?'), h('small', null, 'Do the 10-minute rescue set instead of nothing. It still counts, and it stops you forgetting.')), h('span', { class: 'btn primary sm' }, 'Start')),
-    h('section', { class: 'focus hero' },
+    wb || h('section', { class: 'focus hero' },
       h('p', { class: 'eyebrow' }, `${part} · next up`),
       h('h1', { class: 'focus-title' }, title),
       h('p', { class: 'focus-meta' }, meta),
@@ -557,16 +558,62 @@ function vHome() {
         B(CHOOSE ? 'Close' : 'Choose something else', 'choose', 'link'), h('span', { 'aria-hidden': 'true' }, '·'), B("Today's plan", 'go', 'link', { 'data-tab': 'today' })),
       CHOOSE && h('div', { class: 'chooser t-panel-slide', 'data-open': 'false' },
         todayQueue().filter(x => x.left > 0).map(x => chip([x.s.label, h('span', { class: 'n' }, x.left + ' left')], x.s.id === cur, 'pick', { 'data-sid': x.s.id })),
-        chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }))),
+        chip('Free study', cur === 'free', 'pick', { 'data-sid': 'free' }),
+        h('div', { class: 'ch-more' }, B([icon('target'), 'A 25-minute session on my biggest gap'], 'doNow', 'ghost sm'), B([icon('calendar'), 'Plan a longer revision session'], 'go', 'ghost sm', { 'data-tab': 'session' }))),
+      todayBar()),
+    !wb && setPreview(Object.assign({ why: missionWhy(HT) }, M)),
     guideCard(),
-    todayBar(),
-    dailyCard(),
-    missionCard(Object.assign({ why: missionWhy(HT) }, M), false),
-    backupNag(),
-    doNow(HT),
-    sebastian(),
-    motionHint(),
-    quickWins());
+    alsoToday(rough && !wb),
+    noticeLine());
+}
+/* what the next set holds, folded away until wanted: Begin already shows it all */
+function setPreview(M) {
+  return acc('set-pv', h('span', { class: 'sp-h' }, h('small', null, 'In this set'), h('b', null, M.title)),
+    h('div', { class: 'sp-b' }, M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s))), M.why || null), { cls: 'card set-pv' });
+}
+/* After 4 or more days without a set, Focus offers two 10-minute rescue sets of what you are closest to forgetting, and
+   nothing about the days missed. Students who study in patches gained least in every simulation; a small, kind first
+   step is the easiest way back. */
+function welcomeBack() {
+  if (timerActive() || lifeSets() < 3) return null;
+  const today = dkey(), done = setsOn(today), w = S.tc && S.tc.wb;
+  if (done >= 2 || (w && w.d === today && w.skip)) return null;
+  let gap = null; for (let i = 1; i <= 60; i++) if (setsOn(addDays(-i))) { gap = i; break; }
+  if (gap == null || gap < 4) return null;
+  return h('section', { class: 'focus hero welcome' },
+    h('p', { class: 'eyebrow' }, 'Welcome back'),
+    h('h1', { class: 'focus-title' }, done ? 'One more and you are back in' : 'Ease back in'),
+    h('p', { class: 'focus-meta' }, `Two short sets of what you are closest to forgetting. This is set ${done + 1} of 2.`),
+    h('div', { class: 'wb-ic' }, icon('sparkle')),
+    B([icon('play'), 'Begin · 10 minutes'], 'rescue', 'begin'),
+    h('div', { class: 'focus-links' }, B('Go to my usual plan', 'wbSkip', 'link')));
+}
+/* The short list under the main card: only what is relevant today, four at most */
+let AT_MORE = false;
+function alsoToday(rough) {
+  const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length, ses = activeSession(), wrap = wrapNudge(), row = atRow;
+  const rows = [
+    ses && row('play', 'Carry on your revision session', `${sessDone(ses)} of ${sessSteps(ses)} steps done`, 'go', { 'data-tab': 'session' }),
+    rough && row('shield', 'Rough day? A 10-minute rescue set', 'It still counts, and it stops you forgetting', 'rescue'),
+    !dailyDoneToday() && row('star', 'Daily five', 'Five Maths questions, about 3 minutes', 'daily'),
+    dueM > 0 && row('wrench', `${dueM} mistake${dueM === 1 ? '' : 's'} to redo`, 'Win back marks you lost once', 'go', { 'data-tab': 'fix' }),
+    dueC > 0 && row('cards', `${dueC} flashcard${dueC === 1 ? '' : 's'} ready`, 'Even ten helps', 'go', { 'data-tab': 'cards' }),
+    wrap && row('star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
+    row('listen', 'Listen and learn', 'Hands-free, for the bus or a walk', 'go', { 'data-tab': 'listen' })].filter(Boolean);
+  const shown = AT_MORE ? rows : rows.slice(0, 4);
+  return h('section', { class: 'card also' }, h('p', { class: 'eyebrow' }, 'Also today'), h('div', { class: 'at-list' }, shown),
+    rows.length > 4 && B(AT_MORE ? 'Show fewer' : `${rows.length - 4} more`, 'atMore', 'link sm at-more'));
+}
+/* One notice at a time, most important first */
+function noticeLine() {
+  const since = daysSince(S.lastBackup), worth = lifeSets() + S.scores.length + Object.keys(S.items).length >= 5;
+  if (worth && !(since != null && since < 7) && !((daysSince(S.backupSnooze) ?? 99) < 3))
+    return h('div', { class: 'notice' }, icon('shield'), h('span', { class: 'grow' }, since == null ? 'Back up your progress: it only lives on this device' : `Last backup ${since} days ago`),
+      B('Back up', 'exp', 'primary sm'), B('Later', 'backupLater', 'link sm'));
+  if (MQ_REDUCED.matches && S.motion === 'auto' && !S.motionHint)
+    return h('div', { class: 'notice' }, icon('sparkle'), h('span', { class: 'grow' }, 'Animations are off on this device'),
+      B('Turn on', 'motion', 'primary sm', { 'data-v': 'full' }), B('Keep still', 'motion', 'link sm', { 'data-v': 'reduced' }));
+  return null;
 }
 function missionCard(M, live) {
   const head = h('div', { class: 'm-head' }, h('span', { class: 'lc-ic' }, icon(M.id === 'fixes' ? 'wrench' : M.id === 'paper' ? 'scroll' : M.id === 'lit' ? 'feather' : M.id === 'lang' ? 'book' : M.id === 're' ? 'sparkle' : 'target')),
@@ -605,22 +652,6 @@ function missionBody(M) {
     h('div', { class: 'chips' }, mySubjects().map(s => chip([icon(s.icon), s.name], FREE_TRACK === s.id, 'freeTrack', { 'data-track': s.id }))),
     FREE_TRACK ? drillZone(FREE_TRACK) : h('p', { class: 'muted xs' }, 'Pick a subject to get questions.'));
 }
-function motionHint() {
-  if (!MQ_REDUCED.matches || S.motion !== 'auto' || S.motionHint) return null;
-  return h('div', { class: 'banner motion' }, icon('sparkle'), h('div', { class: 'grow' }, h('b', null, 'Animations are switched off on this device'),
-    h('p', null, 'Your device asked apps to reduce motion, so Archeron is keeping still. Want the full animated version?'),
-    h('div', { class: 'row' }, B([icon('sparkle'), 'Turn on animations'], 'motion', 'primary sm', { 'data-v': 'full' }), B('Keep it still', 'motion', 'ghost sm', { 'data-v': 'reduced' }))));
-}
-function quickWins() {
-  const dueC = allDue(), dueM = S.mistakes.filter(m => !m.fixed && m.redo <= dkey()).length;
-  const items = [
-    h('button', { type: 'button', class: 'qw', 'data-act': 'rescue' }, icon('shield'), h('span', null, h('b', null, 'Bad day? Rescue set'), h('small', null, '10 minutes of what you are closest to forgetting. Still counts.'))),
-    h('button', { type: 'button', class: 'qw', 'data-act': 'drill', 'data-track': 'all' }, icon('sparkle'), h('span', null, h('b', null, 'Quick mixed questions'), h('small', null, 'All your subjects, a few minutes'))),
-    dueC > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'cards' }, icon('cards'), h('span', null, h('b', null, 'Flashcards'), h('small', null, `${dueC} due · even 10 helps`))),
-    dueM > 0 && h('button', { type: 'button', class: 'qw', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'), h('span', null, h('b', null, 'Win back a mark'), h('small', null, `${dueM} mistake${dueM === 1 ? '' : 's'} ready to redo`))),
-    wrapNudge()];
-  return h('div', { class: 'quick' }, h('p', { class: 'eyebrow' }, 'Spare a few minutes?'), h('div', { class: 'qws' }, items));
-}
 
 /* ---------- Learn ---------- */
 function learnSummary() {
@@ -630,24 +661,33 @@ function learnSummary() {
   return tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'go', 'data-tab': 'stats' }, h('span', { class: 'lc-ic' }, icon('chart')), h('b', null, 'Your progress'),
     h('span', { class: 'lc-d' }, `${l.toLocaleString('en-GB')} of ${t.toLocaleString('en-GB')} facts, definitions, equations and skills learned.`), bar(t ? l / t * 100 : 0), h('small', null, 'See every subject')));
 }
+/* a row in a short list of next steps (Focus "Also today", Learn "Next for you") */
+const atRow = (ic, t, sub, act, extra = {}) => h('button', Object.assign({ type: 'button', class: 'at-row', 'data-act': act }, extra),
+  h('span', { class: 'at-ic' }, icon(ic)), h('span', { class: 'grow' }, h('b', null, t), sub && h('small', null, sub)), h('span', { class: 'at-go', 'aria-hidden': 'true' }, '›'));
+let GAP_PICK = false;
+/* Learn: progress, one suggestion, your subjects, then the tools in a single row */
 function vLearn() {
-  const hard = Object.keys(LEARN.TOPIC).filter(id => { const k = skill(id); return usable(id) && k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; }).slice(0, 5);
+  const hard = Object.keys(LEARN.TOPIC).filter(id => { const k = skill(id); return usable(id) && k.n >= 2 && k.rec.filter(Boolean).length / k.rec.length < .6; });
+  /* the same lesson your next Focus set will teach, so Focus and Learn never point different ways */
+  const it = todayTrain().find(x => x.s.id === currentSid()), FM = it && missionFor(it.s.label), fl = FM && FM.lesson && FM.lesson.st === 'todo' ? FM.lesson : null;
+  const fx = fixCount(), sid = !fl && typeof lessonDue === 'function' ? sessRank().find(x => lessonDue(x)) : null, nx = fl || (sid && lessonDue(sid));
+  const next = [nx && atRow('book', `Lesson: ${nx.title}`, `${TRACK_NAME(nx.subj)} · about ${nx.mins} minutes${fl ? ', also in your next Focus set' : ', taught step by step'}`, 'lsStart', { 'data-lid': nx.lid, 'data-topic': nx.topic }),
+    fx > 0 && atRow('wrench', `${fx} thing${fx > 1 ? 's' : ''} to fix`, 'Topics you keep missing and mistakes to redo', 'go', { 'data-tab': 'fix' }),
+    !nx && !fx && hard[0] && atRow('reset', `Another go: ${LEARN.name(hard[0])}`, 'Below 60% lately', 'drill', { 'data-topic': hard[0] })].filter(Boolean);
+  const gaps = GAP_PICK && typeof gapLeft === 'function' ? mySubjects().filter(s => testable(s.id).length >= 3) : [];
   return h('div', { class: 'stack' },
-    hero('Learn', 'Practice that sticks', 'Answer from memory, check, see the method. Questions you get wrong come back; ones you know are spaced out so you never just repeat. Wrong answers come back until they stick.'),
+    hero('Learn', 'Practice that sticks', 'Every subject has lessons, practice and exam questions. Wrong answers come back until they stick.'),
     learnSummary(),
-    fixCount() > 0 && h('button', { type: 'button', class: 'card fixlink', 'data-act': 'go', 'data-tab': 'fix' }, icon('wrench'),
-      h('span', { class: 'grow' }, h('b', null, `${fixCount()} thing${fixCount() > 1 ? 's' : ''} to fix`), h('small', null, 'Topics you keep missing and mistakes to redo, all on the Fix page.')), h('span', { class: 'btn primary sm' }, 'Fix')),
-    tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'drill', 'data-track': 'all' }, h('span', { class: 'lc-ic' }, icon('compass')), h('b', null, 'Mixed practice'),
-      h('span', { class: 'lc-d' }, 'Questions from all your subjects, weighted towards what you find hardest.'), h('small', null, `${S.learnOk.toLocaleString('en-GB')} answered right so far`))),
+    next.length > 0 && h('section', { class: 'card also' }, h('p', { class: 'eyebrow' }, 'Next for you'), h('div', { class: 'at-list' }, next)),
     h('div', { class: 'sgrid' }, mySubjects().map(s => { const ids = topicsFor(s.id);
       return tilt(h('button', { type: 'button', class: 'scard', 'data-act': 'subject', 'data-track': s.id },
         h('span', { class: 'lc-ic' }, icon(s.icon)), h('b', null, s.name), h('small', null, `${masteredIn(ids)} of ${ids.length} mastered`), bar(ids.length ? masteredIn(ids) / ids.length * 100 : 0))); })),
-    h('div', { class: 'lgrid' },
-      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'write' }, h('span', { class: 'lc-ic' }, icon('edit')), h('b', null, 'Plans and writing'),
-        h('span', { class: 'lc-d' }, 'Essay plans, RE 12-markers, creative and viewpoint writing, and how to answer each English question.'), h('small', null, S.plans.length ? `${S.plans.length} plans saved` : 'Plan beats panic'))),
-      tilt(h('button', { type: 'button', class: 'lcard', 'data-act': 'go', 'data-tab': 'cards' }, h('span', { class: 'lc-ic' }, icon('cards')), h('b', null, 'Flashcards'),
-        h('span', { class: 'lc-d' }, 'Spaced repetition for quotes, formulas and your own cards.'), h('small', null, allDue() ? `${allDue()} ready to review` : 'All reviewed for today')))),
-    hard.length > 0 && card('Worth another go', null, h('div', { class: 'chips' }, hard.map(id => chip([LEARN.name(id)], false, 'drill', { 'data-topic': id })))),
+    h('div', { class: 'row tools-row' }, B([icon('compass'), 'Mixed practice'], 'drill', 'ghost', { 'data-track': 'all' }), typeof gapLeft === 'function' && B([icon('target'), 'Find your gaps'], 'gapPick', 'ghost' + (GAP_PICK ? ' on' : ''), { 'aria-expanded': String(GAP_PICK) }),
+      B([icon('cards'), allDue() ? `Flashcards · ${allDue()}` : 'Flashcards'], 'go', 'ghost', { 'data-tab': 'cards' }), B([icon('edit'), 'Plans and writing'], 'go', 'ghost', { 'data-tab': 'write' }),
+      B([icon('listen'), 'Listen'], 'go', 'ghost', { 'data-tab': 'listen' }), B([icon('book'), 'All guides'], 'go', 'ghost', { 'data-tab': 'study' })),
+    gaps.length > 0 && card('Find your gaps', h('span', { class: 'muted' }, 'about 8 minutes'),
+      h('p', { class: 'muted xs' }, 'One quick question per topic. What you know gets ticked off; what you don\'t gets taught first in your Focus sets.'),
+      h('div', { class: 'chips' }, gaps.map(s => chip([icon(s.icon), s.name, gapLeft(s.id) ? null : h('span', { class: 'n' }, '✓')], false, 'gapStart', { 'data-track': s.id })))),
     h('p', { class: 'muted xs center' }, '★ answered right · ★★ 3 in a row · ★★★ 5 in a row (mastered). Stars are never taken away.'));
 }
 const starsEl = id => h('span', { class: 'stars', 'aria-label': `${stars(id)} of 3 stars` }, [1, 2, 3].map(i => h('i', { class: i <= stars(id) ? 'on' : '' })));
@@ -660,22 +700,36 @@ function guidePanel(id) {
     h('p', null, g[0]), h('ol', { class: 'steps' }, g[1].map(x => h('li', null, x))),
     h('p', { class: 'g-ex' }, h('b', null, 'Example: '), g[2]), h('p', { class: 'muted' }, h('b', null, 'Exam tip: '), g[3]), h('div', { class: 'row' }, vid)), { open: !stars(id) });
 }
+/* A subject in three tabs, so one page is never everything at once: Learn (lessons and guides), Practise (questions),
+   Exam (exam-style questions, papers, grade tests). The tab is remembered for each subject. */
+const SUBJ_TAB = {};
 function vSubject() {
-  const s = SUBJ_BY[SUBJ_SEL] || mySubjects()[0], ids = topicsFor(s.id);
+  const s = SUBJ_BY[SUBJ_SEL] || mySubjects()[0], ids = topicsFor(s.id), tab = SUBJ_TAB[s.id] || 'learn';
   const group = (type, title) => { const g = ids.filter(id => LEARN.TOPIC[id].type === type); return g.length ? card(title, h('span', { class: 'muted' }, g.length + (g.length === 1 ? ' topic' : ' topics')),
     h('ul', { class: 'topics' }, g.map(id => h('li', null, h('button', { type: 'button', 'data-act': 'drill', 'data-topic': id }, h('span', null, LEARN.name(id), LEARN.TOPIC[id].size ? h('small', null, ` · ${LEARN.TOPIC[id].size} ${LEARN.TOPIC[id].type === 'def' ? 'terms' : LEARN.TOPIC[id].type === 'vocab' ? 'words' : 'facts'}`) : null), starsEl(id)))))) : null; };
   const extras = s.id === 'englit' ? [B([icon('edit'), 'Plan an essay'], 'go', 'ghost', { 'data-tab': 'write' }), B([icon('cards'), 'Quote flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })]
     : s.id === 're' ? [B([icon('edit'), 'Plan a 12-mark answer'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'englang' ? [B([icon('book'), 'Question guides and writing'], 'go', 'ghost', { 'data-tab': 'write' })]
     : s.id === 'physics' || s.id === 'maths' ? [B([icon('cards'), 'Formula flashcards'], 'go', 'ghost', { 'data-tab': 'cards' })] : [];
-  if (EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase()))) extras.push(B([icon('scroll'), 'Exam practice'], 'go', 'ghost', { 'data-tab': 'exam' }));
-  extras.push(B([icon('sparkle'), 'Generated paper'], S.mp && (S.mp.track || 'maths') === s.id ? 'mpResume' : 'mpNew', 'ghost', { 'data-track': s.id }));
+  const tests = typeof testable === 'function' && testable(s.id).length >= 3;
+  let body;
+  if (tab === 'practise') body = [
+    h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras,
+      typeof SEQS !== 'undefined' && SEQS.some(x => ids.includes(x.topic)) && B([icon('grid'), 'Put it in order'], 'ordDrill', 'ghost', { 'data-track': s.id }),
+      B([icon('listen'), 'Listen'], 'listenGo', 'ghost', { 'data-track': s.id }), tests && B([icon('target'), 'Gap finder'], 'gapStart', 'ghost', { 'data-track': s.id })),
+    group('def', 'Definitions'), group('vocab', 'Descriptive vocabulary: spell it, know it, use it'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
+    !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.'))];
+  else if (tab === 'exam') body = [
+    h('div', { class: 'row' }, EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase())) && B([icon('scroll'), 'Practice papers'], 'go', 'ghost', { 'data-tab': 'exam' }),
+      B([icon('sparkle'), 'Generated paper'], S.mp && (S.mp.track || 'maths') === s.id ? 'mpResume' : 'mpNew', 'ghost', { 'data-track': s.id }), tests && B([icon('trophy'), 'Grade test'], 'gtOpen', 'ghost', { 'data-track': s.id })),
+    typeof xqList === 'function' && xqList(s)];
+  else body = [typeof nextLessonBtn === 'function' && nextLessonBtn(s), typeof lessonList === 'function' && lessonList(s),
+    card('Watch and read', h('span', { class: 'muted' }, 'free, opens in a new tab'), h('ul', { class: 'links' }, sitesFor(s.id).map(([n, u, d]) => ext(u, n, d))))];
   return h('div', { class: 'stack narrow' },
     subHero('Learn', s.name, 'learn', `${masteredIn(ids)} of ${ids.length} topics mastered. Hide topics you don't study in Settings.`),
-    h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras),
-    group('def', 'Definitions'), group('vocab', 'Descriptive vocabulary: spell it, know it, use it'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
-    !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.')),
-    card('Watch and read', h('span', { class: 'muted' }, 'free, opens in a new tab'), h('ul', { class: 'links' }, sitesFor(s.id).map(([n, u, d]) => ext(u, n, d)))));
+    h('div', { class: 'st-seg subj-tabs', role: 'tablist', 'aria-label': `${s.name} sections` }, [['learn', 'Learn'], ['practise', 'Practise'], ['exam', 'Exam']].map(([k, l]) =>
+      h('button', { type: 'button', role: 'tab', class: k === tab ? 'on' : '', 'aria-selected': String(k === tab), 'data-act': 'subjTab', 'data-k': k }, l))),
+    body);
 }
 function startDrill(track, topic, ctx = 'learn') {
   DR = { track, topic: topic || null, ctx, q: null, state: 'ask', count: 0, ok: 0, run: 0, last: null, picked: null };
@@ -709,7 +763,7 @@ function guideCard() {
       h('li', null, h('b', null, 'Press Begin. '), `A ${S.timer.focus}-minute timer starts and everything for your next set appears under it.`),
       h('li', null, h('b', null, 'Follow the steps. '), 'Each set says exactly what to do. When the timer ends, take the short rest.'),
       h('li', null, h('b', null, 'No need to choose. '), "Begin always picks the set you need most. Today's plan shows the rest in order.")),
-    h('p', { class: 'muted xs' }, 'Learn: practise any topic. Study: guides to the hard topics. Mocks: timed papers. Stats: your progress. Toolkit: your set-up, plan and settings.'));
+    h('p', { class: 'muted xs' }, 'Learn: lessons, practice and exam questions for every subject. Mocks: timed papers and grade tests. Stats: your progress. Toolkit: your set-up, plan and settings.'));
 }
 function dailyCard(inDrill) {
   if (inDrill || dailyDoneToday()) return card('Daily five', h('span', { class: 'muted' }, 'the same five for everyone today'),
@@ -1474,8 +1528,8 @@ function vMe() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['study', 'book', 'Study'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', guide: 'study', session: 'study', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
+const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', study: 'learn', guide: 'learn', session: 'home', listen: 'learn', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
 const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
@@ -1608,6 +1662,10 @@ const ACT = {
     T = { mode: 'focus', left: 600, run: true, end: Date.now() + 600000, sid: null, len: 600, rescue: true }; DR = null; saveT(); go('home');
   },
   choose() { CHOOSE = !CHOOSE; render(); },
+  atMore() { AT_MORE = !AT_MORE; render(); },
+  wbSkip() { S.tc = S.tc || {}; S.tc.wb = { d: dkey(), skip: true }; save(); render(); },
+  subjTab(el) { SUBJ_TAB[SUBJ_SEL] = el.dataset.k; render(); },
+  gapPick() { GAP_PICK = !GAP_PICK; render(); },
   freeTrack(el) { FREE_TRACK = el.dataset.track; DR = null; render(); },
   preset(el) { S.timer = { focus: +el.dataset.f, brk: +el.dataset.b }; save(); if (!T.run) { T.left = tTotal(); saveT(); } render(); },
   subject(el) { SUBJ_SEL = el.dataset.track; go('subject'); },

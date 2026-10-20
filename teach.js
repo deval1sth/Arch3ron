@@ -249,7 +249,8 @@ nextQ = function (sameTopic) {
   /* 35% quick types (was 20%): the 12-week simulation (sim2, Oct 2026) found more learning per minute at 35% under every
      assumption tested, even with slow match-ups; it rewards even more, but it cannot see that matching is easier than recall */
   if (!sameTopic && !DR.five && Math.random() < .35) { const alt = quickFor(DR.q.id); if (alt) { DR.q = alt; return; } }
-  if (isNewFact(DR.q)) DR.state = 'learn';
+  /* at most one "learn this first" card in any three questions, so a brand-new topic is not a wall of cards */
+  if (isNewFact(DR.q) && (DR.lastCard == null || DR.count - DR.lastCard >= 3)) { DR.state = 'learn'; DR.lastCard = DR.count; }
 };
 /* New facts: shown first, then first asked two questions later. Asking straight away and again later took time for
    little gain: in the simulation, one delayed question beat both (+0.5 to +0.9 points), and a delayed first try is also
@@ -360,8 +361,8 @@ function clozeQ(id) {
 }
 function quickFor(id) {
   const T0 = LEARN.TOPIC[id]; if (!T0) return null;
-  const makers = [];
-  if (seqsFor(id).length) makers.push(() => orderQ(pickSeq(seqsFor(id))));
+  const makers = [], seen = DR && (DR.qkSeen = DR.qkSeen || new Set()), seqs = seqsFor(id).filter(s => !seen || !seen.has(s.id)); /* a sequence once per session */
+  if (seqs.length) makers.push(() => { const s = pickSeq(seqs); if (seen) seen.add(s.id); return orderQ(s); });
   if (FACTY.has(T0.type)) makers.push(() => matchQ(id));
   if (T0.type === 'def') makers.push(() => clozeQ(id));
   for (const m of shuffleA(makers)) { const q = m(); if (q) { q.id = q.id || id; return q; } }
@@ -458,6 +459,7 @@ Object.assign(ACT, {
     mt.p[mt.sel] = j; const nextFree = DR.q.L.findIndex((_, i) => mt.p[i] == null); mt.sel = nextFree >= 0 ? nextFree : null; SFX.play('click'); render();
   },
   qkCheck,
+  lsAll(el) { LS_ALL[el.dataset.track] = !LS_ALL[el.dataset.track]; render(); },
   ordDrill(el) { startDrill(el.dataset.track, null); DR.only = 'order'; nextQ(); go('drill'); }
 });
 const _next = ACT.next, _similar = ACT.similar;
@@ -478,42 +480,25 @@ ACT.reveal = function () {
   record(q.id, false, q.key); countAns(); DR.run = 0; DR.state = 'shown'; SFX.play('reveal'); render({ focus: '#nextq' });
 };
 
-/* ---------- where lessons show up: subject pages, Learn, and above a topic's questions ---------- */
-function lessonCard(s) {
+/* ---------- where lessons show up: a subject's Learn tab (app.js vSubject), Learn's "Next for you", above a topic's questions ---------- */
+/* every lesson in a subject; a lesson built from a Study guide can also be read as the whole guide */
+const LS_ALL = {};
+function lessonList(s) {
   const all = lessonsOf(s.id); if (!all.length) return null;
-  const done = all.filter(m => taughtOn(m.lid)).length, nx = lessonDue(s.id);
-  return acc('lessons-' + s.id, [h('h2', null, 'Lessons'), h('span', { class: 'muted acc-r' }, `${done} of ${all.length} done`)],
-    h('div', { class: 'ls-list' },
-      h('p', { class: 'muted xs' }, 'Each lesson teaches one area in small steps, with a quick question after each part. Your Focus sets start a new one for you each day.'),
-      h('ul', { class: 'list' }, all.map(m => h('li', { class: 'xp-row' + (nx && nx.lid === m.lid ? ' next' : '') },
-        h('div', { class: 'grow' }, h('b', null, m.title), h('small', null, taughtOn(m.lid) ? `✓ done ${fmtDate(taughtOn(m.lid))}` : nx && nx.lid === m.lid ? `up next · about ${m.mins} min` : `about ${m.mins} min`)),
-        B(taughtOn(m.lid) ? 'Again' : 'Start', 'lsStart', taughtOn(m.lid) ? 'ghost sm' : 'primary sm', { 'data-lid': m.lid }))))), { open: false });
+  const done = all.filter(m => taughtOn(m.lid)).length, nx = lessonDue(s.id), shown = LS_ALL[s.id] ? all : all.slice(0, 6);
+  return card('Lessons', h('span', { class: 'muted' }, `${done} of ${all.length} done`),
+    h('p', { class: 'muted xs' }, 'Each lesson teaches one area in small steps, with a quick question after each part. Your Focus sets start new ones for you.'),
+    h('ul', { class: 'list ls-list' }, shown.map(m => h('li', { class: 'xp-row' + (nx && nx.lid === m.lid ? ' next' : '') },
+      h('div', { class: 'grow' }, h('b', null, m.title), h('small', null, taughtOn(m.lid) ? `✓ done ${fmtDate(taughtOn(m.lid))}` : nx && nx.lid === m.lid ? `up next · about ${m.mins} min` : `about ${m.mins} min`)),
+      m.lid.startsWith('g:') && B('Read', 'guide', 'link sm', { 'data-id': m.lid.slice(2), 'data-from': 'subject', 'aria-label': `Read the guide: ${m.title}` }),
+      B(taughtOn(m.lid) ? 'Again' : 'Start', 'lsStart', taughtOn(m.lid) ? 'ghost sm' : 'primary sm', { 'data-lid': m.lid })))),
+    all.length > 6 && B(LS_ALL[s.id] ? 'Show fewer' : `Show all ${all.length} lessons`, 'lsAll', 'link sm ls-all', { 'data-track': s.id }));
 }
 function nextLessonBtn(s) {
   const nx = lessonDue(s.id); if (!nx) return null;
   return h('button', { type: 'button', class: 'card rescue-cta ls-cta', 'data-act': 'lsStart', 'data-lid': nx.lid, 'data-topic': nx.topic },
     h('span', { class: 'wc-ic' }, icon('book')), h('span', { class: 'grow' }, h('b', null, `Next lesson: ${nx.title}`), h('small', null, `About ${nx.mins} minutes, taught step by step with a question after each part.`)), h('span', { class: 'btn primary sm' }, 'Start'));
 }
-const _vSubject = VIEWS.subject;
-VIEWS.subject = function () {
-  const el = _vSubject(), s = SUBJ_BY[SUBJ_SEL] || mySubjects()[0];
-  try {
-    const row = el.children[1], extra = [nextLessonBtn(s), lessonCard(s)].filter(Boolean);
-    if (row) row.after(...extra);
-    if (row && SEQS.some(x => topicsFor(s.id).includes(x.topic))) row.append(B([icon('grid'), 'Put it in order'], 'ordDrill', 'ghost', { 'data-track': s.id }));
-  } catch (e) { console.error(e); }
-  return el;
-};
-const _vLearn = VIEWS.learn;
-VIEWS.learn = function () {
-  const el = _vLearn();
-  try {
-    const sid = sessRank().find(x => lessonDue(x)), nx = sid && lessonDue(sid);
-    if (nx && el.children[1]) el.children[1].after(tilt(h('button', { type: 'button', class: 'lcard wide', 'data-act': 'lsStart', 'data-lid': nx.lid, 'data-topic': nx.topic },
-      h('span', { class: 'lc-ic' }, icon('book')), h('b', null, 'Teach me something new'), h('span', { class: 'lc-d' }, `${nx.title} · ${TRACK_NAME(nx.subj)}. Taught step by step, with a quick question after each part.`), h('small', null, `About ${nx.mins} minutes`))));
-  } catch (e) { console.error(e); }
-  return el;
-};
 const _vDrill = VIEWS.drill;
 VIEWS.drill = function () {
   const el = _vDrill();

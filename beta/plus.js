@@ -112,7 +112,6 @@ function examReport(R) {
 }
 
 /* ---------- Do this now ---------- */
-let DN_I = 0;
 /* why the next set's subject matters right now, and the guide to read first; replaces a separate Do this now card when they agree */
 function missionWhy(track) {
   const s = track && SUBJ_BY[track]; if (!s || activeSession()) return null;
@@ -121,31 +120,6 @@ function missionWhy(track) {
   const parts = [`now ${gp.curS}, aim ${gp.tgtS}`, blk && blk.topic && (acc != null ? `${LEARN.name(blk.topic)} is ${Math.round(acc * 100)}% right` : `${LEARN.name(blk.topic)} not practised yet`), fixes && `${fixes} in your fix queue`].filter(Boolean);
   return h('div', { class: 'm-why' }, h('p', null, h('b', null, 'Why it matters: '), parts.join(' · ')),
     g && B([icon('book'), h('span', null, 'Stuck? Read the guide: ', h('b', null, g.title))], 'guide', 'ghost sm m-guide', { 'data-id': g.id }));
-}
-function doNow(heroTrack) {
-  const a = activeSession();
-  if (a) {
-    const bi = a.blocks.findIndex(b => b.steps.some(x => !x.d)), b = a.blocks[bi], st = b.steps.find(x => !x.d), s = SUBJ_BY[b.sid];
-    return h('section', { class: 'card donow' },
-      h('div', { class: 'dn-top' }, h('p', { class: 'eyebrow' }, 'Do this now'), h('span', { class: 'pill' }, `${sessDone(a)} / ${sessSteps(a)} steps`)),
-      h('div', { class: 'dn-main' }, h('span', { class: 'dn-ic' }, icon(s.icon)), h('div', null, h('h2', null, `Carry on: ${s.name}`), h('small', { class: 'muted' }, `Block ${bi + 1} · next: ${{ blurt: 'Warm up', learn: 'Learn', practise: 'Practise', plan: 'Apply', check: 'Check' }[st.k] || 'Step'}`))),
-      bar(sessDone(a) / sessSteps(a) * 100),
-      h('div', { class: 'row' }, B([icon('play'), 'Back to my session'], 'doNow', 'primary grow')));
-  }
-  const rank = sessRank(); if (!rank.length) return null;
-  const sid = rank[DN_I % rank.length], s = SUBJ_BY[sid], gp = subjGap(s.subj), blk = (makeSession(25, [sid]).blocks || [])[0];
-  if (heroTrack && sid === heroTrack) return null; /* the next set already covers it: the mission card says why */
-  const second = !!heroTrack; /* the Begin button is the main action; this is the alternative */
-  if (!blk) return null;
-  const g = STUDY_BY[blk.gid], acc = blk.topic ? accOf(blk.topic) : null, fixes = S.queue.filter(x => LEARN.trackOf(x.id) === sid).length;
-  const why = [`now ${gp.curS}, aim ${gp.tgtS}`, blk.topic && (acc != null ? `${LEARN.name(blk.topic)} is ${Math.round(acc * 100)}% right` : `${LEARN.name(blk.topic)} not practised yet`), fixes && `${fixes} in your fix queue`].filter(Boolean);
-  const segs = blk.steps.map(x => [{ blurt: 'Warm up', learn: 'Learn', practise: 'Practise', plan: 'Apply', check: 'Check' }[x.k] || 'Step', x.m]);
-  return h('section', { class: 'card donow' + (second ? ' alt' : '') },
-    h('div', { class: 'dn-top' }, h('p', { class: 'eyebrow' }, DN_I % rank.length ? `Option ${DN_I % rank.length + 1} of ${rank.length}` : second ? 'Or tackle your biggest gap' : 'Do this now · biggest gap'), h('span', { class: 'pill' }, '25 min')),
-    h('div', { class: 'dn-main' }, h('span', { class: 'dn-ic' }, icon(s.icon)), h('div', null, h('h2', null, s.name), h('small', { class: 'muted' }, g.title))),
-    h('p', { class: 'dn-why' }, why.join(' · ')),
-    h('div', { class: 'dn-segs', 'aria-label': segs.map(([n, m]) => `${n} ${m} minutes`).join(', ') }, segs.map(([n, m]) => h('span', { style: `flex:${m}` }, h('i'), h('b', null, n), h('small', null, m + 'm')))),
-    h('div', { class: 'row' }, B([icon('play'), second ? 'Plan it instead' : 'Start now'], 'doNow', (second ? 'ghost' : 'primary') + ' grow'), B('Something else', 'doSkip', second ? 'link' : 'ghost')));
 }
 
 /* ---------- Weekly review ---------- */
@@ -195,11 +169,10 @@ function vWeek() {
 const PLUSACT = {
   doNow() {
     if (activeSession()) { go('session'); return scrollTo({ top: 0 }); }
-    const rank = sessRank(); S.sess = makeSession(25, [rank[DN_I % rank.length]]); DN_I = 0; save();
+    const rank = sessRank(); S.sess = makeSession(25, [rank[0]]); save();
     if (!T.run) STUDYACT.sessTimer(); else go('session');
     toast('Session planned and the 25-minute timer is running'); scrollTo({ top: 0 });
   },
-  doSkip() { DN_I++; render(); },
   mockGo(el) {
     const p = el.dataset.id ? paperOf(el.dataset.id) : EXAMS.filter(e => e.subj === el.dataset.subj && paperFits(e)).sort((a, b) => subjPts(a.subj).filter(x => x.paper.startsWith(a.name)).length - subjPts(b.subj).filter(x => x.paper.startsWith(b.name)).length)[0];
     if (!p) return toast('No practice paper for that subject yet');
@@ -315,14 +288,6 @@ PLUSACT.undo = () => {
 
 /* ---------- Backup reminder ---------- */
 const daysSince = k => isKey(k) ? Math.round((parseKey(dkey()) - parseKey(k)) / 864e5) : null;
-function backupNag() {
-  const since = daysSince(S.lastBackup), worth = lifeSets() + S.scores.length + Object.keys(S.items).length >= 5;
-  if (!worth || (since != null && since < 7) || (daysSince(S.backupSnooze) ?? 99) < 3) return null;
-  return h('section', { class: 'card nag' }, h('span', { class: 'nag-ic' }, icon('shield')),
-    h('div', { class: 'grow' }, h('b', null, since == null ? 'You have never backed up' : `Last backup ${since} days ago`),
-      h('p', { class: 'muted xs' }, 'Your progress lives only on this phone. One tap saves a copy you can restore anywhere.'),
-      h('div', { class: 'row' }, B([icon('download'), 'Back up now'], 'exp', 'primary sm'), B('Later', 'backupLater', 'link'))));
-}
 const backupLine = () => { const d = daysSince(S.lastBackup); return d == null ? 'Never backed up on this device.' : d === 0 ? 'Last backup: today.' : `Last backup: ${d} day${d > 1 ? 's' : ''} ago.`; };
 async function backupNow() {
   const name = 'archeron-backup-' + dkey() + '.json', json = JSON.stringify(S, null, 1);
@@ -1190,7 +1155,6 @@ function vMocks() {
   return h('div', { class: 'stack dash mockhub' },
     hero('Mocks', days > 0 ? `${days} day${days === 1 ? '' : 's'} to go` : days === 0 ? 'Mocks start today' : 'Mock season', `Your mocks start on ${fmtDate(S.mock)}. You are ${R.pct}% ready.`),
     card('Do this next', h('span', { class: 'pill' }, 'moves your grades most'), ...doNext, h('div', { class: 'row' }, B('Choose a different paper', 'go', 'link', { 'data-tab': 'exam' }))),
-    wrapCard(),
     card('Predicted grades', B('Details', 'go', 'link sm', { 'data-tab': 'stats' }),
       h('ul', { class: 'mg' }, rows.map(({ s, p, aim }) => h('li', { class: p && typeof p.g === 'number' && p.g >= aim ? 'ok' : '' },
         h('b', null, s), h('span', { class: 'mg-bar', role: 'img', 'aria-label': p ? `${p.pc}%, aim about ${boundFor(s, aim)}%` : 'no paper yet' }, h('i', { style: `width:${p ? p.pc : 0}%` }), h('em', { style: `left:${boundFor(s, aim)}%` })),
@@ -1198,8 +1162,10 @@ function vMocks() {
       h('p', { class: 'muted xs' }, 'From your last 3 papers in each subject. The line on each bar is roughly where your aim grade starts.')),
     h('div', { class: 'tools' },
       hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
-      hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades, marks and streaks`),
+      typeof vGradeTest === 'function' && hubTool('gtest', 'trophy', 'Grade tests', 'Fifteen questions at one grade'),
       hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
+      hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades, marks and streaks`),
+      hubTool('wrapped', 'star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
       labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')));
 }
 
@@ -1263,11 +1229,6 @@ function vWrapped() {
       h('div', { class: 'wrap-nav' }, B('Back', 'wrapGo', 'ghost sm', { 'data-d': -1, disabled: i === 0 }), h('span', { class: 'muted xs' }, `${i + 1} of ${sl.length}`),
         s.end ? B([icon('share'), 'Share'], 'wrapShare', 'primary sm') : B('Next', 'wrapGo', 'primary sm', { 'data-d': 1 }))),
     s.end && h('div', { class: 'row center' }, B('Full weekly review', 'go', 'ghost', { 'data-tab': 'week' }), B('Watch again', 'wrapOpen', 'link')));
-}
-function wrapCard() {
-  const mon = wrapWeek(), W = weekStats(mon);
-  return h('button', { type: 'button', class: 'card wrapcard', 'data-act': 'wrapOpen' }, h('span', { class: 'wc-ic' }, icon('star')),
-    h('span', { class: 'grow' }, h('b', null, 'Your week, wrapped'), h('small', null, `${fmtDate(W.mon)} to ${fmtDate(W.end)} · ${W.sets} ${W.sets === 1 ? 'set' : 'sets'} · ${W.qa} questions`)), h('span', { class: 'btn primary sm' }, 'Play'));
 }
 /* Sunday and Monday: a nudge on Focus until you have watched it */
 function wrapNudge() {

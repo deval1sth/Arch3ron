@@ -1436,7 +1436,7 @@ function vStudy() {
   const subs = mySubjects().filter(s => STUDY.some(g => g.subj === s.id)), shown = STUDY.filter(g => STUDY_SUBJ === 'all' || g.subj === STUDY_SUBJ);
   const ses = activeSession(), done = Object.keys(S.read).length;
   return h('div', { class: 'stack' },
-    hero('Study', 'Understand it properly', 'In-depth guides to the hardest topics: plain explanations, worked examples, the mistakes that cost marks, and quick checks. Each one links straight to practice.'),
+    subHero('Learn', 'Guides', 'learn', 'In-depth guides to the hardest topics: plain explanations, worked examples, the mistakes that cost marks, and quick checks. Each one is also a lesson on its subject page.', 'Learn'),
     tilt(h('button', { type: 'button', class: 'lcard wide sess-card', 'data-act': 'go', 'data-tab': 'session' }, h('span', { class: 'lc-ic' }, icon('play')),
       h('b', null, ses ? 'Resume your revision session' : 'Start a revision session'),
       h('span', { class: 'lc-d' }, ses ? `${sessDone(ses)} of ${sessSteps(ses)} steps done · ${ses.blocks.map(b => SUBJ_BY[b.sid].name).join(', ')}` : 'Choose how long you have. It plans each block around the subjects you most need to improve, with the right guide and practice for each.'),
@@ -1450,10 +1450,11 @@ function vStudy() {
 }
 function vGuide() {
   const g = STUDY_BY[GUIDE_SEL]; if (!g) return vStudy();
+  if (GUIDE_BACK === 'subject') SUBJ_SEL = g.subj;
   const same = STUDY.filter(x => x.subj === g.subj), i = same.indexOf(g), next = same[i + 1];
   const side = typeof guideSide === 'function' ? guideSide(g) : null; /* on a computer, practise beside the guide */
   return h('div', { class: 'stack narrow guide-v' + (side ? ' gsplit' : '') },
-    subHero(SUBJ_BY[g.subj].name, g.title, GUIDE_BACK, null, GUIDE_BACK === 'session' ? 'Back to your session' : 'Study'),
+    subHero(SUBJ_BY[g.subj].name, g.title, GUIDE_BACK, null, GUIDE_BACK === 'session' ? 'Back to your session' : GUIDE_BACK === 'subject' ? SUBJ_BY[g.subj].name : 'Guides'),
     h('p', { class: 'lede' }, g.lead),
     side ? h('div', { class: 'gs-row' }, h('article', { class: 'card guide-body' }, guideBody(g.body)), side) : h('article', { class: 'card guide-body' }, guideBody(g.body)),
     sebFactCard(`${g.title} ${g.topics.map(LEARN.name).join(' ')}`, g.subj, 'g' + g.id),
@@ -1543,7 +1544,7 @@ function vSession() {
   const total = sessSteps(ses), done = sessDone(ses), finished = done === total;
   const cur = ses.blocks.findIndex(b => b.steps.some(x => !x.d));
   return h('div', { class: 'stack narrow' },
-    subHero('Study', 'Your revision session', 'study', null, 'Study'),
+    subHero('Focus', 'Your revision session', 'home', null, 'Focus'),
     card(finished ? 'Session complete' : `${ses.mins}-minute session`, h('span', { class: 'pill' }, `${done} / ${total} steps`), bar(done / total * 100),
       finished ? h('p', null, 'Well done. That is real, focused revision. Log it, take a proper break, and come back tomorrow.')
         : h('p', { class: 'muted xs' }, 'Work through each step in order. Each block is one 25-minute focus set; take a 5-minute break between blocks.'),
@@ -1568,7 +1569,7 @@ function sessPlanner() {
   const n = Math.max(1, Math.round(D.mins / 25)), subs = D.subs || rank.slice(0, Math.min(n, 3));
   const own = SUBJ.some(s => S.grades[s] && S.grades[s].cur && S.grades[s].tgt);
   return h('div', { class: 'stack narrow' },
-    subHero('Study', 'Plan a revision session', 'study', 'Each 25-minute block follows the method that works best: recall from memory first, learn from a guide, practise with feedback, then check yourself. Subjects you most need to improve come first.', 'Study'),
+    subHero('Focus', 'Plan a revision session', 'home', 'Each 25-minute block follows the method that works best: recall from memory first, learn from a guide, practise with feedback, then check yourself. Subjects you most need to improve come first.', 'Focus'),
     card('How long have you got?', null, h('div', { class: 'chips' }, [25, 50, 75, 100].map(m => chip(`${m} min`, D.mins === m, 'sessMins', { 'data-m': m }))),
       h('p', { class: 'muted xs' }, `${n} block${n > 1 ? 's' : ''} of 25 minutes${n > 1 ? ', with 5-minute breaks between them' : ''}.`)),
     card('Subjects', h('span', { class: 'muted' }, 'most needed first'), h('p', { class: 'muted xs' }, own ? 'Ranked by the gap between your current and target grades in Settings, and by what you have been getting wrong.' : 'Ranked by the gap between your report grades and your targets, and by what you have been getting wrong. Add your own grades in Settings to fine-tune this.'),
@@ -1581,7 +1582,7 @@ function sessPlanner() {
 }
 const STUDYACT = {
   studySubj(el) { STUDY_SUBJ = el.dataset.id; render(); },
-  guide(el) { GUIDE_SEL = el.dataset.id; GUIDE_BACK = el.dataset.from === 'session' ? 'session' : 'study'; go('guide'); if (el.dataset.anchor) setTimeout(() => $('#checks')?.scrollIntoView({ block: 'start' }), 500); },
+  guide(el) { GUIDE_SEL = el.dataset.id; GUIDE_BACK = ['session', 'subject'].includes(el.dataset.from) ? el.dataset.from : 'study'; go('guide'); if (el.dataset.anchor) setTimeout(() => $('#checks')?.scrollIntoView({ block: 'start' }), 500); },
   guideRead(el) { S.read[el.dataset.id] = dkey(); save(); toast('Marked as read'); render(); },
   guideDrill(el) { startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic, 'guide'); go('drill', '#ans'); },
   sessDrill(el) { startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic, 'sess'); go('drill', '#ans'); },

@@ -193,51 +193,18 @@ function xqSave() {
   return true;
 }
 function xqOpen(i) { XQ.i = clamp(i, 0, XQ.list.length - 1); XQ.marked = false; XQ.ans = ''; DRAFT.xq = ''; const c = xqCur(); XQ.got = qTicks(c.q).map(() => false); XQ.lv = -1; }
-function xqCard(s) {
+/* the subject page's Exam tab (app.js vSubject); the gap finder lives on its Practise tab and on Learn, grade tests in Mocks */
+function xqList(s) {
   const idx = xqIndex(s.id); if (!idx.length) return null;
   const X = tcObj('xq'), total = idx.reduce((n, t) => n + t.list.length, 0);
-  return acc('xq-' + s.id, [h('h2', null, 'Exam questions by topic'), h('span', { class: 'muted acc-r' }, `${total} questions`)],
-    h('div', null, h('p', { class: 'muted xs' }, 'Exam-style questions from every practice paper, sorted by topic. Answer, then mark yourself against the mark scheme like an examiner.'),
-      h('ul', { class: 'list' }, idx.map(t => {
-        const done = t.list.map(r => X[xqKey(r)]).filter(Array.isArray), got = done.reduce((a, d) => a + d[0], 0), max = done.reduce((a, d) => a + d[1], 0);
-        return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, t.label), h('small', null, `${t.list.length} question${t.list.length > 1 ? 's' : ''}${done.length ? ` · ${got}/${max} marks on the ${done.length} done` : ''}`)),
-          B(done.length === t.list.length ? 'Again' : 'Start', 'xqStart', 'ghost sm', { 'data-track': s.id, 'data-label': t.label }));
-      }))), { open: false });
+  return card('Exam questions by topic', h('span', { class: 'muted' }, `${total} questions`),
+    h('p', { class: 'muted xs' }, 'Exam-style questions from every practice paper, sorted by topic. Answer, then mark yourself against the mark scheme like an examiner.'),
+    h('ul', { class: 'list' }, idx.map(t => {
+      const done = t.list.map(r => X[xqKey(r)]).filter(Array.isArray), got = done.reduce((a, d) => a + d[0], 0), max = done.reduce((a, d) => a + d[1], 0);
+      return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, t.label), h('small', null, `${t.list.length} question${t.list.length > 1 ? 's' : ''}${done.length ? ` · ${got}/${max} marks on the ${done.length} done` : ''}`)),
+        B(done.length === t.list.length ? 'Again' : 'Start', 'xqStart', 'ghost sm', { 'data-track': s.id, 'data-label': t.label }));
+    })));
 }
-
-/* ---------- where these show up ---------- */
-const _vSubjectC = VIEWS.subject;
-VIEWS.subject = function () {
-  const el = _vSubjectC(), s = SUBJ_BY[SUBJ_SEL] || mySubjects()[0];
-  try {
-    const row = el.children[1];
-    if (row && testable(s.id).length >= 3) row.append(B([icon('target'), 'Gap finder'], 'gapStart', 'ghost', { 'data-track': s.id }), B([icon('trophy'), 'Grade test'], 'gtOpen', 'ghost', { 'data-track': s.id }));
-    const xc = xqCard(s), lastCard = el.lastElementChild; if (xc && lastCard) lastCard.before(xc);
-  } catch (e) { console.error(e); }
-  return el;
-};
-const _vMocksC = VIEWS.mocks;
-VIEWS.mocks = function () {
-  const el = _vMocksC();
-  try {
-    const subs = gtSubs(), last = tcArr('gt').slice(-1)[0], anchor = el.children[1];
-    if (subs.length && anchor) anchor.after(card('Grade tests', last ? h('span', { class: 'muted' }, `last: grade ${last.g}, ${last.ok}/${last.n}`) : h('span', { class: 'pill' }, 'new'),
-      h('p', { class: 'muted xs' }, 'Fifteen questions pitched at one grade, about 15 minutes. See whether a grade is secure and exactly what is holding it back.'),
-      h('div', { class: 'chips' }, subs.map(s => chip([icon(s.icon), s.name], false, 'gtOpen', { 'data-track': s.id })))));
-  } catch (e) { console.error(e); }
-  return el;
-};
-const _vLearnC = VIEWS.learn;
-VIEWS.learn = function () {
-  const el = _vLearnC();
-  try {
-    const subs = mySubjects().filter(s => testable(s.id).length >= 3), after = el.querySelector('.sgrid');
-    if (subs.length && after) after.after(card('Find your gaps', h('span', { class: 'muted' }, 'about 8 minutes'),
-      h('p', { class: 'muted xs' }, 'One quick question per topic. What you know gets ticked off; what you don\'t gets taught first in your Focus sets.'),
-      h('div', { class: 'chips' }, subs.map(s => { const left = gapLeft(s.id); return chip([icon(s.icon), s.name, left ? null : h('span', { class: 'n' }, '✓')], false, 'gapStart', { 'data-track': s.id }); }))));
-  } catch (e) { console.error(e); }
-  return el;
-};
 
 Object.assign(ACT, {
   gapStart(el) {
@@ -275,4 +242,3 @@ Object.assign(ACT, {
   }
 });
 CHG.xqTick = el => { if (!XQ) return; XQ.got[+el.dataset.j] = el.checked; render(); };
-render();
