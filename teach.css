@@ -138,3 +138,27 @@ html.rm .ord-placed{animation:none}
 html.rm .lsn-a{filter:none}
 .lsn-ctl{align-items:center;margin-top:6px;flex-wrap:nowrap}
 .lsn-ctl .btn.grow{min-width:0}
+
+/* ---------- lesson bites (Seneca-style) ---------- */
+.feed{display:grid;gap:10px}
+.bite{padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--line2);background:rgba(var(--fg-rgb),.02);animation:lsIn .3s var(--ease) both}
+html.rm .bite{animation:none}
+.bite.live{border-color:rgba(var(--y-rgb),.55);background:var(--y-soft)}
+.bite.ok{border-color:rgba(var(--g-rgb),.35);background:var(--g-soft)}
+.bite-t{margin:0;font-size:16px;line-height:1.6;text-wrap:pretty}
+.bite .row{margin-top:8px;align-items:center;gap:8px}
+.bite.g-ex,.bite.g-mis,.bite.g-tip{margin:0}
+.wf-slot{display:inline-block;vertical-align:baseline}
+.wf-in{display:inline-block;width:auto;min-width:5ch;max-width:100%;padding:2px 6px;margin:0 2px;border:0;border-bottom:2px solid var(--y);border-radius:6px 6px 0 0;background:var(--card);font:inherit;font-weight:700;color:var(--t);min-height:0;box-shadow:none}
+.wf-in:focus{outline:2px solid rgba(var(--y-rgb),.4);outline-offset:1px}
+.wf-ans{padding:0 4px;border-radius:5px}
+.wf-ans.ok{background:rgba(var(--g-rgb),.18);color:var(--g)}
+.wf-ans.no{background:rgba(var(--y-rgb),.16);color:var(--y2);text-decoration:underline;text-decoration-style:dotted}
+.tg{display:inline-flex;gap:6px;margin:0 2px;vertical-align:baseline;flex-wrap:wrap}
+.tg-b{padding:3px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:inherit;font-weight:700;color:var(--t);cursor:pointer}
+.tg-b:hover{border-color:var(--y);background:var(--y-soft)}
+.feed-end{margin:0;text-align:center}
+
+/* long topic names wrap instead of pushing the card wider than a small phone */
+.drill-meta{flex-wrap:wrap;row-gap:6px}
+.drill-meta .pill{white-space:normal;max-width:100%}

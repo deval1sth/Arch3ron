@@ -85,12 +85,15 @@ function pickItems(id, n) {
 function buildLesson(lid, focusTopic) {
   const M = lessonMeta(lid); if (!M) return [];
   const steps = [], used = new Set();
+  const bites = typeof toBites === 'function', terms = new Set();
   if (lid.startsWith('g:')) {
     const g = STUDY_BY[lid.slice(2)], secs = splitGuide(g);
     steps.push({ k: 'read', h: 'The big idea', lead: g.lead, body: '' });
     for (const s of secs) {
-      const checks = s.lines.filter(l => l.startsWith('? ')).map(l => l.slice(2).split(' | '));
-      steps.push({ k: 'read', h: s.h || g.title, body: s.lines.filter(l => !l.startsWith('? ')).join('\n') });
+      const checks = s.lines.filter(l => l.startsWith('? ')).map(l => l.slice(2).split(' | ')), body = s.lines.filter(l => !l.startsWith('? '));
+      /* Seneca-style: the section arrives a chunk at a time, each asking you to do something */
+      const bs = bites ? toBites(body, s.h || g.title, g.subj, terms) : null;
+      steps.push(bs && bs.some(b => b.mode || b.k === 'ex') ? { k: 'feed', h: s.h || g.title, bites: bs, n: 1 } : { k: 'read', h: s.h || g.title, body: body.join('\n') });
       const q = sectionQ(g, s, used); if (q) steps.push({ k: 'ask', q });
       for (const [cq, ca] of checks.slice(0, 2)) steps.push({ k: 'check', q: cq, a: ca });
     }
@@ -100,16 +103,22 @@ function buildLesson(lid, focusTopic) {
     if (FACTY.has(T.type)) {
       const its = pickItems(id, 5);
       steps.push({ k: 'cards', items: its.map(it => [it.p, it.e ? `${it.a}. For example: ${it.e}` : it.a]) });
-      for (const it of [...its].sort(() => Math.random() - .5)) steps.push({ k: 'ask', q: withId(it.q(), id) });
+      /* short answers are typed (recall beats recognition); long ones stay as a choice */
+      for (const it of [...its].sort(() => Math.random() - .5)) {
+        const short = T.type === 'recall' && it.a.length <= 20 && it.a.split(' ').length <= 2 && /^[A-Za-z' -]+$/.test(it.a), w = it.a.replace(/[^A-Za-z']/g, '');
+        steps.push({ k: 'ask', q: withId(short ? { kind: 'word', key: it.k, q: it.p, w, show: it.a, hint: `Type it: starts with “${it.a[0]}”, ${w.length} letters`, steps: [`${it.p} → ${it.a}`] } : it.q(), id) });
+      }
       const seq = SEQS.find(s => s.topic === id); if (seq) steps.push({ k: 'ask', q: orderQ(seq) });
     } else {
       const G = GUIDES[id], ex = LEARN.gen(id, 1), d = ex && typeof DEMO !== 'undefined' ? DEMO.build(ex) : null;
       if (G) { steps.push({ k: 'read', h: 'The big idea', lead: G[0], body: '' }); steps.push({ k: 'method', h: 'The method', list: G[1] }); }
+      if (G && G[1].length >= 3) steps.push({ k: 'ask', q: orderQ({ id: 'm-' + id, topic: id, title: `${T.name}: the method`, steps: G[1] }) });
       if (ex) steps.push({ k: 'example', q: ex, d: d && d.ok ? d : null, fallback: G && G[2] });
       if (G) steps.push({ k: 'read', h: 'Exam tip', lead: G[3], body: '' });
       for (const l of [1, 2, 2]) { const q = LEARN.gen(id, l); if (q) steps.push({ k: 'ask', q: withId(q, id) }); }
     }
   }
+  const xq = typeof lessonXq === 'function' && lessonXq(M.topics); if (xq) steps.push({ k: 'xq', q: xq });
   steps.push({ k: 'done' });
   return steps;
 }
@@ -167,6 +176,8 @@ function lessonPanel() {
       h('div', { class: 'row' }, B([icon('check'), 'Got it'], 'lsSelf', 'primary grow', { 'data-ok': 1, id: 'ls-next' }), B('Not yet', 'lsSelf', 'ghost', { 'data-ok': 0 }))]
       : [h('p', { class: 'muted xs' }, 'Answer it in your head or on paper first.'), B('Show the answer', 'lsOpen', 'primary wide', { id: 'ls-next' })]];
   else if (st.k === 'ask') { if (!(DR && DR.ctx === 'lesson' && DR.lsStep === LS.i && DR.lid === LS.lid)) lsEnter(); body = drillPanel(); }
+  else if (st.k === 'feed') body = feedPanel(st);
+  else if (st.k === 'xq') body = xqStepPanel(st);
   else {
     const t = lsTopic(), more = t && FACTY.has((LEARN.TOPIC[t] || {}).type) && LEARN.itemsOf(t).some(it => !S.items[it.k]);
     body = [h('div', { class: 'ls-done' }, h('span', { class: 'ls-trophy' }, icon('crown')), h('h3', null, 'Lesson complete'),
@@ -175,11 +186,12 @@ function lessonPanel() {
       LS.ctx === 'focus' ? B([icon('play'), 'Carry on with this set'], 'lsCarry', 'primary wide', { id: 'ls-next' })
         : h('div', { class: 'row' }, t && B([icon('play'), 'Practise it now'], 'lsPractise', 'primary grow', { id: 'ls-next' }), more && B('Teach me 5 more', 'lsStart', 'ghost', { 'data-lid': LS.lid }))];
   }
-  const nav = st.k === 'ask' || st.k === 'check' || last ? null
-    : h('div', { class: 'row ls-nav' }, LS.i > 0 && B('Back', 'lsNext', 'ghost', { 'data-d': -1 }), nextBtn(st.k === 'cards' ? 'Test me' : 'Next'));
+  const feedOpen = st.k === 'feed' && !(st.n >= st.bites.length && st.bites[st.n - 1].res != null); /* Next appears once every chunk is answered */
+  const nav = st.k === 'ask' || st.k === 'check' || st.k === 'xq' || last ? null
+    : h('div', { class: 'row ls-nav' }, LS.i > 0 && B('Back', 'lsNext', 'ghost', { 'data-d': -1 }), !feedOpen && nextBtn(st.k === 'cards' ? 'Test me' : 'Next'));
   return h('section', { class: 'card lesson' + (last ? ' finished' : '') },
     h('div', { class: 'ls-top' }, h('span', { class: 'pill ls-pill' }, icon('book'), 'Lesson'), h('b', null, M.title), h('small', null, last ? 'done' : `${LS.i + 1} of ${n - 1}`)),
-    h('div', { class: 'ls-prog', 'aria-hidden': 'true' }, LS.steps.slice(0, -1).map((s, i) => h('i', { class: (i < LS.i || last ? 'on' : i === LS.i ? 'cur' : '') + (s.k === 'ask' || s.k === 'check' ? ' q' : '') }))),
+    h('div', { class: 'ls-prog', 'aria-hidden': 'true' }, LS.steps.slice(0, -1).map((s, i) => h('i', { class: (i < LS.i || last ? 'on' : i === LS.i ? 'cur' : '') + (['ask', 'check', 'feed', 'xq'].includes(s.k) ? ' q' : '') }))),
     h('div', { class: 'ls-step' }, body), nav,
     st.k === 'ask' && h('div', { class: 'row end' }, B('Skip this question', 'lsNext', 'link sm')));
 }

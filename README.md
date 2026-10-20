@@ -40,7 +40,8 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `slips.js`: mistake detective: names the classic slip behind a wrong number, fraction or expression answer
 - `teach.js`: lessons (built into Focus sets, up to two new ones per subject per day), new facts shown before they are asked,
   step-by-step hints, and quick question types (fill the gap, match up, put in order). Wraps app.js functions; state in `S.tc`
-- `check.js`: gap finder, grade tests, and exam questions sorted by topic with mark schemes
+- `check.js`: gap finder, grade tests, and exam questions by topic: the hand-written ones, then a bank built from definitions, facts, calculations and practicals (Easy, Medium, Hard by marks)
+- `bites.js`: Seneca-style lessons: each section arrives in chunks that ask you to type a key term, pick between opposites, or finish a worked example; lessons end with an exam-style question
 - `listen.js`: listen mode: reads a question, waits, reads the answer, using only voices built into the device
 - `teach.css`: styles for the files above, plus the calmer Focus, Learn and subject-page layout
 - `fx.js`: confetti bursts, count-ups, reveal overlays
