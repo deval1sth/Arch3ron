@@ -287,6 +287,8 @@ PLUSACT.undo = () => {
 };
 
 /* ---------- Backup reminder ---------- */
+/* ask the browser not to evict saved progress (iOS clears unused site data after ~7 days otherwise) */
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
 const daysSince = k => isKey(k) ? Math.round((parseKey(dkey()) - parseKey(k)) / 864e5) : null;
 const backupLine = () => { const d = daysSince(S.lastBackup); return d == null ? 'Never backed up on this device.' : d === 0 ? 'Last backup: today.' : `Last backup: ${d} day${d > 1 ? 's' : ''} ago.`; };
 async function backupNow() {
