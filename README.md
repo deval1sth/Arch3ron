@@ -55,3 +55,6 @@ License (free transitions may be used and modified in personal projects). Each k
 
 ## Deploy
 Push to GitHub; Pages serves `main` / root.
+
+## Copyright
+© 2026 Runo304. All rights reserved. The code is visible here so the site can be hosted, but it may not be copied, reused or republished without permission.

@@ -1524,7 +1524,7 @@ function vMe() {
           h('div', { class: 'row' }, B([icon('download'), 'Download'], 'exp', 'primary'),
             h('label', { class: 'btn ghost' }, icon('upload'), 'Restore', h('input', { type: 'file', accept: '.json,application/json', 'data-act': 'imp', class: 'sr' })))),
         card('Install', null, h('p', { class: 'muted xs' }, h('b', null, 'iPhone: '), 'Safari → Share → Add to Home Screen.', h('br'), h('b', null, 'Android: '), 'Chrome menu ⋮ → Install app.')),
-        card('Start over', null, h('p', { class: 'muted xs' }, 'Wipes everything on this device. Download a backup first.'), B('Reset everything', 'reset', 'ghost danger')))));
+        card('Start over', null, h('p', { class: 'muted xs' }, 'Wipes everything on this device. Download a backup first.'), B('Reset everything', 'reset', 'ghost danger')), h('p', { class: 'muted xs', style: 'text-align:center' }, '© 2026 Runo304. All rights reserved.'))));
 }
 
 /* ---------- shell ---------- */
