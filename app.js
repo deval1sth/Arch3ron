@@ -99,9 +99,10 @@ const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? '
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
 const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Guides', listen: 'Listen', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
-const subHero = (eyebrow, title, back, lede, backLabel) => h('div', { class: 'hero' },
-  B([icon('back'), backLabel || BACKS[back]], 'go', 'ghost sm backlink', { 'data-tab': back }),
-  h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
+/* the small label above a title is dropped when it would only repeat the back button ("Mocks" twice) */
+const subHero = (eyebrow, title, back, lede, backLabel, bl = backLabel || BACKS[back]) => h('div', { class: 'hero' },
+  B([icon('back'), bl], 'go', 'ghost sm backlink', { 'data-tab': back }),
+  eyebrow !== bl && h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 
 /* ---------- state + migration ---------- */
 function makePlan() {
@@ -542,7 +543,7 @@ function vHome() {
       h('div', { class: 'fb-ctl' }, B(T.run ? icon('pause') : icon('play'), 'tgl', 'primary icon-only', { 'aria-label': T.run ? 'Pause' : 'Resume' }), B('End', 'rst', 'ghost sm'))),
     missionCard(M, true));
 
-  const rough = hr >= 18 && list.length > 0 && !todayN && !((S.days[dkey()] || {}).ev || {}).sets; /* evening, sets planned, none done */
+  const rough = hr >= 18 && list.length > 0 && lifeSets() > 0 && !todayN && !((S.days[dkey()] || {}).ev || {}).sets; /* evening, sets planned, none done */
   const wb = welcomeBack();
   /* One main card, one short list, one notice. Everything else is a tap away: the page had grown to ten blocks and felt
      like too much (Oct 2026). Sebastian keeps you company on the rest and break screens instead. */
@@ -1550,10 +1551,12 @@ function movePill(animate) {
   if (animate) return apply();
   const prev = pill.style.transition; pill.style.transition = 'none'; apply(); void pill.offsetWidth; pill.style.transition = prev;
 }
+/* a drill lights the tab it was started from: grade tests and top-ups live in Mocks, the Daily five and sessions on Focus */
+const DRILL_TAB = { grade: 'mocks', topup: 'mocks', daily: 'home', sess: 'home' };
 function navPaint() {
   const nav = $('#nav'), first = !nav.childElementCount;
   if (first) nav.append(h('span', { class: 't-tabs-pill', 'aria-hidden': 'true' }), ...TABS.map(([k, ic, l]) => h('button', { type: 'button', 'data-act': 'go', 'data-tab': k }, icon(ic), h('span', null, l))));
-  const cur = PARENT[TAB] || TAB;
+  const cur = (TAB === 'drill' && DR && DRILL_TAB[DR.ctx]) || PARENT[TAB] || TAB;
   for (const b of nav.querySelectorAll('button')) { const on = b.dataset.tab === cur; b.classList.toggle('on', on); on ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'); }
   if (first) requestAnimationFrame(() => movePill(false)); else movePill(true);
 }

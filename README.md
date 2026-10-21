@@ -2,21 +2,18 @@
 
 A GCSE mocks training app that opens on one thing: your next focus set, and exactly what to do in it.
 
-- **Focus**: press Begin and the set's mission appears: questions, quote recall, essay or RE plans,
-  English Language guides, your due mistakes, or a past-paper workflow. Sets tick themselves; rest starts automatically.
-- **Learn**: 9 subjects, ~110 topics. Generated calculation drills (Maths, Physics, Chemistry, Biology,
-  Business, Geography) with worked methods, ~400 recall facts as quick-tap questions, quote recall, and
-  plan builders. Hard topics come back more often. Hide topics you don't study in Settings.
-- **The Realm**: nine fog-covered regions (one per subject). Learning clears the fog and raises a castle in each;
-  each region has a three-form boss fought with real questions. Daily contracts, a daily Hunt raced against your
-  own ghost, a streak flame, chests, a bestiary, a skill tree, a story that unlocks weekly, a Vault of real-life
-  rewards, a weekly rank and a rough grade forecast.
-- **Profile**: name, emblem, title, stats, the lantern river, 21 tiered achievements, subject mastery.
-- **Toolkit**: checklists with confidence ratings for every subject, past papers and trend chart,
-  fix list, flashcards, weekly plan, settings.
+- **Focus**: press Begin and the set's mission appears: a lesson, questions, quote recall, essay or RE plans,
+  your due mistakes, or a past-paper workflow. Sets tick themselves; rest starts automatically.
+- **Learn**: every subject in three tabs. Learn (interactive lessons and guides), Practise (generated
+  calculations with worked methods, facts, definitions, quick question types) and Exam (exam questions by topic,
+  Be the examiner). Hard topics and missed facts come back on a spaced schedule.
+- **Mocks**: what to do next, predicted grades, timed papers, grade tests, Be the examiner (mark real-style
+  answers against a mark scheme) and Mock-day memory (what you will still know on the day, with a top-up).
+- **Stats**: sets, focus time, questions, papers and streaks by day, week, month or all time.
+- **Toolkit**: set-up and profiles, plan, checklists, flashcards, fix list, settings and backup.
 
-Static site, no build step, no dependencies, no network calls. Progress lives only in this browser
-(`localStorage` key `archeron-v2`); older data migrates automatically. Back up from Settings.
+Static site, no build step, no dependencies, no network calls. Each profile's progress lives only in this
+browser (`localStorage`); back up from Settings.
 
 **Motion**: Settings → Motion. "Auto" follows the device's reduce-motion setting (Windows "Animation effects",
 iOS "Reduce Motion"); "Full" turns every animation on.
@@ -43,6 +40,10 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 - `check.js`: gap finder, grade tests, and exam questions by topic: the hand-written ones, then a bank built from definitions, facts, calculations and practicals (Easy, Medium, Hard by marks)
 - `bites.js`: Seneca-style lessons: each section arrives in chunks that ask you to type a key term, pick between opposites, or finish a worked example; lessons end with an exam-style question
 - `listen.js`: listen mode: reads a question, waits, reads the answer, using only voices built into the device
+- `examiner.js`: Be the examiner: 110 original student answers with planted mistakes, mark schemes and annotated
+  examiner marking, one examiner rule each (`exSelfTest()` checks every script against its own markup)
+- `forecast.js`: Mock-day memory: each learned fact projected to the mock date with the FSRS-6 memory model, a
+  forgetting curve, and a top-up of the facts that most need it
 - `teach.css`: styles for the files above, plus the calmer Focus, Learn and subject-page layout
 - `fx.js`: confetti bursts, count-ups, reveal overlays
 - `fonts/`: self-hosted Bricolage Grotesque and Atkinson Hyperlegible Next (OFL)
@@ -52,6 +53,10 @@ iOS "Reduce Motion"); "Full" turns every animation on.
 ## Credits
 Several transitions are adapted from [Transitions.dev](https://transitions.dev) under the Transitions.dev
 License (free transitions may be used and modified in personal projects). Each keeps its credit comment.
+
+## Checks
+Run in the browser console on the local preview before every release: `LEARN.selfTest()`, `CHEM.selfTest()`,
+`BOARD.selfTest()`, `lessonSelfTest()`, `xqSelfTest()` and `exSelfTest()`. Each returns its problems; all should be empty.
 
 ## Deploy
 Push to GitHub; Pages serves `main` / root.

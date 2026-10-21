@@ -1165,6 +1165,8 @@ function vMocks() {
     h('div', { class: 'tools' },
       hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
       typeof vGradeTest === 'function' && hubTool('gtest', 'trophy', 'Grade tests', 'Fifteen questions at one grade'),
+      typeof vExaminer === 'function' && hubTool('examiner', 'mark', 'Be the examiner', 'Mark real-style answers, see what earns marks'),
+      typeof vForecast === 'function' && hubTool('forecast', 'curve', 'Mock-day memory', fcLine()),
       hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
       hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades, marks and streaks`),
       hubTool('wrapped', 'star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),

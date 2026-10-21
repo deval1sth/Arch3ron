@@ -10,7 +10,6 @@ const ANT = [['increase', 'decrease'], ['increases', 'decreases'], ['increased',
   ['always', 'never'], ['anode', 'cathode'], ['series', 'parallel'], ['dominant', 'recessive'], ['aerobic', 'anaerobic'], ['transverse', 'longitudinal'],
   ['conductor', 'insulator'], ['acidic', 'alkaline'], ['acid', 'alkali'], ['heated', 'cooled'], ['absorbed', 'released'], ['absorbs', 'releases'], ['top', 'bottom'],
   ['maximum', 'minimum'], ['cooler', 'hotter'], ['wider', 'narrower'], ['thicker', 'thinner'], ['upwards', 'downwards'], ['add', 'subtract']];
-const reEscB = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const TERMS_C = {};
 /* the key terms a subject's lessons can blank out: its defined terms and short recall answers */
 function termsFor(subj) {
@@ -26,14 +25,14 @@ function termsFor(subj) {
 const sentences = t => t.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)?.map(s => s.trim()).filter(Boolean) || [t];
 let TOG_TURN = 0;
 function interaction(text, terms, used) {
-  const fill = () => { for (const t of terms) { if (used.has(t.toLowerCase())) continue; const all = text.match(new RegExp(`\\b${reEscB(t)}(s|es)?\\b`, 'gi')); if (!all || all.length > 1) continue; /* a term used twice would show its own answer */
-      const m = new RegExp(`\\b${reEscB(t)}(s|es)?\\b`, 'i').exec(text); if (m) return { mode: 'fill', ans: m[0], at: m.index, len: m[0].length, term: t }; } return null; };
+  const fill = () => { for (const t of terms) { if (used.has(t.toLowerCase())) continue; const all = text.match(new RegExp(`\\b${reEsc(t)}(s|es)?\\b`, 'gi')); if (!all || all.length > 1) continue; /* a term used twice would show its own answer */
+      const m = new RegExp(`\\b${reEsc(t)}(s|es)?\\b`, 'i').exec(text); if (m) return { mode: 'fill', ans: m[0], at: m.index, len: m[0].length, term: t }; } return null; };
   const tog = () => {
     const low = text.toLowerCase();
     for (const [a, b] of ANT) {
-      const ra = new RegExp(`\\b${reEscB(a)}\\b`, 'gi'), rb = new RegExp(`\\b${reEscB(b)}\\b`, 'gi'), ma = low.match(ra) || [], mb = low.match(rb) || [];
+      const ra = new RegExp(`\\b${reEsc(a)}\\b`, 'gi'), rb = new RegExp(`\\b${reEsc(b)}\\b`, 'gi'), ma = low.match(ra) || [], mb = low.match(rb) || [];
       if (ma.length + mb.length !== 1) continue;
-      const word = ma.length ? a : b, alt = ma.length ? b : a, m = new RegExp(`\\b${reEscB(word)}\\b`, 'i').exec(text);
+      const word = ma.length ? a : b, alt = ma.length ? b : a, m = new RegExp(`\\b${reEsc(word)}\\b`, 'i').exec(text);
       const cased = m[0], altCased = /^[A-Z]/.test(cased) ? alt.charAt(0).toUpperCase() + alt.slice(1) : alt;
       return { mode: 'tog', ans: cased, alt: altCased, at: m.index, len: cased.length, flip: Math.random() < .5 };
     }
@@ -159,3 +158,21 @@ Object.assign(ACT, {
 });
 CHG.lxqTick = el => { const st = LS && LS.steps[LS.i]; if (!st || st.k !== 'xq') return; st.got[+el.dataset.j] = el.checked; render(); };
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'wf-in') { e.preventDefault(); ACT.biteFill(); } });
+
+/* every lesson built and every fill-the-gap or pick-the-word chunk checked against its own text (run from the console) */
+function lessonSelfTest() {
+  const bad = []; let lessons = 0, gaps = 0;
+  for (const lid of [...Object.keys(STUDY_BY).map(g => 'g:' + g), ...Object.keys(LEARN.TOPIC).map(t => 't:' + t)]) {
+    let steps; try { steps = buildLesson(lid); } catch (e) { bad.push(`${lid}: ${e.message}`); continue; }
+    if (!steps.length) continue; lessons++;
+    for (const s of steps) {
+      if (s.k === 'ask' && !s.q) bad.push(`${lid}: empty question`);
+      if (s.k === 'feed') for (const b of s.bites) if (b.mode) {
+        gaps++;
+        if (b.text.slice(b.at, b.at + b.len) !== b.ans) bad.push(`${lid}: gap “${b.ans}” is not where it says`);
+        if (b.mode === 'fill' && !fillOk(b.ans, b.ans)) bad.push(`${lid}: “${b.ans}” fails its own check`);
+      }
+    }
+  }
+  return { lessons, gaps, bad };
+}

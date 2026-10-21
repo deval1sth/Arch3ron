@@ -123,6 +123,8 @@ drillPanel = function () {
   const el = _drillPanelT();
   try {
     for (const b of el.querySelectorAll('[data-act="similar"], [data-act="drillFix"]')) b.remove();
+    /* with "Try a similar one" gone, Next is the only way on after a miss: make it the main button and give it focus */
+    const nx = el.querySelector('[data-act="next"]:not(#nextq)'); if (nx && !el.querySelector('#nextq')) { nx.id = 'nextq'; nx.className = 'btn primary grow'; }
     const rv = el.querySelector('[data-act="reveal"]'); if (rv) rv.textContent = DR.ctx === 'gap' ? "Don't know it yet" : 'Skip';
     const m = el.querySelector('.drill-meta > span:last-child'); if (m) m.textContent = `Question ${DR.count + 1} of ${DR.gq.length}`;
     if (DR.ctx === 'gap' && DR.count === 0 && DR.state === 'ask') el.prepend(h('p', { class: 'muted xs gap-note' }, "One question per topic. No guessing: if you haven't learned it yet, tap “Don't know it yet”. That's exactly what this is for."));
@@ -211,7 +213,7 @@ function vXQ() {
   SUBJ_SEL = XQ.sid;
   return h('div', { class: 'stack narrow' },
     subHero(TRACK_NAME(XQ.sid), XQ.label, 'subject', null, TRACK_NAME(XQ.sid)),
-    h('div', { class: 'exdots', 'aria-label': `Question ${XQ.i + 1} of ${XQ.list.length}` }, XQ.list.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === XQ.i ? ' on' : '') + (XQ.res[k] ? ' done' : ''), 'data-act': 'xqGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
+    h('div', { class: 'exdots' + (XQ.list.length <= 16 ? ' fit' : ''), 'aria-label': `Question ${XQ.i + 1} of ${XQ.list.length}` }, XQ.list.map((_, k) => h('button', { type: 'button', class: 'exdot' + (k === XQ.i ? ' on' : '') + (XQ.res[k] ? ' done' : ''), 'data-act': 'xqGo', 'data-i': k, 'aria-label': `Question ${k + 1}` }))),
     srcs.map(k => acc(`xsrc-${p.id}-${k}`, h('b', { class: 'src-h' }, p.src[k][0]), h('div', { class: 'srcbox' }, p.src[k][1]), { open: true })),
     h('section', { class: 'card qcard exq' + (XQ.marked ? ' marked' : '') },
       h('div', { class: 'drill-meta' }, h('span', { class: 'pill' }, q[0]), h('span', null, `${m} mark${m > 1 ? 's' : ''} · ${xqLevel(m)}${x.mins ? ` · about ${x.mins} min` : ''} · ${p.name.replace(/ \(.*\)$/, '')}`)),
@@ -300,3 +302,15 @@ Object.assign(ACT, {
   }
 });
 CHG.xqTick = el => { if (!XQ) return; XQ.got[+el.dataset.j] = el.checked; render(); };
+
+/* every exam-question maker run three times: each must give a question and a non-empty mark scheme (run from the console) */
+function xqSelfTest() {
+  const bad = []; let n = 0;
+  for (const sid of Object.keys(XQ_G)) for (const row of xqIndex(sid)) for (const mk of row.makers) for (let k = 0; k < 3; k++) {
+    let q; try { q = mk(); } catch (e) { bad.push(`${sid} ${row.label}: ${e.message}`); break; }
+    if (!q) continue; n++;
+    const pts = Array.isArray(q[2]) ? q[2] : q[2].any;
+    if (!q[1] || !pts || !pts.length || pts.some(p => !String(p).trim()) || /undefined|NaN/.test(q[1] + pts.join())) bad.push(`${sid} ${row.label}: ${q[1]}`);
+  }
+  return { questions: n, bad };
+}

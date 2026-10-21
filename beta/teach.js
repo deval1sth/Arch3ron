@@ -85,6 +85,7 @@ function pickItems(id, n) {
 function buildLesson(lid, focusTopic) {
   const M = lessonMeta(lid); if (!M) return [];
   const steps = [], used = new Set();
+  if (typeof TOG_TURN !== 'undefined') TOG_TURN = 0; /* the same lesson always mixes its question types the same way */
   const bites = typeof toBites === 'function', terms = new Set();
   if (lid.startsWith('g:')) {
     const g = STUDY_BY[lid.slice(2)], secs = splitGuide(g);
