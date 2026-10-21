@@ -144,6 +144,16 @@ VIEWS.drill = function () {
 const XQ_G = { maths: 'Maths', biology: 'Biology', chemistry: 'Chemistry', physics: 'Physics', englang: 'English Language', englit: 'English Literature', geography: 'Geography', business: 'Business', re: 'RE' };
 const xqLevel = m => m <= 2 ? 'Easy' : m <= 4 ? 'Medium' : 'Hard'; /* by marks, as Save My Exams sorts its questions */
 const ASKS = /^(what|which|who|whom|where|why|how|name|give|state|define|describe|explain)\b|^when (did|does|do|was|were|is|are)\b/i; /* "When a cell becomes specialised…" is a description, not a question */
+/* a recall prompt as an exam question: "Why a powder reacts faster than lumps?" is a fragment, so it becomes "Explain why …" */
+const WH_OK = /^(why|how|what|which|where|who|when)( \w+)? (do|does|did|is|are|was|were|can|could|should|would|will|has|have|might|must)\b/i;
+function askOf(p) {
+  if (!(ASKS.test(p) || /\?\s*$/.test(p))) return `Complete this: ${p} → …`;
+  const t = p.replace(/[?.]*\s*$/, ''), low = t.charAt(0).toLowerCase() + t.slice(1);
+  if (WH_OK.test(t)) return t + '?';
+  if (/^(why|how) /i.test(t)) return `Explain ${low}.`;
+  if (/^(what|where|who) /i.test(t)) return `State ${low}.`;
+  return t + '?';
+}
 /* question makers for some practice topics: each call makes one fresh question in the practice papers' format */
 function xqMakers(ids, label) {
   const out = [];
@@ -151,7 +161,7 @@ function xqMakers(ids, label) {
     const T = LEARN.TOPIC[id]; if (!T || !usable(id)) continue;
     if (T.type === 'def') for (const it of LEARN.itemsOf(id)) out.push(() => [label, Math.random() < .5 ? `Define “${it.p}”.` : `What is meant by “${it.p}”?`,
       it.pts.length <= 3 ? it.pts : { any: it.pts, max: 3 }, { gen: true, key: 'd:' + it.k, def: true, model: it.a }]);
-    else if (T.type === 'recall') for (const it of LEARN.itemsOf(id)) out.push(() => [label, ASKS.test(it.p) || /\?\s*$/.test(it.p) ? it.p.replace(/[?.]*\s*$/, '?') : `Complete this: ${it.p} → …`,
+    else if (T.type === 'recall') for (const it of LEARN.itemsOf(id)) out.push(() => [label, askOf(it.p),
       [it.a], { gen: true, key: 'r:' + it.k, model: it.a }]);
     else if (T.type === 'calc') for (let k = 0; k < 6; k++) out.push(() => {
       const q0 = LEARN.gen(id, 2); if (!q0 || q0.kind === 'mcq' || !q0.steps || !q0.steps.length) return null; q0.id = id;

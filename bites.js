@@ -26,7 +26,8 @@ function termsFor(subj) {
 const sentences = t => t.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)?.map(s => s.trim()).filter(Boolean) || [t];
 let TOG_TURN = 0;
 function interaction(text, terms, used) {
-  const fill = () => { for (const t of terms) { if (used.has(t.toLowerCase())) continue; const m = new RegExp(`\\b${reEscB(t)}(s|es)?\\b`, 'i').exec(text); if (m) return { mode: 'fill', ans: m[0], at: m.index, len: m[0].length, term: t }; } return null; };
+  const fill = () => { for (const t of terms) { if (used.has(t.toLowerCase())) continue; const all = text.match(new RegExp(`\\b${reEscB(t)}(s|es)?\\b`, 'gi')); if (!all || all.length > 1) continue; /* a term used twice would show its own answer */
+      const m = new RegExp(`\\b${reEscB(t)}(s|es)?\\b`, 'i').exec(text); if (m) return { mode: 'fill', ans: m[0], at: m.index, len: m[0].length, term: t }; } return null; };
   const tog = () => {
     const low = text.toLowerCase();
     for (const [a, b] of ANT) {
