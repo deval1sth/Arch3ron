@@ -146,3 +146,34 @@ VIEWS.numbers = function () {
   } catch (e) { console.error(e); }
   return el;
 };
+
+/* ---------- the review log: every answer the app marked itself, so the memory model can be fitted to this student ----------
+   One entry per answer: "key,day,right" (day = days since 1970, right = 1 or 0). Written definitions are left out, because
+   you tick your own key points there, and a calibration is only as honest as its data. About 15 bytes an answer. */
+const RLOG_MAX = 30000;
+const _recordF = record;
+record = function (id, ok, key) {
+  const self = DR && DR.q && DR.q.key === key && DR.q.kind === 'def';
+  if (key && !self) { const L = tcArr('rlog'); L.push(`${key},${today()},${ok ? 1 : 0}`); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); }
+  return _recordF(id, ok, key);
+};
+/* reviews that can teach the model something: a fact seen again on a later day */
+function rlogUseful() {
+  const last = {}; let n = 0;
+  for (const e of tcArr('rlog')) { const [k, d] = e.split(','); if (last[k] != null && +d > last[k]) n++; last[k] = +d; }
+  return n;
+}
+function rlogCard() {
+  const all = tcArr('rlog').length, use = rlogUseful(), need = 300;
+  return card('Memory calibration', h('span', { class: 'muted' }, `${all.toLocaleString('en-GB')} answer${all === 1 ? '' : 's'} logged`),
+    h('p', { class: 'muted xs' }, 'Archeron records every answer it marks itself (not the ones you mark yourself), so the memory model can be fitted to how you forget. It stays on this device until you export it.'),
+    h('p', { class: 'muted xs' }, use >= need ? `${use} repeat reviews: enough for a first calibration.` : `${use} of about ${need} repeat reviews needed for a first calibration. Facts seen again on a later day count.`),
+    h('div', { class: 'row' }, B([icon('download'), 'Export review log'], 'rlogExport', 'ghost', { disabled: !all })));
+}
+ACT.rlogExport = () => {
+  const L = tcArr('rlog'); if (!L.length) return;
+  const data = { app: 'archeron', kind: 'review-log', v: 1, exported: dkey(), mock: S.mock, fields: 'key,day,right', reviews: L };
+  const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: `archeron-reviews-${dkey()}.json` });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(`${L.length.toLocaleString('en-GB')} answers exported`);
+};
