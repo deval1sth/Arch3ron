@@ -60,9 +60,9 @@ const BRAIN = (() => {
   function create(canvas, who) {
     const ctx = canvas.getContext('2d'), C = LOOK[who] || LOOK.runo, rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
     let regions = [], weights = [], angle = Math.PI / 2 - .5, last = 0, dragX = null, held = 0, labels = [];
-    canvas.addEventListener('pointerdown', e => { dragX = e.clientX; held = Date.now(); try { canvas.setPointerCapture(e.pointerId); } catch (x) {} });
-    canvas.addEventListener('pointermove', e => { if (dragX == null) return; angle += (e.clientX - dragX) * .012; dragX = e.clientX; held = Date.now(); });
-    const up = () => { dragX = null; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('pointerdown', e => { if (!e.isPrimary) return; dragX = e.clientX; held = Date.now(); try { canvas.setPointerCapture(e.pointerId); } catch (x) {} });
+    canvas.addEventListener('pointermove', e => { if (dragX == null || !e.isPrimary) return; angle += (e.clientX - dragX) * .012; dragX = e.clientX; held = Date.now(); });
+    const up = e => { if (e.isPrimary) dragX = null; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
 
     function set(list) {
       regions = list.map(r => ({ ...r, p: anchor(r.key) }));
@@ -82,7 +82,7 @@ const BRAIN = (() => {
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
       const cx = W / 2, cy = H * .47, R = Math.min(W * .3, H * .46), ca = Math.cos(angle), sa = Math.sin(angle), tl = .1, ct = Math.cos(tl), st = Math.sin(tl);
       const proj = q => { const x1 = q[0] * ca + q[2] * sa, z1 = -q[0] * sa + q[2] * ca, y1 = q[1] * ct - z1 * st, z2 = q[1] * st + z1 * ct, k = 2.8 / (2.8 + z2); return [cx + x1 * R * k, cy - y1 * R * k, z2]; };
-      const pulse = .85 + .15 * Math.sin(now / 420);
+      const pulse = motion ? .85 + .15 * Math.sin(now / 420) : 1;
 
       /* soft halo behind the brain */
       const halo = ctx.createRadialGradient(cx, cy, R * .2, cx, cy, R * 1.25); halo.addColorStop(0, `rgba(${C.glow},.16)`); halo.addColorStop(1, `rgba(${C.glow},0)`);
@@ -133,7 +133,7 @@ const BRAIN = (() => {
         ctx.strokeStyle = `rgba(${col},${(.7 * vis).toFixed(2)})`; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(ex, L.y); ctx.lineTo(ex + (right ? -12 : 12), L.y); ctx.lineTo(a.x, a.y); ctx.stroke();
         ctx.fillStyle = `rgba(${col},${vis})`; ctx.beginPath(); ctx.arc(a.x, a.y, 3, 0, TAU); ctx.fill();
-        ctx.strokeStyle = `rgba(${col},${(.35 * vis).toFixed(2)})`; ctx.beginPath(); ctx.arc(a.x, a.y, 5 + 3 * Math.sin(now / 300 + a.j), 0, TAU); ctx.stroke();
+        ctx.strokeStyle = `rgba(${col},${(.35 * vis).toFixed(2)})`; ctx.beginPath(); ctx.arc(a.x, a.y, motion ? 5 + 3 * Math.sin(now / 300 + a.j) : 6, 0, TAU); ctx.stroke();
         ctx.textAlign = right ? 'right' : 'left';
         ctx.font = F1; ctx.fillStyle = `rgba(244,240,245,${Math.max(.55, vis)})`; ctx.fillText(reg.name, L.x, L.y - 7);
         ctx.font = F2; ctx.fillStyle = `rgba(${col},${Math.max(.6, vis)})`; ctx.fillText(reg.line, L.x, L.y + 7);

@@ -143,6 +143,18 @@ const ART = (() => {
   <text id="rv-n2" x="430" y="186" fill="#2b220f" style="font:700 10.5px var(--hand)"></text>
 </g>
 
+<g>
+  <rect x="30" y="192" width="160" height="50" rx="2" fill="#1f2a24" stroke="#4a3a2c" stroke-width="3"/>
+  <g fill="#e9e7df" style="font:700 8px var(--font);letter-spacing:.1em"><text x="38" y="208">RUNO</text><text x="38" y="230">ONUR</text></g>
+  <path id="rv-tyou" stroke="#e9e7df" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+  <path id="rv-tonur" stroke="#ff8a8f" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+  <g fill="#e9e7df" style="font:700 8px var(--font)" text-anchor="end"><text id="rv-cyou" x="184" y="208"></text><text id="rv-conur" x="184" y="230"></text></g>
+  <rect x="24" y="296" width="166" height="5" fill="#241b17" stroke="${INK}" stroke-width="1"/>
+  ${Array.from({ length: 8 }, (_, i) => `<path id="rv-tr${i}" style="display:none" d="M${31 + i * 20} 276 h12 q0 8 -6 9 v4 h4 v3 h-8 v-3 h4 v-4 q-6 -1 -6 -9z M${31 + i * 20} 278 q-4 0 -4 3 q0 3 4 3 M${43 + i * 20} 278 q4 0 4 3 q0 3 -4 3" fill="#d9b44a" stroke="${INK}" stroke-width=".9"/>`).join('')}
+  <text id="rv-trn" x="188" y="290" text-anchor="end" fill="#d9b44a" style="font:700 8px var(--font)"></text>
+  <g id="rv-po1" style="display:none"><rect x="236" y="134" width="50" height="62" fill="#e8e3d6" stroke="${INK}" stroke-width="1"/><path d="M240 142 h42 M240 150 h42 M240 158 h42 M240 166 h42 M240 174 h42 M240 182 h42 M247 138 v54 M254 138 v54 M261 138 v54 M268 138 v54 M275 138 v54" stroke="#9a8f7a" stroke-width=".6"/><rect x="240" y="138" width="7" height="12" fill="#c4202d" opacity=".5"/></g>
+  <g id="rv-po2" style="display:none"><rect x="430" y="204" width="68" height="34" fill="#141418" stroke="${INK}" stroke-width="1"/><text x="464" y="218" text-anchor="middle" fill="#e8e3d6" style="font:800 8.5px var(--head);letter-spacing:.12em">NO DAYS</text><text x="464" y="231" text-anchor="middle" fill="#c4202d" style="font:800 8.5px var(--head);letter-spacing:.12em">OFF</text></g>
+</g>
 <rect x="506" y="24" width="272" height="214" style="fill:var(--frame)" stroke="${INK}" stroke-width="1.4"/>
 <g clip-path="url(#rv-win)">
   <rect x="516" y="34" width="252" height="194" fill="url(#rv-sky)"/>
@@ -219,6 +231,13 @@ const ART = (() => {
   <polygon id="rv-flip" points="420,271 454,271 460,283 418,283" fill="#ebe5d6" opacity="0" style="transform-origin:419px 277px"/>
 </g>
 
+<g>
+  <path d="M404 404 L432 404 L429 432 L407 432Z" fill="#2a2b33" stroke="${INK}" stroke-width="1.2"/><path d="M406 410 H430" stroke="#3a3c48" stroke-width="1"/>
+  ${[[411, 401], [420, 399], [428, 402], [415, 395], [424, 393], [408, 394], [433, 396], [419, 388]].map(([x, y], i) => `<g id="rv-pb${i}" style="display:none"><circle cx="${x}" cy="${y}" r="5" fill="#e8e4da" stroke="${INK}" stroke-width=".9"/><path d="M${x - 3} ${y - 1} l2.5 1.5 l1.5 -2.5 M${x} ${y + 2} l3 -1" stroke="#9a958a" stroke-width=".7" fill="none"/></g>`).join('')}
+  <g id="rv-db1" style="display:none"><rect x="474" y="258" width="44" height="10" fill="#3b3f52" stroke="${INK}" stroke-width=".9"/><rect x="477" y="249" width="38" height="9" fill="#6b2228" stroke="${INK}" stroke-width=".9"/></g>
+  <g id="rv-db2" style="display:none"><rect x="475" y="241" width="40" height="8" fill="#2c4642" stroke="${INK}" stroke-width=".9"/><rect x="479" y="233" width="34" height="8" fill="#8b7f6c" stroke="${INK}" stroke-width=".9"/></g>
+  <g id="rv-db3" style="display:none"><rect x="477" y="225" width="36" height="8" fill="#4a2730" stroke="${INK}" stroke-width=".9"/><rect x="480" y="218" width="30" height="7" fill="#59606e" stroke="${INK}" stroke-width=".9"/></g>
+</g>
 <g id="rv-sitter" class="fade">
   <path d="M326 334 L344 332 Q360 334 362 342 Q362 348 354 348 L324 348 Q320 340 326 334Z" fill="#202027" stroke="${INK}" stroke-width="1.3"/>
   <path d="M262 349 C247 318 245 285 254 262 C263 236 282 219 305 212 C318 209 328 214 332 222 C335 240 330 262 324 284 L314 336 C302 346 282 350 262 349Z" fill="${SHIRT}" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>

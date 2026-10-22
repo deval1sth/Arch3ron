@@ -219,3 +219,20 @@ details summary small{font:400 13px var(--font);color:var(--m);margin-left:auto}
 .hrow24{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
 .hrow24 i{height:18px;border-radius:3px}.hy{background:var(--you)}.ho{background:var(--riv)}
 .hticks{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}.hticks b{font-weight:400}
+
+/* challenge, Onur talking, weak spots, diary */
+.says{margin:6px 0 0;font:700 15px var(--hand);color:var(--riv)}
+.chal{border-color:rgba(var(--riv-rgb),.35);background:linear-gradient(135deg,rgba(var(--riv-rgb),.13),var(--panel) 60%)}
+.ch-top small{color:var(--riv);font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.ch-top h2{font:800 22px/1.2 var(--head);margin:2px 0 12px}
+.ch-row{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
+.ch-row b{font:800 30px var(--head);margin-right:6px}.ch-row .cy{color:var(--you)}.ch-row .co{color:var(--riv)}
+.ch-st{color:var(--m);font-size:14px;flex:1 1 220px}.ch-st.ok{color:var(--you);font-weight:700}
+.wk{display:grid;gap:10px}
+.wrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline}
+.wrow .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrow .vv{color:var(--m);font-size:13px}.wrow .up{color:var(--you);font-style:normal}.wrow .dn{color:var(--riv);font-style:normal}
+.wbar{grid-column:1/-1;height:6px;border-radius:9px;background:var(--line2)}.wbar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--riv),#ffd0a8)}
+.cmp{margin:8px 0 0;font-size:13.5px;color:var(--m)}.cmp b{margin-right:4px}
+.dentry{padding:10px 0;border-bottom:1px solid var(--line2)}.dentry:last-child{border:0}
+.dentry small{color:var(--m);font-size:12px}.dentry p{margin:4px 0 0;font:700 15.5px/1.45 var(--hand);color:var(--t)}

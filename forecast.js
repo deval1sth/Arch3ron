@@ -170,6 +170,14 @@ record = function (id, ok, key) {
     if (!Array.isArray(HR[d]) || HR[d].length !== 24) HR[d] = new Array(24).fill(0);
     HR[d][new Date().getHours()]++;
     const ks = Object.keys(HR).sort(); while (ks.length > 21) delete HR[ks.shift()];
+    /* every topic you practise, with the day you first did it: Onur's own topic list grows from these */
+    const TN = tcObj('tn'); if (!TN[id] && Object.keys(TN).length < 800) TN[id] = [LEARN.name(id), LEARN.TOPIC[id].subject, d];
+    /* topics missed on each of the last 21 days, so Onur's past days replay exactly the same after midnight */
+    if (!ok) {
+      const MD = tcObj('missd'); if (!MD[d] || typeof MD[d] !== 'object') MD[d] = {};
+      if (!MD[d][id]) MD[d][id] = Date.now();
+      const mk = Object.keys(MD).sort(); while (mk.length > 21) delete MD[mk.shift()];
+    }
   }
   return _recordF(id, ok, key);
 };

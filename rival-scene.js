@@ -123,7 +123,7 @@ const SCENE = (() => {
       el.forehi.setAttribute('d', `M${(E[0] + 2).toFixed(1)} ${(E[1] - 5).toFixed(1)} L${(W[0] - 5).toFixed(1)} ${(W[1] - 5).toFixed(1)}`);
       el.pen.setAttribute('x1', tx.toFixed(1)); el.pen.setAttribute('y1', ty.toFixed(1)); el.pen.setAttribute('x2', (tx + 6.5).toFixed(1)); el.pen.setAttribute('y2', (ty - 16).toFixed(1));
       el.hand.setAttribute('transform', `translate(${W[0].toFixed(1)} ${W[1].toFixed(1)}) rotate(${ang.toFixed(1)}) scale(.9)`);
-      tilt = mode === 'think' ? 0 + (motion ? Math.sin(t * .5) * .5 : 0) : 7 + (motion ? Math.sin(t * 1.1) * 1.6 + Math.sin(t * .37) * 1.1 : 0);
+      tilt = (info.tired ? 5 : 0) + (mode === 'think' ? (motion ? Math.sin(t * .5) * .5 : 0) : 7 + (motion ? Math.sin(t * 1.1) * 1.6 + Math.sin(t * .37) * 1.1 : 0));
     } else if (info.pose === 'phone') tilt = 10 + (motion ? Math.sin(t * .6) * 1.4 : 0);
     el.head.style.transform = el.eyes.style.transform = `rotate(${(tilt + turn).toFixed(2)}deg)`;
   }
@@ -136,5 +136,17 @@ const SCENE = (() => {
     el.bubr.setAttribute('width', Math.max(64, Math.round(w + 24)));
   }
 
-  return { mount, frame, say };
+  /* the room tells the story: chalk tallies of days won, his trophies for weeks he won, your crumpled paper in his bin, posters and books as he levels up */
+  const tally = (n, x, y) => { let d = ''; for (let i = 0; i < Math.min(n, 25); i++) { if (i % 5 === 4) { d += `M${x - 15} ${y + 1} L${x - 1} ${y - 9}`; x += 5; } else { d += `M${x} ${y - 9} V${y + 1}`; x += 3.5; } } return d; };
+  function room(r) {
+    if (!svg) return;
+    $('rv-tyou').setAttribute('d', tally(r.you, 70, 207)); $('rv-tonur').setAttribute('d', tally(r.onur, 70, 229));
+    $('rv-cyou').textContent = r.you; $('rv-conur').textContent = r.onur;
+    for (let i = 0; i < 8; i++) { $('rv-tr' + i).style.display = i < r.trophies ? '' : 'none'; $('rv-pb' + i).style.display = i < r.crumpled ? '' : 'none'; }
+    $('rv-trn').textContent = r.trophies > 8 ? '×' + r.trophies : '';
+    $('rv-po1').style.display = r.level >= 4 ? '' : 'none'; $('rv-po2').style.display = r.level >= 7 ? '' : 'none';
+    for (const [id, l] of [['rv-db1', 3], ['rv-db2', 6], ['rv-db3', 9]]) $(id).style.display = r.level >= l ? '' : 'none';
+  }
+
+  return { mount, frame, say, room };
 })();
