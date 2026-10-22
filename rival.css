@@ -172,6 +172,8 @@ details summary small{font:400 13px var(--font);color:var(--m);margin-left:auto}
 .still *,.still *::after{animation:none!important}
 .fade{transition:opacity .8s var(--ease)}
 .boot .fade,.boot #rv-chair{transition:none!important}
+#rv-write,#rv-think,#rv-stretch{transition:opacity .22s ease}
+.scene .rim{opacity:var(--rim,0)}
 
 @media (max-width:520px){
   .brand p{display:none}

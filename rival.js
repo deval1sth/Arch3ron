@@ -162,7 +162,7 @@
         const up = m < p.wake ? p.t0 + p.wake * MIN : (q => q.t0 + q.wake * MIN)(plan(midnight(now, 1)));
         chip = `Asleep · up at ${hm(up)}`; note = ['Asleep', `up at ${hm(up)}`]; }
     }
-    const info = { pose, lamp, note, hype: !!hype, spread: 0, line: 0, frac: 0, marks: [] };
+    const info = { pose, lamp, note, hype: !!hype, subject: cur ? cur.topic || cur.s.name : '', prog: n / p.goal, spread: 0, line: 0, frac: 0, marks: [] };
     if (pose === 'write') {
       const prev = n && p.ans[n - 1].run === run ? p.ans[n - 1].t : p.t0 + run.a * MIN, nt = cur ? cur.t : end;
       info.spread = Math.floor(n / 6) + run.a * 1000; info.line = n % 6; info.frac = clamp((now - prev) / Math.max(1, nt - prev), 0, 1);
