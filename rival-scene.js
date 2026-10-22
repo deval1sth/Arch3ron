@@ -30,7 +30,7 @@ const SCENE = (() => {
   const ticks = Array.from({ length: 12 }, (_, i) => `<line x1="390" y1="${78 + (i % 3 ? 2 : 0)}" x2="390" y2="83" transform="rotate(${i * 30} 390 100)"/>`).join('');
 
   const MARKUP = `
-<svg class="scene" viewBox="0 0 800 480" role="img" aria-label="The rival's room">
+<svg class="scene" viewBox="0 0 800 480" role="img" aria-label="Onur's room">
 <defs>
   <linearGradient id="rv-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky1)"/><stop offset="1" style="stop-color:var(--sky2)"/></linearGradient>
   <radialGradient id="rv-lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc97a" stop-opacity=".62"/><stop offset=".45" stop-color="#ff9d4d" stop-opacity=".2"/><stop offset="1" stop-color="#ff9d4d" stop-opacity="0"/></radialGradient>

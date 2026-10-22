@@ -175,7 +175,7 @@
   const app = $('app');
   loadS();
   if (!S) {
-    app.innerHTML = `<section class="card empty"><h2>Your rival needs a copy of you</h2><p>Open Archeron on this device and answer a few questions first. Your rival is built from that.</p><a href="./">Open Archeron</a></section>`;
+    app.innerHTML = `<section class="card empty"><h2>Onur needs a copy of you</h2><p>Open Archeron on this device and answer a few questions first. Onur, your rival, is built from that.</p><a href="./">Open Archeron</a></section>`;
     setInterval(() => { if (loadS() && S) location.reload(); }, 2000);
     return;
   }
@@ -184,26 +184,26 @@
   const field = (k, l) => `<label for="r-${k}">${l}<input type="time" id="r-${k}" value="${esc(P.r[k])}"></label>`;
   const DOW = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
   app.innerHTML = `
-<header class="top"><div class="brand"><h1>Your <b>rival</b></h1><p>A copy of you. Same day as you, every free minute studying.</p></div><a class="back" href="./">Archeron</a></header>
-<section class="room" aria-label="The rival's room"><div id="scene"></div>
-  <div class="acts"><button type="button" class="play" id="play">Watch its day</button>${PIP ? '<button type="button" class="play" id="pop">Pop out</button>' : ''}</div>
-  <div class="score num" id="score"><b class="sy">You 0</b><b class="sr">Rival 0</b></div>
+<header class="top"><div class="brand"><h1><b>Onur</b></h1><p>Your rival. A copy of you, living your day, studying every free minute.</p></div><a class="back" href="./">Archeron</a></header>
+<section class="room" aria-label="Onur's room"><div id="scene"></div>
+  <div class="acts"><button type="button" class="play" id="play">Watch Onur's day</button>${PIP ? '<button type="button" class="play" id="pop">Pop out</button>' : ''}</div>
+  <div class="score num" id="score"><b class="sy">You 0</b><b class="sr">Onur 0</b></div>
   <div class="chip"><i class="dot" id="dot"></i><span id="chip"></span></div></section>
 <div id="away"></div>
-<section class="day"><div class="dayhead"><h2>The rival's day</h2><span id="dplan"></span></div>
+<section class="day"><div class="dayhead"><h2>Onur's day</h2><span id="dplan"></span></div>
   <div class="strip" id="strip"></div><div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div><div class="legend" id="legend"></div></section>
 <div class="grid">
   <section class="card"><h2>Today <small id="tdate"></small></h2><div class="vs">
     <div class="side you"><span class="lbl">You</span><span class="big num" id="you">0</span><span class="bar"><b id="youb"></b></span></div>
-    <div class="side riv"><span class="lbl">Rival</span><span class="big num" id="riv">0</span><span class="bar"><b id="rivb"></b></span></div>
+    <div class="side riv"><span class="lbl">Onur</span><span class="big num" id="riv">0</span><span class="bar"><b id="rivb"></b></span></div>
     <div><p class="verdict" id="verdict"></p><p class="sub" id="goal"></p></div></div></section>
   <section class="card week" id="wk"><h2><span id="wkTitle">This week</span> <small id="wkRange"></small></h2><div id="week"></div><div class="res" id="wkRes"></div>
-    <div class="keys"><span><i style="background:var(--you)"></i>You</span><span><i style="background:var(--riv)"></i>Rival</span><span><i class="r-W"></i>W win</span><span><i class="r-L"></i>L loss</span></div>
+    <div class="keys"><span><i style="background:var(--you)"></i>You</span><span><i style="background:var(--riv)"></i>Onur</span><span><i class="r-W"></i>W win</span><span><i class="r-L"></i>L loss</span></div>
     <p class="tally" id="wkTally"></p><p class="sub" id="wkMore"></p></section>
 </div>
 <div class="grid">
-  <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">rival</span></small></h2><div class="subs" id="subs"></div></section>
-  <section class="card"><h2>Its homework <small>your mistakes today</small></h2><div id="hw"></div></section>
+  <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
+  <section class="card"><h2>Onur's homework <small>your mistakes today</small></h2><div id="hw"></div></section>
 </div>
 <details class="card" id="rout"><summary>Your routine <small id="rsum"></small></summary><div class="form">
   <div><h3>School days</h3><div class="days" id="dows">${DOW.map(([d, l]) => `<button type="button" data-d="${d}" aria-pressed="${P.r.days.includes(d)}">${l}</button>`).join('')}</div></div>
@@ -211,7 +211,7 @@
   <div><h3>Weekends and days off</h3><div class="fields">${field('wwake', 'Wake up')}${field('wdinner', 'Dinner')}${field('wbed', 'Bed')}</div></div>
   <div class="toggles">
     <label class="tg" for="off"><span>No school today<small>Half term, an inset day or off ill</small></span><input type="checkbox" id="off"></label>
-    <label class="tg" for="mot"><span>Animation<small>The rival writes, the clock ticks, the sky moves</small></span><input type="checkbox" id="mot"></label>
+    <label class="tg" for="mot"><span>Animation<small>Onur writes, the clock ticks, the sky moves</small></span><input type="checkbox" id="mot"></label>
   </div></div></details>
 <p class="foot">Reads your Archeron progress on this device. Nothing is sent anywhere.</p>`;
 
@@ -243,10 +243,10 @@
       g += d.res === 'later' ? `<rect x="${cx - 14.5}" y="96" width="29" height="28" rx="4" fill="none" stroke="rgba(237,240,252,.14)" stroke-dasharray="3 3"/>` : bar(d.you, cx - 14.5, 'var(--you)') + bar(d.riv, cx + 1.5, 'var(--riv)');
       g += `<text x="${cx}" y="142" text-anchor="middle" class="${d.res === 'live' ? 'tday' : ''}">${d.res === 'live' ? 'Today' : wday(d.t0)}</text>`;
     });
-    $('week').innerHTML = `<svg viewBox="0 0 330 150" role="img" aria-label="Answers each day this week, you and your rival">${g}</svg>`;
+    $('week').innerHTML = `<svg viewBox="0 0 330 150" role="img" aria-label="Answers each day this week, you and Onur">${g}</svg>`;
     const lead = d => d.you > d.riv ? 'you' : d.riv > d.you ? 'riv' : '';
     $('wkRes').innerHTML = days.map(d => d.res === 'later' ? '<i class="r-later">·</i>' : d.res === 'live' ? `<i class="r-live ${lead(d)}" title="Today so far">now</i>`
-      : `<i class="r-${d.res}" title="${wday(d.t0)}: you ${d.you}, rival ${d.riv}">${d.res}</i>`).join('');
+      : `<i class="r-${d.res}" title="${wday(d.t0)}: you ${d.you}, Onur ${d.riv}">${d.res}</i>`).join('');
 
     const tally = list => { const c = { W: 0, L: 0, T: 0 }; for (const d of list) if (c[d.res] != null) c[d.res]++; return c; };
     const say = c => `won ${c.W}, lost ${c.L}${c.T ? `, tied ${c.T}` : ''}`;
@@ -254,7 +254,7 @@
     $('wk').classList.toggle('final', sunday);
     $('wkTitle').textContent = sunday ? 'Sunday night results' : 'This week';
     $('wkRange').textContent = `${new Date(mon).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(midnight(mon, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-    const t = days.find(d => d.res === 'live'), live = t ? ` Today: ${t.you > t.riv ? `you lead by ${t.you - t.riv}` : t.riv > t.you ? `rival leads by ${t.riv - t.you}` : 'level'}, still live until midnight.` : '';
+    const t = days.find(d => d.res === 'live'), live = t ? ` Today: ${t.you > t.riv ? `you lead by ${t.you - t.riv}` : t.riv > t.you ? `Onur leads by ${t.riv - t.you}` : 'level'}, still live until midnight.` : '';
     $('wkTally').innerHTML = c.W + c.L + c.T ? `<b>You ${say(c)}.</b>${live}` : `<b>No finished days yet this week.</b>${live}`;
 
     const done = days.filter(d => d.res === 'W' || d.res === 'L'), best = done.filter(d => d.res === 'W').sort((a, b) => (b.you - b.riv) - (a.you - a.riv))[0], worst = done.filter(d => d.res === 'L').sort((a, b) => (b.riv - b.you) - (a.riv - a.you))[0];
@@ -277,10 +277,10 @@
   }
 
   function drawHomework(p, now) {
-    if (!p.miss.length) { $('hw').innerHTML = '<p class="sub">When you get a question wrong in Archeron today, the topic lands here and your rival revises it too. The list starts fresh each morning.</p>'; return; }
+    if (!p.miss.length) { $('hw').innerHTML = '<p class="sub">When you get a question wrong in Archeron today, the topic lands here and Onur revises it too. The list starts fresh each morning.</p>'; return; }
     const n = doneBy(p, now), done = p.ans.slice(0, n);
     $('hw').innerHTML = '<div class="hw">' + p.miss.map(e => { const its = done.filter(a => a.topic === e.name), ok = its.filter(a => a.ok).length;
-      return `<div class="hrow"><span class="nm">${esc(e.name)}</span><span class="vv">you missed ${e.n} · <b style="color:var(--riv)">it has done ${its.length}</b>${its.length ? `, ${ok} right` : ''}</span></div>`; }).join('') + '</div>';
+      return `<div class="hrow"><span class="nm">${esc(e.name)}</span><span class="vv">you missed ${e.n} · <b style="color:var(--riv)">Onur has done ${its.length}</b>${its.length ? `, ${ok} right` : ''}</span></div>`; }).join('') + '</div>';
   }
 
   /* ---------- live: numbers, reactions, the scene ---------- */
@@ -303,13 +303,13 @@
     if (prev && you > prev.you) { if (prev.you != null) { const s = document.createElement('span'); s.className = 'pop'; s.textContent = '+' + (you - prev.you); $('you').appendChild(s); setTimeout(() => s.remove(), 1200); } lastYou = now; }
     prev = { you, riv, sign, miss: p.miss.length };
     if ($('you').firstChild && $('you').firstChild.nodeType === 3) $('you').firstChild.nodeValue = you; else $('you').prepend(String(you));
-    $('riv').textContent = riv; scoreEl.innerHTML = `<b class="sy">You ${you}</b><b class="sr">Rival ${riv}</b>`;
+    $('riv').textContent = riv; scoreEl.innerHTML = `<b class="sy">You ${you}</b><b class="sr">Onur ${riv}</b>`;
     $('youb').style.width = (you / top * 100).toFixed(1) + '%'; $('rivb').style.width = (riv / top * 100).toFixed(1) + '%';
     const d = you - riv, going = cur.run.kind === 'study';
-    $('verdict').textContent = d > 0 ? `You're ${d} ahead.` : d < 0 ? `Your rival is ${-d} ahead${going ? ' and still going' : ''}.` : you ? 'Dead level.' : 'Neither of you has started yet.';
-    $('goal').textContent = (p.avg ? `Its goal today is ${p.goal}: your recent daily average plus 15%.` : `Its goal today is ${p.goal}. After a few days of studying it will match your pace.`)
-      + (p.m > 1.01 ? ' It has stepped up because you kept beating it.' : p.m < .99 ? ' It has eased off after winning a few days in a row.' : '')
-      + (p.mine >= 30 ? ` It gets about ${Math.round(p.acc * 100)}% right, like you.` : '');
+    $('verdict').textContent = d > 0 ? `You're ${d} ahead.` : d < 0 ? `Onur is ${-d} ahead${going ? ' and still going' : ''}.` : you ? 'Dead level.' : 'Neither of you has started yet.';
+    $('goal').textContent = (p.avg ? `Onur's goal today is ${p.goal}: your recent daily average plus 15%.` : `Onur's goal today is ${p.goal}. After a few days of studying, Onur will match your pace.`)
+      + (p.m > 1.01 ? ' Onur has stepped up because you kept winning.' : p.m < .99 ? ' Onur has eased off after winning a few days in a row.' : '')
+      + (p.mine >= 30 ? ` Onur gets about ${Math.round(p.acc * 100)}% right, like you.` : '');
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
@@ -342,7 +342,7 @@
     raf(step);
   }
 
-  /* "Watch its day": a ~40-second time-lapse through today's plan. Sweeps move the sky; stops play each scene. */
+  /* "Watch Onur's day": a ~40-second time-lapse through today's plan. Sweeps move the sky; stops play each scene. */
   const SWEEP = 1.4;
   function tourAt(real) {
     const e = (real - tour.start) / 1000; let acc = 0, prevT = null;
@@ -365,7 +365,7 @@
     steps.sort((a, b) => a.t - b.t);
     tour = { start: Date.now(), steps }; playEl.textContent = 'Back to now'; room.classList.remove('still');
   }
-  function stopTour() { tour = null; playEl.textContent = 'Watch its day'; setMotion(); tick(); SCENE.frame(Date.now(), cur.info, motion); }
+  function stopTour() { tour = null; playEl.textContent = "Watch Onur's day"; setMotion(); tick(); SCENE.frame(Date.now(), cur.info, motion); }
 
   /* pop out: an always-on-top mini window (Chrome and Edge on a computer) */
   const slot = document.createComment('room');
@@ -376,7 +376,7 @@
     try { w = await documentPictureInPicture.requestWindow({ width: 440, height: 264 }); }
     catch (e) { console.warn('Pop-out window refused, opening a small window instead:', e && e.message); miniWindow(); return; }
     const link = w.document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('rival.css', location.href).href; w.document.head.append(link);
-    w.document.title = 'Rival'; w.document.body.className = 'pipdoc';
+    w.document.title = 'Onur'; w.document.body.className = 'pipdoc';
     room.before(slot); w.document.body.append(room); svgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
     pipWin = w; popEl.textContent = 'Pop back in'; startLoop();
     w.addEventListener('pagehide', () => { slot.replaceWith(room); svgEl.removeAttribute('preserveAspectRatio'); pipWin = null; popEl.textContent = 'Pop out'; startLoop(); });
@@ -397,7 +397,7 @@
     if (!n) return;
     const top = [...by].sort((a, b) => b[1] - a[1])[0][0], sd = new Date(since), yest = midnight(now, -1) <= since && since < midnight(now);
     const when = since >= midnight(now) ? hm(since) : yest ? `yesterday at ${hm(since)}` : `${sd.toLocaleDateString('en-GB', { weekday: 'long' })} at ${hm(since)}`;
-    $('away').innerHTML = `<section class="card away"><span class="ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><p><b>While you were away</b></p><p>Since you last looked (${when}), your rival answered ${n} question${n === 1 ? '' : 's'} and got ${ok} right. Mostly ${esc(top)}.</p></div></section>`;
+    $('away').innerHTML = `<section class="card away"><span class="ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><p><b>While you were away</b></p><p>Since you last looked (${when}), Onur answered ${n} question${n === 1 ? '' : 's'} and got ${ok} right. Mostly ${esc(top)}.</p></div></section>`;
   })();
   const seen = () => { P.seen = Date.now(); saveP(); };
   setInterval(seen, 30e3); addEventListener('pagehide', seen); document.addEventListener('visibilitychange', () => { if (document.hidden) seen(); });
