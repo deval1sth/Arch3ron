@@ -228,7 +228,8 @@ const SCENE = (() => {
     shape([[104, 131], [124, 104], [131, 99], [137, 103], [136, 108], [118, 136], [106, 138]], C.jeans);
     line(108, 129, 126, 105, C.jeansH); line(127, 103, 133, 100, C.jeansH);
     /* neck and head: the head nods with what he's doing */
-    shape([[116, 91], [121, 84], [127, 86], [123, 93]], C.skinS);
+    shape([[119, 80], [128, 80], [129, 92], [117, 93]], C.skin); poly([[120, 81], [122, 81], [121, 92], [118, 92]], C.skinS);
+    shape([[110, 92], [117, 89], [129, 89], [132, 93], [121, 97]], C.shirt); line(117, 90, 129, 90, C.shirtH);
     const blink = motion && (now - blinkAt) % 4200 < 140, turn = !live ? 0 : react.kind === 'glance' ? -2 : react.kind === 'slump' ? 3 : react.kind === 'stretch' ? -1 : 0;
     const nod = mode === 'write' ? (motion ? Math.round(Math.sin(now / 900)) : 0) + 1 : mode === 'phone' ? 2 : 0;
     const yawning = live && react.kind === 'slump' && react.text === '*yawn*';
