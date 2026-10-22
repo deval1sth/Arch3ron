@@ -160,6 +160,16 @@ record = function (id, ok, key) {
     const M = tcObj('miss'), d = dkey();
     if (M.d !== d || !M.t || typeof M.t !== 'object') { M.d = d; M.t = {}; }
     if (M.t[id]) M.t[id][2]++; else if (Object.keys(M.t).length < 40) M.t[id] = [LEARN.name(id), LEARN.TOPIC[id].subject, 1, Date.now()];
+    /* every topic missed in the last weeks, for "mistake revenge" on the Rival page */
+    const ML = tcObj('mlog'); ML[id] = [LEARN.name(id), LEARN.TOPIC[id].subject, d];
+    const ids = Object.keys(ML); if (ids.length > 80) delete ML[ids.sort((a, b) => (ML[a][2] < ML[b][2] ? -1 : 1))[0]];
+  }
+  /* answers per hour of the day, last 21 days, for the Rival page's "when you study" strip */
+  if (id && LEARN.TOPIC[id]) {
+    const HR = tcObj('hrs'), d = dkey();
+    if (!Array.isArray(HR[d]) || HR[d].length !== 24) HR[d] = new Array(24).fill(0);
+    HR[d][new Date().getHours()]++;
+    const ks = Object.keys(HR).sort(); while (ks.length > 21) delete HR[ks.shift()];
   }
   return _recordF(id, ok, key);
 };

@@ -71,26 +71,19 @@
     return (SUBS = out);
   }
 
-  /* ---------- how hard it pushes: your average + 15%, then stepped up after you win 3 days running, eased off after it wins 3 ---------- */
-  function baseGoal(t0) {
-    const prev = []; let qa = 0, qr = 0;
-    for (let i = 1; i <= 14; i++) { const s = dayStats(dkey(new Date(midnight(t0, -i)))); if (i <= 7 && s.qa > 0) prev.push(s.qa); qa += s.qa; qr += s.qr; }
-    const avg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : 0;
-    return { base: avg ? avg * 1.15 + 10 : 120, avg, qa, qr };
+  /* ---------- Onur's own path: he starts as a copy of your first week (answers a day, % right) and improves in a straight
+     line until your mocks, whatever you do. Your days never change his. ---------- */
+  const GROW = .6, SHARP = .12;
+  let MIR = null;
+  function mirror() {
+    if (MIR) return MIR;
+    const first = Object.keys(S.days).filter(k => +S.days[k].qa > 0).sort().slice(0, 7);
+    let qa = 0, qr = 0; for (const k of first) { qa += +S.days[k].qa || 0; qr += +S.days[k].qr || 0; }
+    const born = FIRST ? new Date(FIRST + 'T00:00').getTime() : midnight(Date.now());
+    const mk = S.mock && /^\d{4}-\d\d-\d\d$/.test(S.mock) ? new Date(S.mock + 'T00:00').getTime() : born + 90 * 864e5;
+    return (MIR = { born, mock: Math.max(mk, born + 14 * 864e5), base: first.length ? clamp(qa / first.length, 40, 300) : 100, acc: qa >= 30 ? clamp(qr / qa, .4, .88) : .7, days: first.length });
   }
-  const formCache = new Map();
-  function form(t0) {
-    const k = dkey(new Date(t0)); if (formCache.has(k)) return formCache.get(k);
-    let m = 1, w = 0, l = 0, last = null;
-    for (let i = 21; i >= 1; i--) {
-      const d = midnight(t0, -i), dk = dkey(new Date(d)); if (!FIRST || dk < FIRST) continue;
-      const you = dayStats(dk).qa, riv = clamp(Math.round(baseGoal(d).base * m), 60, 400);
-      if (you > riv) { w++; l = 0; } else if (riv > you) { l++; w = 0; }
-      if (w >= 3) { m = Math.min(1.6, m * 1.1); w = 0; last = 'up'; }
-      if (l >= 3) { m = Math.max(.7, m * .92); l = 0; last = 'down'; }
-    }
-    const f = { m, last }; formCache.set(k, f); return f;
-  }
+  const progAt = t => { const M = mirror(); return clamp((t - M.born) / (M.mock - M.born), 0, 1); };
 
   /* ---------- one day of the rival's life, minute by minute ---------- */
   const cache = new Map();
@@ -105,8 +98,7 @@
     if (school) { fill(wake, leave, 'ready'); fill(leave, home, 'school'); } else fill(wake, wake + 60, 'ready');
     fill(dinner, Math.min(dinner + 40, bed), 'dinner');
 
-    const g = baseGoal(t0), f = form(t0), goal = clamp(Math.round(g.base * f.m), 60, 400);
-    const acc = g.qa >= 30 ? clamp(g.qr / g.qa + .02, .4, .95) : .72;
+    const M = mirror(), pr = progAt(t0), goal = clamp(Math.round(M.base * (1 + GROW * pr)), 40, 400), acc = clamp(M.acc + SHARP * pr, .4, .96);
 
     let need = Math.ceil(goal * PACE / MIN), m = school ? home + 30 : wake + 90, n = 0;
     const free = x => x < 1440 && A[x] === 'free';
@@ -133,7 +125,7 @@
         ans.push({ t, s, topic, ok: ro < clamp(acc + s.dc * .035, .35, .96), run });
       }
     }
-    const p = { k, t0, school, wake, bed, dinner, leave, home, runs, ans, goal, acc, avg: g.avg, m: f.m, last: f.last, A, mine: g.qa, miss };
+    const p = { k, t0, school, wake, bed, dinner, leave, home, runs, ans, goal, acc, pr, A, miss };
     if (t0 <= midnight(Date.now())) cache.set(k, p);
     return p;
   }
@@ -205,6 +197,16 @@
   <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
   <section class="card"><h2>Onur's homework <small>your mistakes today</small></h2><div id="hw"></div></section>
 </div>
+<section class="card"><h2>Head to head <small>you vs Onur</small></h2><div class="tiles" id="tiles"></div></section>
+<section class="card brains"><h2>Uno vs Onur <small>last 14 days · drag to spin</small></h2>
+  <div class="bgrid"><figure><canvas id="bUno" aria-label="Uno, your brain, lit up by subject"></canvas><figcaption><b>Uno</b> your brain</figcaption></figure>
+  <figure><canvas id="bOnur" aria-label="Onur's brain, lit up by subject"></canvas><figcaption><b class="o">Onur</b> his brain</figcaption></figure></div>
+  <p class="sub" id="bnote"></p></section>
+<div class="grid">
+  <section class="card"><h2>Predicted grades <small>Onur's path to your mocks</small></h2><div id="grades"></div></section>
+  <section class="card"><h2>Mistake revenge <small>topics you got wrong</small></h2><div id="rev"></div></section>
+</div>
+<section class="card"><h2>When you study <small>last 14 days, by hour</small></h2><div id="hours"></div></section>
 <details class="card" id="rout"><summary>Your routine <small id="rsum"></small></summary><div class="form">
   <div><h3>School days</h3><div class="days" id="dows">${DOW.map(([d, l]) => `<button type="button" data-d="${d}" aria-pressed="${P.r.days.includes(d)}">${l}</button>`).join('')}</div></div>
   <div><h3>On school days</h3><div class="fields">${field('wake', 'Wake up')}${field('leave', 'Leave for school')}${field('home', 'Home')}${field('dinner', 'Dinner')}${field('bed', 'Bed')}</div></div>
@@ -283,6 +285,88 @@
       return `<div class="hrow"><span class="nm">${esc(e.name)}</span><span class="vv">you missed ${e.n} · <b style="color:var(--riv)">Onur has done ${its.length}</b>${its.length ? `, ${ok} right` : ''}</span></div>`; }).join('') + '</div>';
   }
 
+  /* ---------- head to head ---------- */
+  const fmtG = v => { const t = Math.round(v * 3) / 3, b = Math.round(t), d = t - b; return b + (d > .1 ? '+' : d < -.1 ? '-' : ''); };
+  const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
+  function finished(now) {
+    const out = []; if (!FIRST) return out;
+    for (let t0 = new Date(FIRST + 'T00:00').getTime(), n = 0; t0 < midnight(now) && n < 400; t0 = midnight(t0, 1), n++) out.push(dayResult(t0, now));
+    return out;
+  }
+  const TITLES = ['Sleepwalker', 'Drifter', 'Steady', 'Grinder', 'Contender', 'Hunter', 'Shadow', 'Phantom', 'Nemesis', 'Unstoppable'];
+  function drawTiles(p, now) {
+    const H = finished(now), t = dayResult(p.t0, now), M = mirror();
+    let st = null; for (let i = H.length - 1; i >= 0; i--) { const r = H[i].res; if (r !== 'W' && r !== 'L') break; if (!st) st = { r, n: 1 }; else if (st.r === r) st.n++; else break; }
+    const youBest = Math.max(t.you, 0, ...H.map(d => d.you)), onBest = Math.max(t.riv, 0, ...H.map(d => d.riv));
+    const n = doneBy(p, now), done = p.ans.slice(0, n), ts = dayStats(p.k), going = where(now).run.kind === 'study';
+    let life = n, mins = n / 2, youLife = t.you; for (const d of H) { const q = plan(d.t0); life += q.ans.length; mins += q.runs.filter(r => r.kind === 'study').reduce((a, r) => a + r.b - r.a, 0); youLife += d.you; }
+    const need = t.riv - t.you + 1, lvl = Math.min(9, Math.floor(p.pr * 10)), daysIn = Math.max(1, Math.round((p.t0 - M.born) / 864e5) + 1), daysAll = Math.round((M.mock - M.born) / 864e5);
+    const tile = (k, v, s, cls = '') => `<div class="tile ${cls}"><small>${k}</small><b>${v}</b><span>${s}</span></div>`;
+    $('tiles').innerHTML = [
+      tile('Streak', st ? `${st.n} ${st.r === 'W' ? 'win' : 'loss'}${st.n === 1 ? '' : st.r === 'W' ? 's' : 'es'}` : '–', st ? (st.n === 1 ? (st.r === 'W' ? 'You won yesterday.' : 'Onur won yesterday.') : st.r === 'W' ? `You've won the last ${st.n} days.` : `Onur has won the last ${st.n} days.`) : 'No finished days yet.', st ? (st.r === 'W' ? 'win' : 'lose') : ''),
+      t.riv >= t.you ? tile('Comeback watch', `${need} answer${need === 1 ? '' : 's'}`, `to overtake Onur today. About ${Math.ceil(need / 2)} min at 2 a minute${going ? ', and he is still adding about 2 a minute' : ''}.`, 'lose')
+        : tile('Comeback watch', `${t.you - t.riv} ahead`, `Onur needs ${t.you - t.riv + 1} to pass you${going ? ', and he is studying right now' : ''}.`, 'win'),
+      tile('Accuracy today', `${pct(ts.qr, ts.qa)} vs ${pct(done.filter(a => a.ok).length, n)}`, 'You vs Onur, share of answers right.', ts.qa && n ? (ts.qr / ts.qa >= done.filter(a => a.ok).length / n ? 'win' : 'lose') : ''),
+      tile('Best day', `${youBest} vs ${onBest}`, 'Your record day vs Onur\'s.', youBest >= onBest ? 'win' : 'lose'),
+      tile('Onur, all time', life.toLocaleString(), `answers in ${Math.round(mins / 60)} hours of study since ${new Date(M.born).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. You: ${youLife.toLocaleString()}.`),
+      tile(`Level ${lvl + 1} · ${TITLES[lvl]}`, `Day ${Math.min(daysIn, daysAll)} of ${daysAll}`, `${Math.round(p.pr * 100)}% of the way to his mock-day form: ${Math.round(M.base * (1 + GROW))} a day, ${Math.round(Math.min(.96, M.acc + SHARP) * 100)}% right.`)
+    ].join('');
+  }
+
+  function drawGrades(now) {
+    const pr = progAt(now), rows = subjects().filter(s => s.cur != null);
+    if (!rows.length) { $('grades').innerHTML = '<p class="sub">Add your grades in Archeron (Settings → My subjects) and Onur\'s predicted grades appear here.</p>'; return; }
+    const X = g => `${((g - 1) / 8 * 100).toFixed(1)}%`;
+    $('grades').innerHTML = rows.map(s => { const tg = s.tgt ?? s.cur + 1, on = s.cur + (tg - s.cur) * pr;
+      return `<div class="grow"><div class="gtop"><span class="nm">${esc(s.name)}</span><span class="vv">report <b>${fmtG(s.cur)}</b> · Onur now <b class="o">${fmtG(on)}</b> · on mock day <b class="o">${fmtG(tg)}</b></span></div>
+        <div class="gbar"><i class="gr" style="left:${X(s.cur)};width:calc(${X(on)} - ${X(s.cur)})"></i><u class="gc" style="left:${X(s.cur)}"></u><u class="go" style="left:${X(on)}"></u><u class="gt" style="left:${X(tg)}"></u></div></div>`; }).join('')
+      + '<p class="sub">Grade 1 on the left, 9 on the right. Grey: your report. Orange: where Onur is now. Ring: your target, which he reaches by your mocks.</p>';
+  }
+
+  function drawRevenge() {
+    const L = (S.tc && S.tc.mlog) || {}, sk = S.skill || {};
+    const rows = Object.entries(L).filter(([, e]) => Array.isArray(e)).map(([id, e]) => { const rec = sk[id] && Array.isArray(sk[id].rec) ? sk[id].rec : []; return { name: String(e[0]), day: String(e[2]), won: rec.length > 0 && rec[rec.length - 1] === true }; })
+      .sort((a, b) => (a.day < b.day ? 1 : -1)).slice(0, 14);
+    if (!rows.length) { $('rev').innerHTML = '<p class="sub">Topics you get wrong from now on are listed here. Get one right next time and it counts as avenged.</p>'; return; }
+    const won = rows.filter(r => r.won).length;
+    $('rev').innerHTML = `<p class="tally"><b>${won} of ${rows.length} avenged.</b> The rest are still waiting for a rematch.</p><div class="chips2">${rows.map(r => `<span class="${r.won ? 'won' : 'open'}">${r.won ? '✓' : '·'} ${esc(r.name)}</span>`).join('')}</div>`;
+  }
+
+  function drawHours(now) {
+    const you = new Array(24).fill(0), on = new Array(24).fill(0), HR = (S.tc && S.tc.hrs) || {};
+    for (let i = 0; i < 14; i++) {
+      const t0 = midnight(now, -i), a = HR[dkey(new Date(t0))]; if (Array.isArray(a)) a.forEach((v, h) => { you[h] += +v || 0; });
+      for (const x of plan(t0).ans) if (x.t <= now) on[new Date(x.t).getHours()]++;
+    }
+    const mx = Math.max(1, ...you), mo = Math.max(1, ...on), row = (arr, m, cls) => arr.map((v, h) => `<i class="${cls}" style="opacity:${v ? (.15 + .85 * v / m).toFixed(2) : .06}" title="${pad(h)}:00 · ${v} answers"></i>`).join('');
+    const peak = arr => arr.indexOf(Math.max(...arr));
+    $('hours').innerHTML = `<div class="hrs"><span>You</span><div class="hrow24">${row(you, mx, 'hy')}</div><span>Onur</span><div class="hrow24">${row(on, mo, 'ho')}</div><span></span><div class="hticks"><b>00</b><b>06</b><b>12</b><b>18</b><b>24</b></div></div>`
+      + `<p class="sub">${you.some(Boolean) ? `Your busiest hour: ${pad(peak(you))}:00. Onur's: ${pad(peak(on))}:00.` : 'Your hours start recording from this update, so your row fills in as you study.'}</p>`;
+  }
+
+  /* ---------- Uno vs Onur: two brains, one region per subject, glowing by the last 14 days of answers ---------- */
+  const COLS = ['#ff5d6c', '#ffb347', '#7bd389', '#6cc4ff', '#b38cff', '#ff8ad8', '#f2e86d', '#5ee6d0', '#ff9a6c', '#9fd4ff'];
+  let brains = null;
+  function drawBrains(now) {
+    if (!brains) brains = { uno: BRAIN.create($('bUno')), onur: BRAIN.create($('bOnur')) };
+    const subs = subjects(), you = new Map(), on = new Map();
+    for (let i = 0; i < 14; i++) {
+      const t0 = midnight(now, -i), st = dayStats(dkey(new Date(t0)));
+      for (const s of subs) you.set(s, (you.get(s) || 0) + s.tracks.reduce((a, k) => a + (+st.t[k] || 0), 0));
+      for (const a of plan(t0).ans) if (a.t <= now) on.set(a.s, (on.get(a.s) || 0) + 1);
+    }
+    const max = Math.max(1, ...subs.map(s => Math.max(you.get(s) || 0, on.get(s) || 0))), keys = BRAIN.place(subs.map(s => s.id));
+    const tone = s => (you.get(s) || 0) > (on.get(s) || 0) ? 'win' : (on.get(s) || 0) > (you.get(s) || 0) ? 'lose' : 'even';
+    brains.uno.set(subs.map((s, i) => ({ name: s.name, key: keys[i], color: COLS[i % COLS.length], v: (you.get(s) || 0) / max, tone: tone(s), line: `you ${you.get(s) || 0}${tone(s) === 'win' ? ' · you lead' : tone(s) === 'lose' ? ' · Onur leads' : ''}` })));
+    brains.onur.set(subs.map((s, i) => ({ name: s.name, key: keys[i], color: COLS[i % COLS.length], v: (on.get(s) || 0) / max, tone: tone(s) === 'win' ? 'win' : tone(s) === 'lose' ? 'lose' : 'even', line: `Onur ${on.get(s) || 0}${tone(s) === 'lose' ? ' · beats you' : ''}` })));
+    const beat = subs.filter(s => tone(s) === 'lose').map(s => s.name), lead = subs.filter(s => tone(s) === 'win').map(s => s.name);
+    const acc = new Map(); for (let i = 0; i < 7; i++) for (const a of plan(midnight(now, -i)).ans) if (a.t <= now) { const v = acc.get(a.s) || [0, 0]; v[0]++; v[1] += a.ok; acc.set(a.s, v); }
+    const ranked = [...acc].filter(([, v]) => v[0] >= 5).sort((a, b) => b[1][1] / b[1][0] - a[1][1] / a[1][0]);
+    $('bnote').innerHTML = `${lead.length ? `<b class="tw">You lead in ${esc(lead.join(', '))}.</b> ` : ''}${beat.length ? `<b class="tl">Onur has you beat in ${esc(beat.join(', '))}.</b> ` : ''}`
+      + (ranked.length ? `This week Onur is sharpest at ${esc(ranked[0][0].name)} (${pct(ranked[0][1][1], ranked[0][1][0])}) and shakiest at ${esc(ranked[ranked.length - 1][0].name)} (${pct(ranked[ranked.length - 1][1][1], ranked[ranked.length - 1][1][0])}).` : '');
+  }
+  const brainsVisible = () => { const r = $('bUno') && $('bUno').getBoundingClientRect(); return r && r.bottom > 0 && r.top < innerHeight; };
+
   /* ---------- live: numbers, reactions, the scene ---------- */
   const START = ["Oh, you're revising? Fine.", "Right. Let's go.", 'Finally. Race you.'], SLUMP = ['No way.', 'Hm. Not for long.', 'Okay, okay.'];
   const STRETCH = ['Caught you.', 'Back in front.', 'Ahead again.'], NOTED = ["Noted. I'll revise that.", "I'll take that one.", 'Adding it to my list.'];
@@ -307,19 +391,19 @@
     $('youb').style.width = (you / top * 100).toFixed(1) + '%'; $('rivb').style.width = (riv / top * 100).toFixed(1) + '%';
     const d = you - riv, going = cur.run.kind === 'study';
     $('verdict').textContent = d > 0 ? `You're ${d} ahead.` : d < 0 ? `Onur is ${-d} ahead${going ? ' and still going' : ''}.` : you ? 'Dead level.' : 'Neither of you has started yet.';
-    $('goal').textContent = (p.avg ? `Onur's goal today is ${p.goal}: your recent daily average plus 15%.` : `Onur's goal today is ${p.goal}. After a few days of studying, Onur will match your pace.`)
-      + (p.m > 1.01 ? ' Onur has stepped up because you kept winning.' : p.m < .99 ? ' Onur has eased off after winning a few days in a row.' : '')
-      + (p.mine >= 30 ? ` Onur gets about ${Math.round(p.acc * 100)}% right, like you.` : '');
+    const MI = mirror();
+    $('goal').textContent = `Onur's goal today is ${p.goal} answers at about ${Math.round(p.acc * 100)}% right. He started as a copy of ${MI.days ? 'your first week' : 'a typical start'} (${Math.round(MI.base)} a day, ${Math.round(MI.acc * 100)}% right) and gets a little better every day until your mocks, whatever you do.`;
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
-      drawStrip(p); drawWeek(now); drawSubs(p, now); drawHomework(p, now);
+      drawStrip(p); drawWeek(now); drawSubs(p, now); drawHomework(p, now); drawTiles(p, now); drawGrades(now); drawRevenge(); drawHours(now); drawBrains(now);
       $('tdate').textContent = new Date(now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;
     }
     $('now').style.left = ((now - p.t0) / 864e3).toFixed(2) + '%';
     if (!tour && (!motion || !visible())) SCENE.frame(now, cur.info, false);
+    if (brains && !motion) { brains.uno.draw(now, false); brains.onur.draw(now, false); }
   }
 
   /* the frame loop runs in the pop-out window while it's open, so the rival keeps moving when this tab is hidden */
@@ -337,6 +421,7 @@
         if (!at) stopTour();
         else { const w = where(at.target, false); chipEl.textContent = `${hm(at.t)} · ${w.chip}`; dotEl.classList.toggle('on', w.run.kind === 'study'); SCENE.frame(at.t, w.info, true); }
       } else if (motion && cur && visible()) { if (now - lastWhere > 250) { cur = where(now, hype(now)); lastWhere = now; } SCENE.frame(now, cur.info, true); }
+      if (brains && !pipWin && !document.hidden && brainsVisible()) { brains.uno.draw(now, motion); brains.onur.draw(now, motion); }
       raf(step);
     };
     raf(step);
@@ -403,7 +488,7 @@
   setInterval(seen, 30e3); addEventListener('pagehide', seen); document.addEventListener('visibilitychange', () => { if (document.hidden) seen(); });
 
   /* routine editing */
-  const changed = () => { saveP(); cache.clear(); formCache.clear(); dirty = true; tick(); };
+  const changed = () => { saveP(); cache.clear(); MIR = null; dirty = true; tick(); };
   for (const k of Object.keys(DEF)) if (k !== 'days') $('r-' + k).addEventListener('change', e => { if (/^\d\d:\d\d$/.test(e.target.value)) { P.r[k] = e.target.value; changed(); } });
   $('dows').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return; const d = +b.dataset.d, on = P.r.days.includes(d);
@@ -417,7 +502,7 @@
   /* Archeron saves in another tab or window → the storage event fires here; a 1-second check covers the rest */
   function refresh() {
     lastRefresh = Date.now();
-    if (loadS()) { if (!S) { location.reload(); return; } SUBS = null; cache.clear(); formCache.clear(); dirty = true; }
+    if (loadS()) { if (!S) { location.reload(); return; } SUBS = null; MIR = null; cache.clear(); dirty = true; }
     tick();
   }
   addEventListener('storage', e => { if (!e.key || e.key === KEY || e.key === 'archeron-profiles') refresh(); });

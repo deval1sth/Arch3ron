@@ -180,3 +180,42 @@ details summary small{font:400 13px var(--font);color:var(--m);margin-left:auto}
   .side .big{font-size:34px}
   .chip{left:10px;bottom:10px;font-size:13px;padding:6px 12px 6px 10px}
 }
+
+/* head to head tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px}
+.tile{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.tile small{color:var(--m);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.tile b{font:800 22px/1.15 var(--head);letter-spacing:-.01em}
+.tile span{color:var(--m);font-size:13px}
+.tile.win{border-color:rgba(var(--you-rgb),.35)}.tile.win b{color:var(--you)}
+.tile.lose{border-color:rgba(var(--riv-rgb),.35)}.tile.lose b{color:var(--riv)}
+
+/* brains */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.bgrid figure{margin:0;background:radial-gradient(80% 70% at 50% 50%,#1b1424,#0b0a12);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.bgrid canvas{display:block;width:100%;aspect-ratio:1.15;touch-action:pan-y;cursor:grab}
+.bgrid canvas:active{cursor:grabbing}
+.bgrid figcaption{padding:10px 14px;border-top:1px solid var(--line);color:var(--m);font-size:13px}
+.bgrid figcaption b{font:800 18px var(--head);color:var(--you);margin-right:6px}.bgrid figcaption b.o{color:var(--riv)}
+.tw{color:var(--you)}.tl{color:var(--riv)}
+#bnote{margin-top:12px}
+
+/* predicted grades */
+.grow{display:grid;gap:6px;padding:8px 0}
+.gtop{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.gtop .nm{font-weight:700}
+.gtop .vv{color:var(--m);font-size:13px}.gtop b{color:var(--t)}.gtop b.o{color:var(--riv)}
+.gbar{position:relative;height:10px;border-radius:9px;background:var(--line2)}
+.gbar .gr{position:absolute;top:0;bottom:0;border-radius:9px;background:rgba(var(--riv-rgb),.35)}
+.gbar u{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%}
+.gbar .gc{background:var(--dim)}.gbar .go{background:var(--riv)}.gbar .gt{border:2px solid var(--you);background:transparent}
+
+/* mistake revenge */
+.chips2{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips2 span{font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid var(--line)}
+.chips2 .won{color:var(--you);border-color:rgba(var(--you-rgb),.4)}.chips2 .open{color:var(--m)}
+
+/* hours */
+.hrs{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:13px;color:var(--m)}
+.hrow24{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
+.hrow24 i{height:18px;border-radius:3px}.hy{background:var(--you)}.ho{background:var(--riv)}
+.hticks{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}.hticks b{font-weight:400}
