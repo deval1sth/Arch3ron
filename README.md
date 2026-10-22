@@ -44,6 +44,9 @@ iOS "Reduce Motion"); "Full" turns every animation on.
   examiner marking, one examiner rule each (`exSelfTest()` checks every script against its own markup)
 - `forecast.js`: Mock-day memory: each learned fact projected to the mock date with the FSRS-6 memory model, a
   forgetting curve, and a top-up of the facts that most need it
+- `rival.html`, `rival.css`, `rival-scene.js`, `rival.js`: the Rival page, a separate page (not linked from the
+  app) where a copy of you lives your routine and studies in every free slot. It reads Archeron's saved progress
+  on the device, never writes it, and works its day out from the clock, so it keeps going while closed
 - `teach.css`: styles for the files above, plus the calmer Focus, Learn and subject-page layout
 - `fx.js`: confetti bursts, count-ups, reveal overlays
 - `fonts/`: self-hosted Bricolage Grotesque and Atkinson Hyperlegible Next (OFL)
