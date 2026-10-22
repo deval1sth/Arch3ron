@@ -155,6 +155,12 @@ const _recordF = record;
 record = function (id, ok, key) {
   const self = DR && DR.q && DR.q.key === key && DR.q.kind === 'def';
   if (key && !self) { const L = tcArr('rlog'); L.push(`${key},${today()},${ok ? 1 : 0}`); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); }
+  /* today's missed topics by name, for the Rival page (rival.js): { d: day, t: { id: [name, subject, misses, firstMissMs] } } */
+  if (!ok && id && LEARN.TOPIC[id]) {
+    const M = tcObj('miss'), d = dkey();
+    if (M.d !== d || !M.t || typeof M.t !== 'object') { M.d = d; M.t = {}; }
+    if (M.t[id]) M.t[id][2]++; else if (Object.keys(M.t).length < 40) M.t[id] = [LEARN.name(id), LEARN.TOPIC[id].subject, 1, Date.now()];
+  }
   return _recordF(id, ok, key);
 };
 /* reviews that can teach the model something: a fact seen again on a later day */

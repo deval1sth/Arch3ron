@@ -174,6 +174,12 @@ const SCENE = (() => {
     <line id="rv-pen" stroke="#f2c14e" stroke-width="3" stroke-linecap="round"/>
     <circle id="rv-hand" r="6" fill="#eab48a" stroke-width="1.5"/>
   </g>
+  <g id="rv-stretch" style="opacity:0" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M294 266 L270 210 L284 126" stroke-width="18"/><path d="M294 266 L270 210" stroke="#861522" stroke-width="14.5"/><path d="M270 210 L284 126" stroke="#121218" stroke-width="11"/>
+    <circle cx="270" cy="210" r="8" fill="#861522" stroke="#b8963f" stroke-width="2.4"/><circle cx="285" cy="122" r="5.4" fill="#d9a37b" stroke-width="1.4"/>
+    <path d="M302 270 L284 208 L302 120" stroke-width="19.5"/><path d="M302 270 L284 208" stroke="#b81f2f" stroke-width="16"/><path d="M284 208 L302 120" stroke="#1a1a22" stroke-width="12.5"/>
+    <circle cx="284" cy="208" r="8.6" fill="#b81f2f" stroke="#dcb557" stroke-width="2.6"/><circle cx="303" cy="116" r="5.8" fill="#eab48a" stroke-width="1.5"/>
+  </g>
   <g id="rv-phone" class="fade" style="opacity:0" stroke-linecap="round" fill="none">
     <path d="M304 276 Q318 318 330 322" stroke-width="19.5"/><path d="M304 276 Q318 318 330 322" stroke="#b81f2f" stroke-width="16"/>
     <path d="M331 321 Q340 290 344 268" stroke-width="15.5"/><path d="M331 321 Q340 290 344 268" stroke="#1a1a22" stroke-width="12.5"/>
@@ -205,6 +211,12 @@ const SCENE = (() => {
   <ellipse id="rv-bulb" class="fade" cx="560" cy="210.5" rx="19.5" ry="4.5" transform="rotate(54.4 560 210.5)" fill="#fff3c9" style="opacity:0"/>
 </g>
 <rect width="800" height="480" fill="url(#rv-vig)"/>
+<g id="rv-bub" style="opacity:0;transition:opacity .3s">
+  <rect id="rv-bubr" x="352" y="112" width="120" height="36" rx="13" fill="#fffdf6" stroke="#241a2e" stroke-width="1.8"/>
+  <path d="M362 147 L348 166 L378 147" fill="#fffdf6" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M363.5 146.6 L376.5 146.6" stroke="#fffdf6" stroke-width="3.2"/>
+  <text id="rv-bubt" x="364" y="136" fill="#241a2e" style="font:700 15.5px var(--hand)"></text>
+</g>
 </svg>`;
 
   const $ = id => svg.getElementById ? svg.getElementById(id) : svg.querySelector('#' + id);
@@ -214,7 +226,7 @@ const SCENE = (() => {
   function mount(host) {
     host.innerHTML = MARKUP; svg = host.querySelector('svg'); svg.style.setProperty('--amb2', 0);
     svg.classList.add('boot'); setTimeout(() => svg.classList.remove('boot'), 120);
-    for (const id of ['hh', 'mh', 'sh', 'n1', 'n2', 'sun', 'moon', 'moonc', 'duvet', 'sleeper', 'zz', 'chair', 'steam', 'ink', 'marks', 'flip', 'sitter', 'rest', 'rhand', 'head', 'eyes', 'write', 'arm', 'armI', 'fore', 'foreI', 'cuff', 'pen', 'hand', 'phone', 'glow', 'cone', 'pglow', 'bulb'])
+    for (const id of ['hh', 'mh', 'sh', 'n1', 'n2', 'sun', 'moon', 'moonc', 'duvet', 'sleeper', 'zz', 'chair', 'steam', 'ink', 'marks', 'flip', 'sitter', 'rest', 'rhand', 'head', 'eyes', 'write', 'arm', 'armI', 'fore', 'foreI', 'cuff', 'pen', 'hand', 'phone', 'stretch', 'bub', 'bubr', 'bubt', 'glow', 'cone', 'pglow', 'bulb'])
       el[id] = $('rv-' + id);
   }
 
@@ -257,13 +269,22 @@ const SCENE = (() => {
     if (info.pose !== last.pose) {
       const seated = info.pose === 'write' || info.pose === 'phone';
       show(el.sitter, seated); show(el.sleeper, info.pose === 'sleep'); show(el.zz, info.pose === 'sleep');
-      show(el.write, info.pose === 'write'); show(el.rest, info.pose === 'write'); show(el.rhand, info.pose === 'write'); show(el.eyes, seated); show(el.phone, info.pose === 'phone');
       show(el.steam, seated);
       el.duvet.setAttribute('d', info.pose === 'sleep' ? 'M74 372 Q118 350 168 360 Q206 366 236 374 L238 412 Q160 420 74 414 Z' : 'M86 380 Q150 372 236 378 L238 412 Q160 420 84 414 Z');
       el.chair.style.transform = seated ? '' : 'translateX(-22px) rotate(-3deg)';
       last.pose = info.pose;
     }
     op(el.pglow, info.pose === 'phone' ? .9 : 0);
+    const seated = info.pose === 'write' || info.pose === 'phone';
+    const re = react ? (performance.now() - react.at) / 1000 : 99, live = seated && re < 3.4;
+    const bump = live ? Math.sin(Math.min(1, re / 2.6) * Math.PI) : 0;
+    const mode = live && react.kind === 'stretch' && re < 2.6 ? 'stretch' : info.pose;
+    if (mode !== last.mode) {
+      op(el.stretch, mode === 'stretch' ? 1 : 0); show(el.write, mode === 'write'); show(el.rest, mode === 'write'); show(el.rhand, mode === 'write'); show(el.phone, mode === 'phone');
+      last.mode = mode;
+    }
+    op(el.bub, live ? 1 : 0); op(el.eyes, seated ? (info.hype ? 1 : .8) : 0);
+    const turn = !live ? 0 : react.kind === 'glance' ? -14 * bump : react.kind === 'slump' ? 20 * bump : react.kind === 'stretch' ? -10 * bump : 0;
 
     if (info.pose === 'write') {
       if (info.spread !== last.spread) {
@@ -278,7 +299,8 @@ const SCENE = (() => {
       el.ink.innerHTML = ink; el.marks.innerHTML = marks;
 
       const L = LINE(info.line), lift = info.frac > .88 ? Math.sin((info.frac - .88) / .12 * Math.PI) * 4 : 0;
-      const hx = L.x + f * L.w + (info.frac > .88 ? 3 : 0) + (motion ? Math.sin(t * 22) * .8 : 0), hy = L.y - lift + (motion ? Math.sin(t * 31) * .6 : 0);
+      const sp = info.hype ? 1.7 : 1;
+      const hx = L.x + f * L.w + (info.frac > .88 ? 3 : 0) + (motion ? Math.sin(t * 22 * sp) * .8 : 0), hy = L.y - lift + (motion ? Math.sin(t * 31 * sp) * .6 : 0);
       const H = { x: hx + 5, y: hy - 9 };
       const dx = H.x - S.x, dy = H.y - S.y, dist = Math.min(L1 + L2 - 1, Math.hypot(dx, dy)), a = Math.atan2(dy, dx);
       const b = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist))));
@@ -288,11 +310,20 @@ const SCENE = (() => {
       el.cuff.setAttribute('cx', E.x.toFixed(1)); el.cuff.setAttribute('cy', E.y.toFixed(1));
       el.hand.setAttribute('cx', H.x.toFixed(1)); el.hand.setAttribute('cy', H.y.toFixed(1));
       el.pen.setAttribute('x1', hx.toFixed(1)); el.pen.setAttribute('y1', hy.toFixed(1)); el.pen.setAttribute('x2', (hx + 9).toFixed(1)); el.pen.setAttribute('y2', (hy - 17).toFixed(1));
-      el.head.style.transform = el.eyes.style.transform = `rotate(${(4 + (motion ? Math.sin(t * 1.1) * 1.8 + Math.sin(t * .37) * 1.2 : 0)).toFixed(2)}deg)`;
+      el.head.style.transform = el.eyes.style.transform = `rotate(${(4 + turn + (motion ? Math.sin(t * 1.1) * 1.8 + Math.sin(t * .37) * 1.2 : 0)).toFixed(2)}deg)`;
     } else if (info.pose === 'phone') {
-      el.head.style.transform = el.eyes.style.transform = `rotate(${(13 + (motion ? Math.sin(t * .6) * 1.5 : 0)).toFixed(2)}deg)`;
+      el.head.style.transform = el.eyes.style.transform = `rotate(${(13 + turn + (motion ? Math.sin(t * .6) * 1.5 : 0)).toFixed(2)}deg)`;
     }
   }
 
-  return { mount, frame };
+  /* a reaction: 'glance' (looks up), 'slump' (head drops), 'stretch' (arms up), with a speech bubble */
+  let react = null;
+  function say(kind, text) {
+    if (!svg) return;
+    react = { kind, at: performance.now() }; el.bubt.textContent = text;
+    let w = text.length * 7.6; try { w = el.bubt.getComputedTextLength() || w; } catch (e) {}
+    el.bubr.setAttribute('width', Math.max(64, Math.round(w + 26)));
+  }
+
+  return { mount, frame, say };
 })();
