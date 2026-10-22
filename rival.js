@@ -272,7 +272,7 @@
 <p class="foot">Reads your Archeron progress on this device. Nothing is sent anywhere.</p>`;
 
   SCENE.mount($('scene'));
-  const room = app.querySelector('.room'), svgEl = room.querySelector('svg');
+  const room = app.querySelector('.room');
   const chipEl = $('chip'), dotEl = $('dot'), playEl = $('play'), popEl = $('pop'), scoreEl = $('score');
   const setMotion = () => { room.classList.toggle('still', !motion); $('mot').checked = motion; };
   setMotion();
@@ -623,15 +623,15 @@
     catch (e) { console.warn('Pop-out window refused, opening a small window instead:', e && e.message); miniWindow(); return; }
     const link = w.document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('rival.css', location.href).href; w.document.head.append(link);
     w.document.title = 'Onur'; w.document.body.className = 'pipdoc';
-    room.before(slot); w.document.body.append(room); svgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    room.before(slot); w.document.body.append(room);
     pipWin = w; popEl.textContent = 'Pop back in'; startLoop();
-    w.addEventListener('pagehide', () => { slot.replaceWith(room); svgEl.removeAttribute('preserveAspectRatio'); pipWin = null; popEl.textContent = 'Pop out'; startLoop(); });
+    w.addEventListener('pagehide', () => { slot.replaceWith(room); pipWin = null; popEl.textContent = 'Pop out'; startLoop(); });
   }
 
   /* browsers without the pop-out window get a small ordinary window showing only the room (rival.html?mini) */
   function miniWindow() { window.open('rival.html?mini', 'archeron-rival-mini', 'popup,width=460,height=290'); }
   if (new URLSearchParams(location.search).has('mini')) {
-    document.body.className = 'pipdoc'; document.body.prepend(room); app.hidden = true; svgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    document.body.className = 'pipdoc'; document.body.prepend(room); app.hidden = true;
   }
 
   /* while you were away */
