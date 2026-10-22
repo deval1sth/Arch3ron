@@ -19,11 +19,12 @@ function applyMotion() {
 }
 /* Look: the page (Paper, Night or match the phone) and your highlighter colour. index.html applies the same choice before first paint. */
 const THEMES = [['lime', 'Lime', '#b6ef4f'], ['pink', 'Pink', '#ff9fd4'], ['orange', 'Orange', '#ffb65c'], ['sky', 'Sky', '#85d5ff'], ['lilac', 'Lilac', '#c8b4ff']];
-const MODES = [['paper', 'Paper'], ['night', 'Night'], ['auto', 'Match my phone']];
+const MODES = [['paper', 'Paper'], ['night', 'Night'], ['crimson', 'Black and red'], ['auto', 'Match my phone']];
 const MQ_DARK = matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
   const root = document.documentElement, mode = (S && S.mode) || 'paper', hl = (S && S.theme) || 'lime';
-  if (mode === 'night' || (mode === 'auto' && MQ_DARK.matches)) root.dataset.mode = 'night'; else delete root.dataset.mode;
+  if (mode === 'night' || mode === 'crimson' || (mode === 'auto' && MQ_DARK.matches)) root.dataset.mode = 'night'; else delete root.dataset.mode;
+  if (mode === 'crimson') root.dataset.skin = 'crimson'; else delete root.dataset.skin;
   if (hl === 'lime') delete root.dataset.hl; else root.dataset.hl = hl;
   root.dataset.text = (S && S.text) || 'normal';
   try { localStorage.setItem('archeron-look', mode + ' ' + hl); } catch (e) {}
@@ -1509,7 +1510,7 @@ function vMe() {
             field('Focus minutes', h('input', { type: 'number', min: 1, max: 120, value: S.timer.focus, 'data-act': 'tlen', 'data-k': 'focus' })),
             field('Rest minutes', h('input', { type: 'number', min: 1, max: 60, value: S.timer.brk, 'data-act': 'tlen', 'data-k': 'brk' })))),
         card('Look', null, h('h3', null, 'Page'), h('div', { class: 'chips' }, MODES.map(([v, l]) => chip(l, S.mode === v, 'mode', { 'data-v': v }))),
-          h('h3', null, 'Highlighter'), h('div', { class: 'themes' }, THEMES.map(([id, name, a]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a}` },
+          h('h3', null, 'Highlighter'), h('div', { class: 'themes' }, THEMES.map(t => t[0] === 'lime' && S.mode === 'crimson' ? ['lime', 'Red', '#de2c39'] : t).map(([id, name, a]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a}` },
           h('span', { class: 'th-sw' }), h('b', null, name))))),
         card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),

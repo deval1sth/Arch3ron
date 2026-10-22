@@ -44,6 +44,22 @@
   --rule:rgba(142,167,255,.05);
   color-scheme:dark;
 }
+/* Black and red (Settings → Look): the Night page re-inked, near-black with crimson accents */
+:root[data-mode="night"][data-skin="crimson"]{
+  --bg:#0b0a0c;--card:#161215;--card2:#241b1f;--solid:#1a1418;--field:#110d10;--sunk:rgba(0,0,0,.32);
+  --fg-rgb:255,236,236;
+  --t:#f4eded;--m:#b4a4a7;--hi:#fff;
+  --y:#de2c39;--y2:#ffc9cd;--y3:#b31b27;--on-y:#fff;--y-rgb:222,44,57;--y-soft:rgba(222,44,57,.15);
+  --ember:#ff8a5c;--em-rgb:255,138,92;
+  --g:#4fd18b;--g-rgb:79,209,139;--g-soft:rgba(79,209,139,.13);--on-g:#07130c;
+  --rest:#c4a7ff;--rest-rgb:196,167,255;--rest-soft:rgba(196,167,255,.13);
+  --danger:#ff7b85;--no-rgb:255,123,133;
+  --inv:#f4eded;--on-inv:#160406;
+  --glass:rgba(11,10,12,.88);--veil:rgba(11,10,12,.94);--scrim:rgba(0,0,0,.66);
+  --shadow:0 16px 36px -26px rgba(0,0,0,.9);--shadow-up:0 22px 44px -22px rgba(0,0,0,.92);
+  --rule:rgba(222,44,57,.06);
+}
+:root[data-skin="crimson"]:not([data-hl]){--hl:#de2c39;--hl-ink:#fff}
 :root[data-hl="pink"]{--hl:#ff9fd4}
 :root[data-hl="orange"]{--hl:#ffb65c}
 :root[data-hl="sky"]{--hl:#85d5ff}
