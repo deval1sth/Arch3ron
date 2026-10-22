@@ -198,8 +198,8 @@
   <section class="card"><h2>Onur's homework <small>your mistakes today</small></h2><div id="hw"></div></section>
 </div>
 <section class="card"><h2>Head to head <small>you vs Onur</small></h2><div class="tiles" id="tiles"></div></section>
-<section class="card brains"><h2>Uno vs Onur <small>last 14 days · drag to spin</small></h2>
-  <div class="bgrid"><figure><canvas id="bUno" aria-label="Uno, your brain, lit up by subject"></canvas><figcaption><b>Uno</b> your brain</figcaption></figure>
+<section class="card brains"><h2>Runo vs Onur <small>last 14 days · drag to spin</small></h2>
+  <div class="bgrid"><figure><canvas id="bRuno" aria-label="Runo, your brain, lit up by subject"></canvas><figcaption><b>Runo</b> your brain</figcaption></figure>
   <figure><canvas id="bOnur" aria-label="Onur's brain, lit up by subject"></canvas><figcaption><b class="o">Onur</b> his brain</figcaption></figure></div>
   <p class="sub" id="bnote"></p></section>
 <div class="grid">
@@ -344,11 +344,11 @@
       + `<p class="sub">${you.some(Boolean) ? `Your busiest hour: ${pad(peak(you))}:00. Onur's: ${pad(peak(on))}:00.` : 'Your hours start recording from this update, so your row fills in as you study.'}</p>`;
   }
 
-  /* ---------- Uno vs Onur: two brains, one region per subject, glowing by the last 14 days of answers ---------- */
+  /* ---------- Runo vs Onur: two brains, one region per subject, glowing by the last 14 days of answers ---------- */
   const COLS = ['#ff5d6c', '#ffb347', '#7bd389', '#6cc4ff', '#b38cff', '#ff8ad8', '#f2e86d', '#5ee6d0', '#ff9a6c', '#9fd4ff'];
   let brains = null;
   function drawBrains(now) {
-    if (!brains) brains = { uno: BRAIN.create($('bUno')), onur: BRAIN.create($('bOnur')) };
+    if (!brains) brains = { runo: BRAIN.create($('bRuno'), 'runo'), onur: BRAIN.create($('bOnur'), 'onur') };
     const subs = subjects(), you = new Map(), on = new Map();
     for (let i = 0; i < 14; i++) {
       const t0 = midnight(now, -i), st = dayStats(dkey(new Date(t0)));
@@ -357,7 +357,7 @@
     }
     const max = Math.max(1, ...subs.map(s => Math.max(you.get(s) || 0, on.get(s) || 0))), keys = BRAIN.place(subs.map(s => s.id));
     const tone = s => (you.get(s) || 0) > (on.get(s) || 0) ? 'win' : (on.get(s) || 0) > (you.get(s) || 0) ? 'lose' : 'even';
-    brains.uno.set(subs.map((s, i) => ({ name: s.name, key: keys[i], color: COLS[i % COLS.length], v: (you.get(s) || 0) / max, tone: tone(s), line: `you ${you.get(s) || 0}${tone(s) === 'win' ? ' · you lead' : tone(s) === 'lose' ? ' · Onur leads' : ''}` })));
+    brains.runo.set(subs.map((s, i) => ({ name: s.name, key: keys[i], color: COLS[i % COLS.length], v: (you.get(s) || 0) / max, tone: tone(s), line: `you ${you.get(s) || 0}${tone(s) === 'win' ? ' · you lead' : tone(s) === 'lose' ? ' · Onur leads' : ''}` })));
     brains.onur.set(subs.map((s, i) => ({ name: s.name, key: keys[i], color: COLS[i % COLS.length], v: (on.get(s) || 0) / max, tone: tone(s) === 'win' ? 'win' : tone(s) === 'lose' ? 'lose' : 'even', line: `Onur ${on.get(s) || 0}${tone(s) === 'lose' ? ' · beats you' : ''}` })));
     const beat = subs.filter(s => tone(s) === 'lose').map(s => s.name), lead = subs.filter(s => tone(s) === 'win').map(s => s.name);
     const acc = new Map(); for (let i = 0; i < 7; i++) for (const a of plan(midnight(now, -i)).ans) if (a.t <= now) { const v = acc.get(a.s) || [0, 0]; v[0]++; v[1] += a.ok; acc.set(a.s, v); }
@@ -365,7 +365,7 @@
     $('bnote').innerHTML = `${lead.length ? `<b class="tw">You lead in ${esc(lead.join(', '))}.</b> ` : ''}${beat.length ? `<b class="tl">Onur has you beat in ${esc(beat.join(', '))}.</b> ` : ''}`
       + (ranked.length ? `This week Onur is sharpest at ${esc(ranked[0][0].name)} (${pct(ranked[0][1][1], ranked[0][1][0])}) and shakiest at ${esc(ranked[ranked.length - 1][0].name)} (${pct(ranked[ranked.length - 1][1][1], ranked[ranked.length - 1][1][0])}).` : '');
   }
-  const brainsVisible = () => { const r = $('bUno') && $('bUno').getBoundingClientRect(); return r && r.bottom > 0 && r.top < innerHeight; };
+  const brainsVisible = () => { const r = $('bRuno') && $('bRuno').getBoundingClientRect(); return r && r.bottom > 0 && r.top < innerHeight; };
 
   /* ---------- live: numbers, reactions, the scene ---------- */
   const START = ["Oh, you're revising? Fine.", "Right. Let's go.", 'Finally. Race you.'], SLUMP = ['No way.', 'Hm. Not for long.', 'Okay, okay.'];
@@ -403,7 +403,7 @@
     }
     $('now').style.left = ((now - p.t0) / 864e3).toFixed(2) + '%';
     if (!tour && (!motion || !visible())) SCENE.frame(now, cur.info, false);
-    if (brains && !motion) { brains.uno.draw(now, false); brains.onur.draw(now, false); }
+    if (brains && !motion) { brains.runo.draw(now, false); brains.onur.draw(now, false); }
   }
 
   /* the frame loop runs in the pop-out window while it's open, so the rival keeps moving when this tab is hidden */
@@ -421,7 +421,7 @@
         if (!at) stopTour();
         else { const w = where(at.target, false); chipEl.textContent = `${hm(at.t)} · ${w.chip}`; dotEl.classList.toggle('on', w.run.kind === 'study'); SCENE.frame(at.t, w.info, true); }
       } else if (motion && cur && visible()) { if (now - lastWhere > 250) { cur = where(now, hype(now)); lastWhere = now; } SCENE.frame(now, cur.info, true); }
-      if (brains && !pipWin && !document.hidden && brainsVisible()) { brains.uno.draw(now, motion); brains.onur.draw(now, motion); }
+      if (brains && !pipWin && !document.hidden && brainsVisible()) { brains.runo.draw(now, motion); brains.onur.draw(now, motion); }
       raf(step);
     };
     raf(step);
