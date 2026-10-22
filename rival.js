@@ -266,6 +266,7 @@
   <div><h3>Weekends and days off</h3><div class="fields">${field('wwake', 'Wake up')}${field('wdinner', 'Dinner')}${field('wbed', 'Bed')}</div></div>
   <div class="toggles">
     <label class="tg" for="off"><span>No school today<small>Half term, an inset day or off ill</small></span><input type="checkbox" id="off"></label>
+    <label class="tg" for="clean"><span>Clean mode<small>Onur keeps the swearing out of it</small></span><input type="checkbox" id="clean"></label>
     <label class="tg" for="mot"><span>Animation<small>Onur writes, the clock ticks, the sky moves</small></span><input type="checkbox" id="mot"></label>
   </div></div></details>
 <p class="foot">Reads your Archeron progress on this device. Nothing is sent anywhere.</p>`;
@@ -453,12 +454,15 @@
     const fixed = [...p.end].filter(([id, v]) => T.has(id) && (p.start.get(id) ?? 1) < .7 && v.k >= .7).map(([id]) => T.get(id).name);
     const worst = [...p.end].filter(([id]) => T.has(id)).sort((a, b) => a[1].k - b[1].k)[0];
     const tired = p.ans.some(a => a.tired && (a.t - t0) / 36e5 >= 21), you = dayStats(p.k).qa, live = t0 === midnight(now);
-    const lines = [one([`Day ${p.dayIx + 1}.`, `Day ${p.dayIx + 1} done.`, `Day ${p.dayIx + 1}, logged.`]), `${n} answers, ${Math.round(100 * ok / n)}% right, mostly ${top}.`];
-    if (fixed.length) lines.push(one([`${fixed[0]} finally clicked.`, `Cracked ${fixed[0]}. About time.`]));
-    else if (worst) lines.push(one([`${T.get(worst[0]).name} is still beating me.`, `${T.get(worst[0]).name} again. Tomorrow.`]));
-    if (tired) lines.push(one(['Started making silly mistakes after 9.', 'Too tired by the end. Should have stopped sooner.']));
-    lines.push(you > n ? one([`Runo did ${you}. Annoying.`, `Runo beat me with ${you}. Tomorrow's mine.`]) : you ? one([`Runo did ${you}${live ? ' so far' : ''}. Not enough.`, `Runo managed ${you}${live ? ' so far' : ''}.`]) : one(['No sign of Runo today.', "Runo didn't show up."]));
-    return { t0, text: lines.join(' ') };
+    const pc = Math.round(100 * ok / n), so = live ? ' so far' : '', w = worst ? T.get(worst[0]).name : '';
+    const lines = [one([`day ${p.dayIx + 1}.`, `day ${p.dayIx + 1} done.`, `ok day ${p.dayIx + 1}.`]),
+      one([`${n} answers, ${pc}%. mostly ${top}.`, `did ${n}, ${pc}% right. ${top} carried tbh.`, `${n} answers. ${pc}%. ${top} all day basically.`])];
+    if (fixed.length) lines.push(one([`${fixed[0]} finally clicked tbh`, `cracked ${fixed[0]}. about damn time`, `${fixed[0]} is mine now. took long enough`]));
+    else if (w) lines.push(one([`${w} is still kicking my ass`, `${w} again. tomorrow`, `${w} lowkey makes me want to cry`]));
+    if (tired) lines.push(one(["started making stupid mistakes after 9, should've slept", 'was so cooked by the end ngl', 'brain was fried by 10. pushed anyway']));
+    if (r() < .4) lines.push(one(['mum made pasta.', "couldn't stop thinking about the mocks.", 'phone died halfway, honestly helped.', 'rained all evening. perfect study weather.', 'nearly skipped today. glad i didn\'t.', 'music on, world off.']));
+    lines.push(you > n ? one([`runo did ${you}. annoying as hell ngl`, `runo beat me with ${you}. respect but tomorrow's mine`, `${you} from runo?? who is this guy`]) : you ? one([`runo did ${you}${so}. not enough bro`, `runo managed ${you}${so}. cute`, `runo: ${you}${so}. me: ${n}. say less`]) : one(['no sign of runo today. weird', "runo didn't show up. easy day", 'runo did nothing. NOTHING. wtf bro']));
+    return { t0, text: voice(lines.map(l => /[.!?]$/.test(l) ? l : l + '.').join(' ')) };
   }
   function drawDiary(now) {
     const out = []; for (let i = 0; i < 6 && out.length < 3; i++) { const t0 = midnight(now, -i); if (t0 < mirror().born) break; const e = diaryEntry(t0, now); if (e) out.push(e); }
@@ -466,21 +470,30 @@
       : '<p class="sub">Onur writes his first entry after his last study session today.</p>';
   }
 
-  /* ---------- Onur talks: short lines for his sticky note, longer ones on the page, all from your real numbers ---------- */
-  const SHORT = { 'English Language': 'Eng Lang', 'English Literature': 'Eng Lit', 'Computer Science': 'Comp Sci', 'Business Studies': 'Business' };
+  /* ---------- Onur talks like Runo: lowercase, "bro", "ngl", roasts with swearing (clean mode tones it down).
+     Short lines for his sticky note, longer ones on the page, all from your real numbers. ---------- */
+  const SHORT = { 'English Language': 'eng lang', 'English Literature': 'eng lit', 'Computer Science': 'comp sci', 'Business Studies': 'business' };
+  const CLEAN = [[/fucking/g, 'freaking'], [/fuck/g, 'frick'], [/shit/g, 'stuff'], [/ass\b/g, 'butt'], [/damn/g, 'dang'], [/hell\b/g, 'heck'], [/wtf/g, 'wth']];
+  const voice = s => P.clean ? CLEAN.reduce((a, [re, to]) => a.replace(re, to), s) : s;
+  const vary = (list, now, salt) => list[(Math.floor(now / 36e5) + hash(salt)) % list.length];   /* changes by the hour, not every second */
   let TALK = [];
   function talk(p, now) {
-    const out = [], you = dayStats(p.k).qa, riv = doneBy(p, now), short = n => SHORT[n] || n;
+    const out = [], you = dayStats(p.k).qa, riv = doneBy(p, now), d = Math.abs(riv - you), sh = n => (SHORT[n] || n).toLowerCase(), add = (s, f, salt) => out.push({ s, f: vary(f, now, salt) });
     for (const s of subjects()) {
       let idle = 0; while (idle < 14 && !youIn(s, dkey(new Date(midnight(now, -idle))))) idle++;
-      if (idle >= 3 && idle < 14) out.push({ s: [`No ${short(s.name)}`, `in ${idle} days`], f: `You haven't touched ${s.name} in ${idle} days. I have.` });
+      if (idle >= 3 && idle < 14) add([`no ${sh(s.name)}`, `${idle} days lol`], [`bro u haven't touched ${s.name} in ${idle} days. i did it before breakfast`, `${idle} days no ${s.name}?? ngl that's actually crazy`, `${s.name} misses u bro. ${idle} days. i've been keeping it company`, `${idle} days without ${s.name} and u think ur passing? damn`], s.name);
     }
-    if (riv > you) out.push({ s: [`Up by ${riv - you}.`, 'Keep up.'], f: `I'm ${riv - you} answers ahead today. Keep up.` });
-    else if (you > riv && you) out.push({ s: ['Enjoy it.', "Won't last."], f: `You're ${you - riv} ahead. Enjoy it, it won't last.` });
+    if (!you && riv) add(['0 answers', 'u alive?'], [`0 answers today bro. zero. i've done ${riv}`, `u alive? i've done ${riv} and u haven't even opened it`, `it's giving "i'll start tomorrow" ngl`], 'zero');
+    else if (riv - you > 50) add([`up ${d} lol`, 'embarrassing'], [`${d} up. this is fucking embarrassing for u ngl`, `at this point im not even racing u bro, im just jogging`, `${d} answers ahead. should i slow down or`], 'big');
+    else if (riv > you) add([`up ${d}`, 'keep up'], [`im ${d} ahead rn. u good?`, `${d} ahead and i haven't even had dinner yet ngl`, `bro ${d} answers. u studying or just staring at the app`, `ngl im kinda carrying this rivalry rn`], 'ahead');
+    else if (you > riv) add(['ok fair', "won't last"], [`ok ok ${d} ahead. enjoy it while it lasts`, `lowkey annoyed rn ngl. ${d} ahead of me??`, `fine. respect. but im not done tonight`, `damn ok runo. i see u. don't get comfy`], 'behind');
     const L = (S.tc && S.tc.mlog) || {}, sk = S.skill || {}, open = Object.keys(L).filter(id => { const r = sk[id] && sk[id].rec; return !(Array.isArray(r) && r[r.length - 1] === true); }).length;
-    if (open >= 3) out.push({ s: [`${open} mistakes`, 'still open'], f: `${open} of your mistakes are still waiting for a rematch.` });
-    const c = challenge(p.t0, now); if (!c.won) out.push({ s: ['Beat me in', short(c.s.name)], f: `Today's challenge: beat me in ${c.s.name}. Go on.` });
-    TALK = out.length ? out : [{ s: ['Your move.', ''], f: 'Your move, Runo.' }];
+    if (open >= 3) add([`${open} mistakes`, 'still there'], [`${open} mistakes just sitting there bro. they're not gonna fix themselves`, `u got ${open} topics u failed and never went back to. shit's piling up`, `${open} open mistakes. i already fixed mine trust`], 'open');
+    const c = challenge(p.t0, now); if (!c.won) add(['beat me in', sh(c.s.name)], [`beat me in ${c.s.name} today. go on i'll wait`, `${c.s.name} today. me vs u. don't fold`, `${c.s.name}. that's the challenge. try not to bottle it`], 'chal');
+    const H = finished(now); let st = null; for (let i = H.length - 1; i >= 0; i--) { const r = H[i].res; if (r !== 'W' && r !== 'L') break; if (!st) st = { r, n: 1 }; else if (st.r === r) st.n++; else break; }
+    if (st && st.n >= 2) add(st.r === 'L' ? [`${st.n} in a row`, 'to me lol'] : [`${st.n} straight`, 'ok runo'], st.r === 'L' ? [`${st.n} days in a row to me. it's getting a bit sad bro`, `${st.n} straight wins for me. u ok?`] : [`${st.n} wins straight?? ok who are u and what did u do with runo`, `${st.n} in a row. lowkey proud of u. still gonna end it tho`], 'streak');
+    if (where(now).info.tired) add(['im cooked', 'still winning'], ['ngl im fucking cooked rn. still beating u tho', 'eyes closing, brain melting. keep going onur'], 'tired');
+    TALK = (out.length ? out : [{ s: ['ur move', 'runo'], f: 'ur move runo' }]).map(t => ({ s: t.s.map(voice), f: voice(t.f) }));
   }
   const taunt = now => TALK[Math.floor(now / 2e4) % TALK.length];
 
@@ -515,8 +528,8 @@
   const brainsVisible = () => { const r = document.querySelector('.brains').getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
 
   /* ---------- live: numbers, reactions, the scene ---------- */
-  const START = ["Oh, you're revising? Fine.", "Right. Let's go.", 'Finally. Race you.'], SLUMP = ['No way.', 'Hm. Not for long.', 'Okay, okay.'];
-  const STRETCH = ['Caught you.', 'Back in front.', 'Ahead again.'], NOTED = ["Noted. I'll revise that.", "I'll take that one.", 'Adding it to my list.'];
+  const START = ['oh u revising now? bet', "finally. let's go", 'took u long enough bro'], SLUMP = ['nah no way', "ok that's actually annoying", 'fuck. ok.'];
+  const STRETCH = ['caught u lol', 'back in front. sit down', "and that's mine"], NOTED = ["noted. i'll fix that one", 'lmao u got that wrong? adding it', 'mine now'];
   let prev = null, lastSay = 0, lastYou = 0, lastMin = -1, dirty = true, cur = null, tour = null, FP = '';
   const hype = now => now - lastYou < 90e3;
   function tick() {
@@ -529,7 +542,7 @@
       if (p.miss.length > prev.miss) ev = ['glance', pick(NOTED)];
       if (prev.sign <= 0 && sign > 0 && you > prev.you) ev = ['slump', pick(SLUMP)];
       if (prev.sign >= 0 && sign < 0 && riv > prev.riv) ev = ['stretch', pick(STRETCH)];
-      if (ev && now - lastSay > 12e3 && (cur.info.pose === 'write' || cur.info.pose === 'phone')) { SCENE.say(ev[0], ev[1]); lastSay = now; } if (cur.info.tired && cur.info.pose === 'write' && now - lastSay > 6e4) { SCENE.say('slump', pick(['*yawn*', 'So tired…', 'Focus, Onur.'])); lastSay = now; }
+      if (ev && now - lastSay > 12e3 && (cur.info.pose === 'write' || cur.info.pose === 'phone')) { SCENE.say(ev[0], voice(ev[1])); lastSay = now; } if (cur.info.tired && cur.info.pose === 'write' && now - lastSay > 6e4) { SCENE.say('slump', pick(['*yawn*', 'im so cooked', 'focus onur...'])); lastSay = now; }
     }
     if (prev && you > prev.you) { if (prev.you != null) { const s = document.createElement('span'); s.className = 'pop'; s.textContent = '+' + (you - prev.you); $('you').appendChild(s); setTimeout(() => s.remove(), 1200); } lastYou = now; }
     prev = { you, riv, sign, miss: p.miss.length };
@@ -644,6 +657,7 @@
   });
   $('off').addEventListener('change', e => { const k = dkey(new Date()); P.off = P.off.filter(x => x !== k); if (e.target.checked) P.off.push(k); changed(); });
   $('mot').addEventListener('change', e => { motion = e.target.checked; P.motion = motion; saveP(); setMotion(); tick(); });
+  $('clean').checked = !!P.clean; $('clean').addEventListener('change', e => { P.clean = e.target.checked; saveP(); dirty = true; tick(); });
   playEl.addEventListener('click', () => tour ? stopTour() : startTour());
   if (popEl) popEl.addEventListener('click', popOut);
 
