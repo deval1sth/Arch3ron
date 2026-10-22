@@ -144,6 +144,7 @@
   loadS();
   if (!S) {
     app.innerHTML = `<section class="card empty"><h2>Your rival needs a copy of you</h2><p>Open Archeron on this device and answer a few questions first. Your rival is built from that.</p><a href="./">Open Archeron</a></section>`;
+    setInterval(() => { if (loadS() && S) location.reload(); }, 2000);
     return;
   }
   let motion = typeof P.motion === 'boolean' ? P.motion : S.motion !== 'reduced';
@@ -151,7 +152,7 @@
   const DOW = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
   app.innerHTML = `
 <header class="top"><div class="brand"><h1>Your <b>rival</b></h1><p>A copy of you. Same day as you, every free minute studying.</p></div><a class="back" href="./">Archeron</a></header>
-<section class="room" aria-label="The rival's room"><div id="scene"></div><div class="chip"><i class="dot" id="dot"></i><span id="chip"></span></div></section>
+<section class="room" aria-label="The rival's room"><div id="scene"></div><button type="button" class="play" id="play">Watch its day</button><div class="chip"><i class="dot" id="dot"></i><span id="chip"></span></div></section>
 <div id="away"></div>
 <section class="day"><div class="dayhead"><h2>The rival's day</h2><span id="dplan"></span></div>
   <div class="strip" id="strip"></div><div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div><div class="legend" id="legend"></div></section>
@@ -212,7 +213,7 @@
   let prevYou = null, lastMin = -1, dirty = true, cur = null;
   function tick() {
     const now = Date.now(); cur = where(now); const p = cur.p;
-    $('chip').textContent = cur.chip; $('dot').classList.toggle('on', cur.run.kind === 'study');
+    if (!tour) { $('chip').textContent = cur.chip; $('dot').classList.toggle('on', cur.run.kind === 'study'); }
     const you = youToday(), riv = cur.n, top = Math.max(you, riv, p.goal, 1);
     if (prevYou != null && you > prevYou) { const s = document.createElement('span'); s.className = 'pop'; s.textContent = '+' + (you - prevYou); $('you').appendChild(s); setTimeout(() => s.remove(), 1200); }
     if ($('you').firstChild && $('you').firstChild.nodeType === 3) $('you').firstChild.nodeValue = you; else $('you').prepend(String(you));
@@ -231,10 +232,42 @@
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;
     }
-    if (!motion || document.hidden) SCENE.frame(now, cur.info, false);
+    if (!tour && (!motion || document.hidden)) SCENE.frame(now, cur.info, false);
   }
-  function loop() { if (motion && cur && !document.hidden) { if (Date.now() - lastWhere > 250) { cur = where(Date.now()); lastWhere = Date.now(); } SCENE.frame(Date.now(), cur.info, true); } requestAnimationFrame(loop); }
-  let lastWhere = 0;
+  function loop() {
+    if (tour) {
+      const at = tourAt(Date.now());
+      if (!at) stopTour();
+      else { const w = where(at.target); $('chip').textContent = `${hm(at.t)} · ${w.chip}`; $('dot').classList.toggle('on', w.run.kind === 'study'); SCENE.frame(at.t, w.info, true); }
+    } else if (motion && cur && !document.hidden) { if (Date.now() - lastWhere > 250) { cur = where(Date.now()); lastWhere = Date.now(); } SCENE.frame(Date.now(), cur.info, true); }
+    requestAnimationFrame(loop);
+  }
+  let lastWhere = 0, tour = null;
+
+  /* "Watch its day": a ~40-second time-lapse through today's plan. Sweeps move the sky; stops play each scene. */
+  const SWEEP = 1.4;
+  function tourAt(real) {
+    const e = (real - tour.start) / 1000; let acc = 0, prevT = null;
+    for (const s of tour.steps) {
+      if (prevT != null) {
+        if (e < acc + SWEEP) { const k = (e - acc) / SWEEP, q = k < .5 ? 2 * k * k : 1 - Math.pow(2 - 2 * k, 2) / 2; return { t: prevT + (s.t - prevT) * q, target: s.t }; }
+        acc += SWEEP;
+      }
+      if (e < acc + s.d) { const t = s.t + (e - acc) * 1000 * s.s; return { t, target: t }; }
+      acc += s.d; prevT = s.t + s.d * 1000 * s.s;
+    }
+    return null;
+  }
+  function startTour() {
+    const p = plan(midnight(Date.now())), steps = [], first = k => p.runs.find(r => r.kind === k);
+    const add = (r, off, d, s) => { if (r) steps.push({ t: p.t0 + Math.min(r.b - 1, r.a + off) * MIN, d, s }); };
+    add(p.runs[0], 180, 3, 60); add(first('ready'), 15, 2.5, 30); add(first('school'), 200, 2.5, 60);
+    add(first('study'), 1, 8, 12); add(first('break'), 1, 3, 20); add(first('dinner'), 10, 2.5, 30);
+    add(p.runs.find(r => r.kind === 'free' && r.a > p.dinner), 30, 3, 30); add(p.runs[p.runs.length - 1], 40, 3.5, 60);
+    steps.sort((a, b) => a.t - b.t);
+    tour = { start: Date.now(), steps }; $('play').textContent = 'Back to now'; room.classList.remove('still');
+  }
+  function stopTour() { tour = null; $('play').textContent = 'Watch its day'; setMotion(); tick(); SCENE.frame(Date.now(), cur.info, motion); }
 
   /* while you were away */
   (function away() {
@@ -259,9 +292,10 @@
   });
   $('off').addEventListener('change', e => { const k = dkey(new Date()); P.off = P.off.filter(x => x !== k); if (e.target.checked) P.off.push(k); changed(); });
   $('mot').addEventListener('change', e => { motion = e.target.checked; P.motion = motion; saveP(); setMotion(); tick(); });
+  $('play').addEventListener('click', () => tour ? stopTour() : startTour());
 
   /* live: Archeron saves in another tab or window → the storage event fires here */
-  const refresh = () => { if (loadS()) { SUBS = null; cache.clear(); dirty = true; } tick(); };
+  const refresh = () => { if (loadS()) { if (!S) { location.reload(); return; } SUBS = null; cache.clear(); dirty = true; } tick(); };
   addEventListener('storage', e => { if (!e.key || e.key === KEY || e.key === 'archeron-profiles') refresh(); });
   setInterval(refresh, 1000);
   tick(); SCENE.frame(Date.now(), cur.info, motion); requestAnimationFrame(loop);

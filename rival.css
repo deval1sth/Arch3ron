@@ -42,6 +42,10 @@ button,input,select{font:inherit;color:inherit}
   background:rgba(8,11,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);
   font-weight:700;font-size:14px;max-width:calc(100% - 28px);transition:opacity .4s var(--ease)}
 .chip span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.play{position:absolute;right:14px;top:14px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);cursor:pointer;
+  background:rgba(8,11,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--t);font-weight:700;font-size:13.5px;
+  transition:background .2s var(--ease),transform .15s var(--ease)}
+.play:hover{background:rgba(8,11,30,.9)}.play:active{transform:scale(.95)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none;position:relative}
 .dot.on{background:var(--riv)}
 .dot.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--riv);animation:ping 1.8s var(--ease) infinite}
