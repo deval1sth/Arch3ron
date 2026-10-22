@@ -278,7 +278,7 @@ const ME = (() => {
   }
   function addProfile() { const id = newId(); idx.list.push({ id, name: '', av: null }); saveIdx(); choose(id); }
   function removeProfile() {
-    if (!confirm(`Delete ${S.me ? S.me.name + "'s" : 'this'} profile and all its progress on this device? Make a backup first if you might want it back.`)) return;
+    if (!sure(`Delete ${S.me ? S.me.name + "'s" : 'this'} profile and all its progress on this device? Make a backup first if you might want it back.`)) return;
     try { for (const k of [keys.state, keys.timer, keys.tab]) localStorage.removeItem(k); } catch (e) {}
     idx.list = idx.list.filter(p => p.id !== active); if (!idx.list.length) idx.list.push({ id: newId(), name: '', av: null });
     choose(idx.list[0].id);

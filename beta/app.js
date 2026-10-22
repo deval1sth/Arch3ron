@@ -1084,7 +1084,7 @@ function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
 const EXACT = {
   exStart(el) {
     const p = paperOf(el.dataset.id);
-    if (S.exam && S.exam.pid !== p.id && !confirm('You have another paper in progress. Abandon it and start this one?')) return;
+    if (S.exam && S.exam.pid !== p.id && !sure('You have another paper in progress. Abandon it and start this one?')) return;
     if (!S.exam || S.exam.pid !== p.id) S.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), end: el.dataset.timed ? Date.now() + p.mins * 60000 : 0 };
     EXRES = null; exOpen(S.exam.i); go('examq', '#exans');
   },
@@ -1094,7 +1094,7 @@ const EXACT = {
   exPppMark() {
     const E = S.exam, p = paperOf(E.pid); E.ans[E.i] = (DRAFT.ex || '').trim();
     const blank = p.qs.filter((q, k) => !qX(q).same && !E.ans[k]).length;
-    if (blank && !mockOver() && !confirm(`${blank} part${blank > 1 ? 's are' : ' is'} blank and will score 0. Put your pen down and start marking?`)) return save();
+    if (blank && !mockOver() && !sure(`${blank} part${blank > 1 ? 's are' : ' is'} blank and will score 0. Put your pen down and start marking?`)) return save();
     if (E.end) { E.used = Math.max(1, Math.min(p.mins, Math.round((Math.min(Date.now(), E.end) - (E.end - p.mins * 60000)) / 60000))); E.timed = true; E.end = 0; }
     E.ph = 'mark'; E.marked = E.marked.map(() => true); exOpen(0); toast('Pens down. Now mark it like an examiner.'); render(); scrollTo({ top: 0 });
   },
@@ -1106,7 +1106,7 @@ const EXACT = {
   },
   exMarkSet(el) { const E = S.exam; E.lv[E.i] = +el.dataset.m; E.marked[E.i] = true; save(); render(); },
   exGo(el) { if (S.exam.i !== +el.dataset.i && !S.exam.marked[S.exam.i]) S.exam.ans[S.exam.i] = (DRAFT.ex || '').trim(); exOpen(+el.dataset.i); render({ focus: '#exans' }); scrollTo({ top: 0 }); },
-  exQuit() { if (!confirm('Abandon this paper? Nothing from it will be saved.')) return; S.exam = null; save(); render(); },
+  exQuit() { if (!sure('Abandon this paper? Nothing from it will be saved.')) return; S.exam = null; save(); render(); },
   exClose() { EXRES = null; render(); },
   exFinish() {
     const E = S.exam, p = paperOf(E.pid);
@@ -1114,7 +1114,7 @@ const EXACT = {
     if (pend >= 0) { toast(`Pick a level for question ${pend + 1} first`); exOpen(pend); render(); return; }
     const done = p.qs.map((q, k) => qDone(E, k, q)), n = done.filter(Boolean).length;
     if (!n) return toast('Mark at least one question first');
-    if (n < p.qs.length && !confirm(`${p.qs.length - n} question${p.qs.length - n > 1 ? 's are' : ' is'} not marked. Save a score for just the ${n} you marked?`)) return;
+    if (n < p.qs.length && !sure(`${p.qs.length - n} question${p.qs.length - n > 1 ? 's are' : ' is'} not marked. Save a score for just the ${n} you marked?`)) return;
     const tp = {}, lost = {};
     p.qs.forEach((q, k) => {
       if (!done[k]) return;
@@ -1198,7 +1198,7 @@ function mpResults() {
 }
 const MPACT = {
   mpNew(el) {
-    if (S.mp && !MPRES && !confirm('Start a new paper? The one in progress will be lost.')) return;
+    if (S.mp && !MPRES && !sure('Start a new paper? The one in progress will be lost.')) return;
     const track = (el && el.dataset && el.dataset.track) || 'maths';
     const len = el && el.dataset && el.dataset.ppp ? 40 : GP_LEN; S.mp = null; const qs = makePaper(track, len);
     if (!qs.length) return toast(`All ${TRACK_NAME(track)} topics are hidden in Settings`);
@@ -1209,13 +1209,13 @@ const MPACT = {
   gpLen(el) { GP_LEN = +el.dataset.n; render(); },
   mpPick(el) { S.mp.ans[S.mp.i] = String(el.dataset.o); save(); render(); },
   mpGo(el) { const M = S.mp; if (M.qs[M.i].kind !== 'mcq') M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40); M.i = +el.dataset.i; DRAFT.mp = M.ans[M.i] || ''; save(); render({ focus: '#mpans' }); },
-  mpQuit() { if (!confirm('Abandon this paper? Nothing will be saved.')) return; S.mp = null; save(); go('exam'); },
+  mpQuit() { if (!sure('Abandon this paper? Nothing will be saved.')) return; S.mp = null; save(); go('exam'); },
   mpDone() { MPRES = null; go('exam'); },
   mpFinish() {
     const M = S.mp; if (M.qs[M.i].kind !== 'mcq') M.ans[M.i] = (DRAFT.mp || '').trim().slice(0, 40);
     const track = M.track || 'maths', subj = trackSubj(track), tn = TRACK_NAME(track);
     const blank = M.ans.filter(a => !a).length;
-    if (blank && !confirm(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
+    if (blank && !sure(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
     if (M.ppp && !M.self) { M.self = { i: 0, my: M.qs.map(() => null), why: M.qs.map(() => '') }; save(); render(); return scrollTo({ top: 0 }); } /* PPP: you mark it first */
     const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
     const tp = {}, lost = {};
@@ -1615,6 +1615,14 @@ function go(t, focusSel) {
   setTimeout(() => { const f = focusSel && $(focusSel); (f || $('#view')).focus({ preventScroll: true }); }, HAS_VT ? 60 : 0);
 }
 
+/* two taps instead of the browser's confirm box: browsers can switch that box off for a site ("prevent this page from
+   creating dialogs", some app windows), and then it always answers no, which left papers impossible to start */
+let SURE = null;
+function sure(msg) {
+  const now = Date.now();
+  if (SURE && SURE.k === msg && now - SURE.t < 6000) { SURE = null; return true; }
+  SURE = { k: msg, t: now }; toast(msg + ' Tap again to confirm.'); return false;
+}
 function toast(m, cls = '') {
   const t = h('div', { class: 'toast t-toast ' + cls }, m);
   $('#toasts').append(t);
@@ -1660,7 +1668,7 @@ const ACT = {
     else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; SFX.play('start'); } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { if (T.mode === 'focus' && T.run && !confirm('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  rst() { if (T.mode === 'focus' && T.run && !sure('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
   skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); } render(); },
   /* bad day: 10 minutes of what you are closest to forgetting, instead of a zero day */
@@ -1717,7 +1725,7 @@ const ACT = {
     if (!got.length) { toast('No friend code found in that. Paste the whole link or code.'); return; }
     const n = FRIENDS.add(got); DRAFT.fr = ''; toast(n ? `${n} ${n === 1 ? 'friend' : 'friends'} added or updated` : 'Nothing new in that code'); render();
   },
-  frDel(el) { const f = S.friends.find(x => x.i === el.dataset.i); if (f && confirm(`Remove ${f.n}?`)) { S.friends = S.friends.filter(x => x !== f); save(); render(); } },
+  frDel(el) { const f = S.friends.find(x => x.i === el.dataset.i); if (f && sure(`Remove ${f.n}?`)) { S.friends = S.friends.filter(x => x !== f); save(); render(); } },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
   exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
@@ -1736,7 +1744,7 @@ const ACT = {
     S.plans.push({ id: newId(), date: dkey(), kind, prompt: PROMPTS[kind][D.pi], f: D.f.map(x => x.trim()) });
     S.stat.plans++; delete DRAFT.plans[kind]; save(); toast('Plan saved. Now write it up on paper.', 'big'); render();
   },
-  pbDel(el) { if (!confirm('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
+  pbDel(el) { if (!sure('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
   emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
   theme(el) { const t = THEMES.find(x => x[0] === el.dataset.v); if (!t) return; S.theme = t[0]; save(); applyTheme(); render(); toast(t[1] + ' highlighter'); },
   mode(el) { const m = MODES.find(x => x[0] === el.dataset.v); if (!m) return; S.mode = m[0]; save(); applyTheme(); render(); toast('Page: ' + m[1]); },
@@ -1758,7 +1766,7 @@ const ACT = {
     CHART.add(D.subj); xp(25);
     DRAFT.score = blankScore(D.subj); render();
   },
-  delScore(el) { if (!confirm('Delete this paper?')) return; S.scores = S.scores.filter(s => s.id !== +el.dataset.id); save(); render(); },
+  delScore(el) { if (!sure('Delete this paper?')) return; S.scores = S.scores.filter(s => s.id !== +el.dataset.id); save(); render(); },
   lost2fix(el) {
     S.mistakes.push({ id: newId(), date: dkey(), subj: el.dataset.subj, topic: el.dataset.topic, note: 'From marks to win back', redo: dkey(), fixed: false });
     toast('Added to your fix list'); save(); render();
@@ -1778,7 +1786,7 @@ const ACT = {
     (S.custom[CD.deck] = S.custom[CD.deck] || []).push({ id: 'u' + newId().toString(36), f, b });
     DRAFT.card = { f: '', b: '' }; save(); toast('Card added'); render();
   },
-  delCard(el) { if (!confirm('Delete this card?')) return; const id = el.dataset.id; S.custom[CD.deck] = (S.custom[CD.deck] || []).filter(c => c.id !== id); delete S.cards[id]; save(); render(); },
+  delCard(el) { if (!sure('Delete this card?')) return; const id = el.dataset.id; S.custom[CD.deck] = (S.custom[CD.deck] || []).filter(c => c.id !== id); delete S.cards[id]; save(); render(); },
   list: el => { LT = el.dataset.k; render(); },
   listGo: el => { LT = el.dataset.k; go('lists'); },
   conf(el) {
@@ -1803,8 +1811,8 @@ const ACT = {
   },
   planSets(el) { const f = findSess(el.dataset.sid); if (!f) return; f.s.sets = clamp(f.s.sets + +el.dataset.d, 1, 12); save(); render(); },
   planMove(el) { const f = findSess(el.dataset.sid); if (!f) return; const p = S.plan[f.w], j = f.i + +el.dataset.d; if (j < 0 || j >= p.length) return; [p[f.i], p[j]] = [p[j], p[f.i]]; save(); render(); },
-  planDel(el) { const f = findSess(el.dataset.sid); if (!f || !confirm(`Remove "${f.s.label}"?`)) return; S.plan[f.w].splice(f.i, 1); save(); render(); },
-  planReset() { if (!confirm('Rebuild your week from your set-up? Past ticks are kept.')) return; S.plan = S.me ? ME.buildPlan(S.me) : makePlan(); save(); render(); },
+  planDel(el) { const f = findSess(el.dataset.sid); if (!f || !sure(`Remove "${f.s.label}"?`)) return; S.plan[f.w].splice(f.i, 1); save(); render(); },
+  planReset() { if (!sure('Rebuild your week from your set-up? Past ticks are kept.')) return; S.plan = S.me ? ME.buildPlan(S.me) : makePlan(); save(); render(); },
   saveGrades() {
     for (const s of SUBJ) { const g = DRAFT.grades[s]; S.grades[s] = { cur: str(g.cur, 8).trim(), tgt: str(g.tgt, 8).trim(), pct: g.pct === '' ? '' : String(clamp(Math.round(+g.pct || 0), 0, 100)) }; }
     DRAFT.grades = null; save(); toast('Grades saved on this device'); render();
@@ -1812,7 +1820,7 @@ const ACT = {
   /* exp (backup) lives in plus.js: share sheet on phones, download elsewhere */
 
   reset() {
-    if (!confirm('Wipe ALL progress on this device? Download a backup first.')) return;
+    if (!sure('Wipe ALL progress on this device? Download a backup first.')) return;
     try { [K, OLD, TK, TABK].forEach(k => localStorage.removeItem(k)); } catch (e) {}
     location.reload();
   }

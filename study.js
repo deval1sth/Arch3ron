@@ -1596,7 +1596,7 @@ const STUDYACT = {
     if (!subs.length) return toast('Pick at least one subject');
     S.sess = makeSession(SESS_D.mins, subs); SESS_D = null; save(); toast('Session planned. Start with block 1.'); render(); scrollTo({ top: 0 });
   },
-  sessNew() { if (activeSession() && !confirm('Replace this session with a new plan?')) return; SESS_D = { mins: S.sess ? S.sess.mins : 50, subs: null }; render(); },
+  sessNew() { if (activeSession() && !sure('Replace this session with a new plan?')) return; SESS_D = { mins: S.sess ? S.sess.mins : 50, subs: null }; render(); },
   sessCancel() { SESS_D = null; render(); },
   sessTimer() { if (T.run) return; T.mode = 'focus'; T.left = tTotal(); ACT.tgl(); go('session'); },
   sessTick(el) {

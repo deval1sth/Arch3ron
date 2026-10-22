@@ -768,7 +768,7 @@ function exPick(sub, n = 5) {
   const R = exRec(), rank = o => { const r = R[o.id]; return !r ? 0 : exMatch(o, r[0]) ? 2 : 1; };
   return shuffleA(exPool(sub)).sort((a, b) => rank(a) - rank(b) || ((R[a.id] || [])[2] || '').localeCompare((R[b.id] || [])[2] || '')).slice(0, n).map(o => o.id);
 }
-function exOpen(i) { EXR.i = i; const o = EX_BY[EXR.ids[i]]; EXR.ticks = o.pts ? o.pts.map(() => false) : []; EXR.mark = o.pts ? 0 : null; EXR.manual = false; EXR.lv = -1; EXR.shown = false; }
+function xmOpen(i) { EXR.i = i; const o = EX_BY[EXR.ids[i]]; EXR.ticks = o.pts ? o.pts.map(() => false) : []; EXR.mark = o.pts ? 0 : null; EXR.manual = false; EXR.lv = -1; EXR.shown = false; }
 const exCur = () => EXR && EX_BY[EXR.ids[EXR.i]];
 
 /* ---------- drawing ---------- */
@@ -798,21 +798,21 @@ function exMarking(o) {
     return h('div', { class: 'ex-mark' },
       h('p', { class: 'fb-h' }, 'Mark scheme'),
       h('p', { class: 'muted xs' }, o.any && o.any < o.pts.length ? `Any ${o.any} of these, one mark each. Tick every point the answer clearly earns.` : 'One mark per point. Tick every point the answer clearly earns.'),
-      o.pts.map((pt, j) => h('label', { class: 'chk' + (EXR.ticks[j] ? ' d' : '') }, h('input', { type: 'checkbox', checked: !!EXR.ticks[j], 'data-act': 'exTick', 'data-j': j }), checkBox(), h('span', null, pt))),
+      o.pts.map((pt, j) => h('label', { class: 'chk' + (EXR.ticks[j] ? ' d' : '') }, h('input', { type: 'checkbox', checked: !!EXR.ticks[j], 'data-act': 'xmTick', 'data-j': j }), checkBox(), h('span', null, pt))),
       h('p', { class: 'fb-h ex-your' }, 'Your mark', h('span', null, EXR.manual ? 'set by you' : 'from your ticks; change it if a rule applies')),
-      h('div', { class: 'chips ex-marks', role: 'group', 'aria-label': 'Your mark' }, nums(0, o.m).map(v => chip(String(v), v === EXR.mark, 'exMarkSet', { 'data-m': v, 'aria-label': `${v} mark${v === 1 ? '' : 's'}` }))),
+      h('div', { class: 'chips ex-marks', role: 'group', 'aria-label': 'Your mark' }, nums(0, o.m).map(v => chip(String(v), v === EXR.mark, 'xmMarkSet', { 'data-m': v, 'aria-label': `${v} mark${v === 1 ? '' : 's'}` }))),
       cap < o.pts.length && h('p', { class: 'muted xs' }, `Most it can score: ${cap}.`),
-      B('Check with the examiner', 'exCheck', 'primary wide', { id: 'ex-go' }));
+      B('Check with the examiner', 'xmCheck', 'primary wide', { id: 'ex-go' }));
   }
   const L = o.lv, sel = EXR.lv;
   return h('div', { class: 'ex-mark' },
     h('p', { class: 'fb-h' }, o.lvOnly ? 'Which level is this?' : '1. Pick the level that fits best'),
     h('p', { class: 'muted xs' }, 'Read the whole answer, then choose the description that fits it best.'),
-    L.map(([lo, hi, d], l) => h('button', { type: 'button', class: 'lvl' + (l === sel ? ' on' : ''), 'data-act': 'exLevel', 'data-l': l, 'aria-pressed': String(l === sel) },
+    L.map(([lo, hi, d], l) => h('button', { type: 'button', class: 'lvl' + (l === sel ? ' on' : ''), 'data-act': 'xmLevel', 'data-l': l, 'aria-pressed': String(l === sel) },
       h('span', { class: 'lvl-h' }, h('b', null, `Level ${o.lvOnly ? lo : L.length - l}`), !o.lvOnly && h('small', null, lo === hi ? ` · ${lo} mark${lo > 1 ? 's' : ''}` : ` · ${lo}–${hi} marks`)), h('span', null, d))),
     !o.lvOnly && sel >= 0 && L[sel][0] !== L[sel][1] && [h('p', { class: 'fb-h' }, '2. Top, middle or bottom of the level?'),
-      h('div', { class: 'chips ex-marks', role: 'group', 'aria-label': 'Your mark' }, nums(L[sel][0], L[sel][1]).map(v => chip(String(v), v === EXR.mark, 'exMarkSet', { 'data-m': v })))],
-    B('Check with the examiner', 'exCheck', 'primary wide', { id: 'ex-go', disabled: EXR.mark == null }));
+      h('div', { class: 'chips ex-marks', role: 'group', 'aria-label': 'Your mark' }, nums(L[sel][0], L[sel][1]).map(v => chip(String(v), v === EXR.mark, 'xmMarkSet', { 'data-m': v })))],
+    B('Check with the examiner', 'xmCheck', 'primary wide', { id: 'ex-go', disabled: EXR.mark == null }));
 }
 const markWord = (n, lvOnly) => lvOnly ? `Level ${n}` : `${n} mark${n === 1 ? '' : 's'}`;
 function exVerdict(o) {
@@ -836,7 +836,7 @@ function exVerdict(o) {
         h('div', null, h('q', null, s.t), h('p', null, s.x != null ? o.xs[s.x] : o.plus[s.p]))))),
     h('div', { class: 'ex-rule' }, h('p', { class: 'ex-rule-h' }, icon('mark'), 'Examiner rule: ', h('b', null, rule[0])), h('p', null, rule[1])),
     h('p', { class: 'ex-fix' }, h('b', null, o.mark === o.m && !o.lvOnly ? 'Why it scores full marks: ' : 'For full marks: '), o.fix),
-    h('div', { class: 'row' }, B(EXR.i < EXR.ids.length - 1 ? 'Next answer' : 'See how you did', 'exNext', 'primary grow', { id: 'ex-next' })));
+    h('div', { class: 'row' }, B(EXR.i < EXR.ids.length - 1 ? 'Next answer' : 'See how you did', 'xmNext', 'primary grow', { id: 'ex-next' })));
 }
 function exSummary() {
   const res = EXR.res, ok = res.filter(r => exMatch(EX_BY[r.id], r.you)).length, rules = [...new Set(res.map(r => EX_BY[r.id].r))];
@@ -849,7 +849,7 @@ function exSummary() {
     h('p', null, lean),
     h('h3', null, 'Rules in this round'),
     h('ul', { class: 'ex-rlist' }, rules.map(k => h('li', null, icon('mark'), h('div', null, h('b', null, EX_RULES[k][0]), h('p', null, EX_RULES[k][1]))))),
-    h('div', { class: 'row' }, exPool(EXR.sub).length > 0 && B([icon('play'), 'Mark five more'], 'exStart', 'primary', { 'data-sub': EXR.sub }), B('Done', 'exDone', 'link')));
+    h('div', { class: 'row' }, exPool(EXR.sub).length > 0 && B([icon('play'), 'Mark five more'], 'xmStart', 'primary', { 'data-sub': EXR.sub }), B('Done', 'xmDone', 'link')));
 }
 function vExaminer() {
   const subs = exSubs(), sub = subs.some(s => s.id === EX_SUB) ? EX_SUB : 'all';
@@ -877,8 +877,8 @@ function vExaminer() {
       h('li', null, h('b', null, 'Mark it. '), 'Tick what earns marks, or pick a level for long answers.'),
       h('li', null, h('b', null, 'Compare. '), 'See every mark pinned to the words that earned it, and the rule behind it.'))),
     card('Choose answers', h('span', { class: 'muted' }, `${pool.length} to mark`),
-      subs.length > 1 && h('div', { class: 'chips scroll' }, chip('All my subjects', sub === 'all', 'exSub', { 'data-sub': 'all' }), subs.map(s => chip([icon(s.icon), s.name], s.id === sub, 'exSub', { 'data-sub': s.id }))),
-      pool.length ? B([icon('play'), `Mark ${Math.min(5, pool.length)} answers`], 'exStart', 'primary wide', { 'data-sub': sub }) : h('p', { class: 'muted' }, 'None of your subjects have answers to mark yet.')),
+      subs.length > 1 && h('div', { class: 'chips scroll' }, chip('All my subjects', sub === 'all', 'xmSub', { 'data-sub': 'all' }), subs.map(s => chip([icon(s.icon), s.name], s.id === sub, 'xmSub', { 'data-sub': s.id }))),
+      pool.length ? B([icon('play'), `Mark ${Math.min(5, pool.length)} answers`], 'xmStart', 'primary wide', { 'data-sub': sub }) : h('p', { class: 'muted' }, 'None of your subjects have answers to mark yet.')),
     card('Examiner rules', h('span', { class: 'muted' }, `${got.size} of ${Object.keys(EX_RULES).length} met`),
       h('p', { class: 'muted xs' }, seen.length ? `You have marked ${seen.length} answer${seen.length === 1 ? '' : 's'} and matched the examiner on ${match}.` : 'Each answer teaches one rule examiners use. They are all here once you have met them.'),
       h('ul', { class: 'ex-rlist' }, Object.entries(EX_RULES).filter(([k]) => got.has(k)).map(([, [t, d]]) => h('li', null, icon('mark'), h('div', null, h('b', null, t), h('p', null, d)))))),
@@ -890,28 +890,28 @@ VIEWS.examiner = vExaminer; PARENT.examiner = 'mocks'; BACKS.examiner = 'Be the 
 const _xqListE = xqList;
 xqList = function (s) {
   const n = EXS.filter(o => o.s === s.id && exFits(o)).length;
-  const ex = n > 0 ? h('button', { type: 'button', class: 'card rescue-cta ex-cta', 'data-act': 'exStart', 'data-sub': s.id, 'data-from': 'subject' },
+  const ex = n > 0 ? h('button', { type: 'button', class: 'card rescue-cta ex-cta', 'data-act': 'xmStart', 'data-sub': s.id, 'data-from': 'subject' },
     h('span', { class: 'wc-ic' }, icon('mark')), h('span', { class: 'grow' }, h('b', null, 'Be the examiner'), h('small', null, `${n} student answer${n === 1 ? '' : 's'} to mark like an examiner. See what really earns the marks.`)), h('span', { class: 'btn primary sm' }, 'Start')) : null;
   return [ex, _xqListE(s)];
 };
 
 Object.assign(ACT, {
-  exSub(el) { EX_SUB = el.dataset.sub; render(); },
-  exStart(el) {
+  xmSub(el) { EX_SUB = el.dataset.sub; render(); },
+  xmStart(el) {
     const sub = el.dataset.sub || 'all', ids = exPick(sub);
     if (!ids.length) return toast('No answers to mark in this subject yet');
-    EXR = { ids, i: 0, from: el.dataset.from || (EXR && EXR.from) || 'mocks', sub, res: [] }; exOpen(0);
+    EXR = { ids, i: 0, from: el.dataset.from || (EXR && EXR.from) || 'mocks', sub, res: [] }; xmOpen(0);
     PARENT.examiner = EXR.from === 'subject' ? 'learn' : 'mocks'; /* the bottom bar lights the tab you came from */
     if (TAB === 'examiner') { scrollTo(0, 0); render({ enter: true }); } else go('examiner');
   },
-  exMarkSet(el) { if (!EXR || EXR.shown) return; EXR.mark = +el.dataset.m; EXR.manual = true; render(); },
-  exLevel(el) {
+  xmMarkSet(el) { if (!EXR || EXR.shown) return; EXR.mark = +el.dataset.m; EXR.manual = true; render(); },
+  xmLevel(el) {
     const o = exCur(); if (!o || EXR.shown) return;
     const l = +el.dataset.l, [lo, hi] = o.lv[l];
     EXR.lv = l; if (!(EXR.mark >= lo && EXR.mark <= hi)) EXR.mark = lo === hi ? lo : null;
     render({ focus: lo === hi ? '#ex-go' : null });
   },
-  exCheck() {
+  xmCheck() {
     const o = exCur(); if (!o || EXR.shown) return;
     if (EXR.mark == null) return toast(o.lv && EXR.lv < 0 ? 'Pick a level first' : 'Pick a mark first');
     const you = EXR.mark;
@@ -921,14 +921,14 @@ Object.assign(ACT, {
     const v = $('#ex-verdict'); if (v) v.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
     SFX.play(exMatch(o, you) ? 'correct' : 'click');
   },
-  exNext() {
+  xmNext() {
     if (!EXR || !EXR.shown) return;
-    if (EXR.i < EXR.ids.length - 1) exOpen(EXR.i + 1); else { EXR.i = EXR.ids.length; xp(10); save(); SFX.play('fanfare'); }
+    if (EXR.i < EXR.ids.length - 1) xmOpen(EXR.i + 1); else { EXR.i = EXR.ids.length; xp(10); save(); SFX.play('fanfare'); }
     scrollTo(0, 0); render({ enter: true, focus: EXR.i >= EXR.ids.length ? '#ex-verdict' : null });
   },
-  exDone() { const from = EXR && EXR.from, sub = EXR && EXR.sub; EXR = null; PARENT.examiner = 'mocks'; if (from === 'subject') { SUBJ_SEL = sub; go('subject'); } else go('examiner'); }
+  xmDone() { const from = EXR && EXR.from, sub = EXR && EXR.sub; EXR = null; PARENT.examiner = 'mocks'; if (from === 'subject') { SUBJ_SEL = sub; go('subject'); } else go('examiner'); }
 });
-CHG.exTick = el => {
+CHG.xmTick = el => {
   if (!EXR || EXR.shown) return; const o = exCur();
   EXR.ticks[+el.dataset.j] = el.checked;
   if (!EXR.manual) EXR.mark = Math.min(o.any || o.pts.length, EXR.ticks.filter(Boolean).length);

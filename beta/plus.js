@@ -180,7 +180,7 @@ const PLUSACT = {
   },
   mockBegin() {
     const p = paperOf(MOCK_PID); if (!p) return;
-    if (S.exam && !confirm('You have another paper in progress. Abandon it and sit this mock?')) return;
+    if (S.exam && !sure('You have another paper in progress. Abandon it and sit this mock?')) return;
     S.exam = null; MOCK_PREV = null;
     EXACT.exStart({ dataset: { id: p.id, timed: '1' } });
   },
@@ -1046,7 +1046,7 @@ function pppCheck(p, E) {
   return { agree: total - generous.length - harsh.length, total, generous, harsh, why };
 }
 function pppStart(track, k, printed) {
-  if (S.exam && !confirm('You have another paper in progress. Abandon it and start this one?')) return false;
+  if (S.exam && !sure('You have another paper in progress. Abandon it and start this one?')) return false;
   const p = pppBuild(track, k); if (!p.qs.length) { toast('All the topics for this paper are hidden in Settings'); return false; }
   S.exam = { pid: p.id, paper: p, ph: 'sit', i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), why: p.qs.map(() => ''), end: printed ? 0 : Date.now() + p.mins * 60000, printed: !!printed };
   EXRES = null; exOpen(0); go('examq', '#exans'); scrollTo({ top: 0 });
