@@ -383,7 +383,7 @@ function resumeCard() {
     const left = S.exam.end ? mockLeftS(S.exam) : null;
     t = `${S.exam.end ? 'Mock' : 'Paper'} in progress: ${ex.name}`; sub = `Question ${S.exam.i + 1} of ${ex.qs.length}${left != null ? (left > 0 ? ` · ${Math.ceil(left / 60)} min left on the clock` : ' · time is up, mark what you wrote') : ''}`;
     btn = B([icon('play'), 'Carry on'], 'exStart', 'primary sm', { 'data-id': ex.id });
-  } else if (S.mp) { t = 'Generated Maths paper in progress'; sub = `Question ${S.mp.i + 1} of ${S.mp.qs.length}`; btn = B([icon('play'), 'Carry on'], 'mpResume', 'primary sm'); }
+  } else if (S.mp && S.mp.at && daysSince(S.mp.at) <= 7) { t = `Generated ${TRACK_NAME(S.mp.track || 'maths')} paper in progress`; sub = `Question ${S.mp.i + 1} of ${S.mp.qs.length}`; btn = B([icon('play'), 'Carry on'], 'mpResume', 'primary sm'); }
   else if (S.resume && STUDY_BY[S.resume.g] && !S.read[S.resume.g] && daysSince(S.resume.at) <= 2) {
     t = `Carry on reading: ${STUDY_BY[S.resume.g].title}`; sub = 'You opened this guide but have not marked it read.'; btn = B([icon('book'), 'Open'], 'guide', 'primary sm', { 'data-id': S.resume.g });
   } else return null;

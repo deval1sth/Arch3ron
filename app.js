@@ -207,7 +207,7 @@ function normalize(raw) {
   s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() }));
   const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
   if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
-    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
+    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, at: isKey(mp.at) ? mp.at : null, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
   s.tc = obj(r.tc); /* lessons, gap finder, grade tests and exam questions by topic (teach.js, check.js) */
   return s;
 }
@@ -1199,7 +1199,7 @@ const MPACT = {
     const track = (el && el.dataset && el.dataset.track) || 'maths';
     const len = el && el.dataset && el.dataset.ppp ? 40 : GP_LEN; S.mp = null; const qs = makePaper(track, len);
     if (!qs.length) return toast(`All ${TRACK_NAME(track)} topics are hidden in Settings`);
-    S.mp = { qs, ans: qs.map(() => ''), i: 0, track, ppp: !!(el && el.dataset && el.dataset.ppp) };
+    S.mp = { qs, ans: qs.map(() => ''), i: 0, at: dkey(), track, ppp: !!(el && el.dataset && el.dataset.ppp) };
     if (len > 20) toast(`Long set: ${qs.length} questions, about ${Math.round(qs.length * 1.5)} minutes`); DRAFT.mp = ''; MPRES = null; save(); go('mpaper', '#mpans'); scrollTo({ top: 0 });
   },
   mpResume() { MPRES = null; DRAFT.mp = S.mp.ans[S.mp.i] || ''; go('mpaper', '#mpans'); },
