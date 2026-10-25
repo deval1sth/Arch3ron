@@ -52,8 +52,9 @@ setTimeout(function () {
   d.innerHTML = '<div><p style="font-size:20px;margin:0 0 8px">Archeron did not start properly</p><p style="opacity:.7;margin:0 0 18px">Usually a half-finished update. Your progress is safe.</p><button style="font:inherit;font-weight:600;padding:12px 22px;border-radius:99px;border:0;background:#2f55e4;color:#fff">Repair the app</button></div>';
   d.querySelector('button').onclick = function () {
     var jobs = [];
-    if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); }));
-    if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister(); })); }));
+    /* Main, Beta and Lab share the GitHub Pages origin; repair only Archeron main. */
+    if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return /^archeron-\d/.test(x); }).map(function (x) { return caches.delete(x); })); }));
+    if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.filter(function (x) { return x.scope === new URL('./', location.href).href; }).map(function (x) { return x.unregister(); })); }));
     Promise.all(jobs).then(function () { location.reload(); }, function () { location.reload(); });
   };
   document.body.appendChild(d);
