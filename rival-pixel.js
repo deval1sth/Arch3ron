@@ -182,6 +182,17 @@ const SCENE = (() => {
     if (info.pose === 'write' || info.pose === 'phone') for (let k = 0; k < 2; k++) for (let j = 0; j < 6; j++) { const y = 96 - j - ((now / 120) % 4 | 0); if (y > 86) px(302 + k * 2 + Math.round(Math.sin(j * .9 + now / 400 + k) * 1), y, C.steam); }
     /* books on the desk grow with his level */
     for (let i = 0; i < (R.level >= 9 ? 6 : R.level >= 6 ? 4 : R.level >= 3 ? 2 : 0); i++) { const y = 103 - i * 3, x = 192 + (i % 2); rect(x, y, 16 - (i % 3), 3, BOOKS[(i * 3 + 2) % BOOKS.length]); line(x, y + 3, x + 15 - (i % 3), y + 3, C.ink); }
+    /* Halloween week: a carved pumpkin, its face flickering like a candle */
+    const dd = new Date(now), md = dd.getMonth() * 100 + dd.getDate();
+    if (md >= 924 && md <= 1001) {
+      for (let y = 98; y < 106; y++) for (let x = 214; x < 231; x++) { const u = (x - 222) / 8.5, v = (y - 102) / 4.4; if (u * u + v * v <= 1) px(x, y, (x === 218 || x === 222 || x === 226) ? 0xb4561a : 0xe0782a); }
+      line(214, 103, 215, 105, 0x8a3f12); line(230, 103, 229, 105, 0x8a3f12); rect(221, 96, 2, 3, 0x4c6b2a); px(223, 96, 0x4c6b2a);
+      const fl = motion ? .75 + .25 * Math.sin(now / 90) * Math.sin(now / 37) : 1, glow = (r, g, b) => (Math.round(r * fl) << 16) | (Math.round(g * fl) << 8) | Math.round(b * fl);
+      E = 1; const f = glow(255, 205, 90);
+      px(218, 100, f); px(219, 100, f); px(225, 100, f); px(226, 100, f); px(222, 101, f);
+      for (let x = 217; x <= 227; x++) if (x !== 220 && x !== 224) px(x, 103, f); px(218, 104, f); px(222, 104, f); px(226, 104, f);
+      E = 0;
+    }
     /* notebook: one line per answer, a tick or a cross at the end */
     shape([[143, 108], [157, 108], [157, 114], [141, 114]], C.paper); shape([[158, 108], [172, 108], [174, 114], [158, 114]], C.paper);
     if (info.pose === 'write') {
