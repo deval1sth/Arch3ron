@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080d">
+<title>Onur 3D · Archeron</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #07080d; color: #e8e8ee; font: 14px system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #hud { position: fixed; left: 12px; bottom: 12px; right: 12px; display: flex; gap: 8px; align-items: center; pointer-events: none; }
+  #hud b { color: #ff4a4a; } #hud span { background: rgba(10,10,16,.7); padding: 6px 10px; border-radius: 8px; }
+  #load { position: fixed; inset: 0; display: grid; place-items: center; color: #888; }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
+</head>
+<body>
+<div id="load">Loading Onur…</div>
+<div id="hud"><span><b>Onur</b> · drag to look around</span></div>
+<script type="module">
+/* Onur's room in 3D: a dark bedroom built from simple shapes, lit by a desk lamp and the monitor, with the rigged
+   character posed in the chair. three.js r160 is kept in this folder, so nothing loads from the network. */
+import * as THREE from 'three';
+import { GLTFLoader } from './GLTFLoader.js';
+
+const R = new THREE.WebGLRenderer({ antialias: true });
+R.setPixelRatio(Math.min(2, devicePixelRatio)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.1;
+document.body.prepend(R.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x07080d); scene.fog = new THREE.Fog(0x07080d, 6, 14);
+const cam = new THREE.PerspectiveCamera(42, 1, .05, 50);
+
+/* ---------- the room (metres; desk against the back wall, window to the right) ---------- */
+const M = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .85 }, o));
+const box = (w, h, d, mat, x, y, z, cast = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; };
+box(6, .02, 6, M(0x1a1714), 0, -.01, 0, false);                                   /* floor */
+box(6, 3, .05, M(0x1b1d26), 0, 1.5, -1.2, false);                                 /* back wall */
+box(.05, 3, 6, M(0x181a22), -2.2, 1.5, 0, false);                                 /* left wall */
+const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 40), M(0x3a1216)); rug.rotation.x = -Math.PI / 2; rug.scale.set(1.3, .8, 1); rug.position.set(0, .005, .5); rug.receiveShadow = true; scene.add(rug);
+/* desk */
+const wood = M(0x2b1e16, { roughness: .7 });
+box(1.6, .05, .7, wood, .2, .74, -.82); for (const x of [-.55, .95]) box(.05, .74, .65, wood, x, .37, -.82);
+/* monitor with a glowing screen */
+box(.62, .38, .03, M(0x0b0b10), .45, 1.03, -1.02);
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(.58, .34), new THREE.MeshBasicMaterial({ color: 0x9fb4ff })); screen.position.set(.45, 1.03, -1.003); scene.add(screen);
+box(.06, .12, .06, M(0x222228), .45, .8, -1.02); box(.25, .015, .15, M(0x222228), .45, .775, -1.0);
+box(.45, .02, .15, M(0x151518), .4, .775, -.7);                                    /* keyboard */
+/* notebook, mug */
+box(.3, .01, .22, M(0xe9e4d6), -.05, .775, -.68);
+const mug = new THREE.Mesh(new THREE.CylinderGeometry(.04, .035, .1, 16), M(0x8c1f24)); mug.position.set(.85, .82, -.75); mug.castShadow = true; scene.add(mug);
+/* desk lamp: arm + shade, a warm spotlight onto the desk */
+box(.12, .02, .12, M(0x1c1c20), -.4, .775, -.95);
+const arm = box(.02, .45, .02, M(0x1c1c20), -.4, 1.0, -.95); arm.rotation.z = -.35;
+const shade = new THREE.Mesh(new THREE.ConeGeometry(.09, .14, 20, 1, true), M(0x242428, { side: THREE.DoubleSide })); shade.position.set(-.3, 1.22, -.9); shade.rotation.z = .7; scene.add(shade);
+const bulb = new THREE.Mesh(new THREE.SphereGeometry(.03, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd9a0 })); bulb.position.set(-.27, 1.17, -.88); scene.add(bulb);
+const lamp = new THREE.SpotLight(0xffc98a, 18, 4, .75, .6, 1.6); lamp.position.copy(bulb.position); lamp.target.position.set(.1, .75, -.6); lamp.castShadow = true; lamp.shadow.mapSize.set(1024, 1024); lamp.shadow.bias = -.0004; scene.add(lamp, lamp.target);
+const glow = new THREE.PointLight(0x7f95ff, 2.2, 2.5, 1.5); glow.position.set(.45, 1.05, -.85); scene.add(glow);   /* monitor spill */
+/* shelf with books */
+box(1.2, .03, .22, wood, -1.2, 1.75, -1.08);
+const BOOK = [0x5b1a1e, 0x22304f, 0x2f3b2a, 0x4a3a1c, 0x3a2140, 0x1f3d44];
+for (let i = 0, x = -1.75; i < 16; i++) { const w = .035 + (i * 7 % 5) * .008, h = .2 + (i * 5 % 4) * .025; box(w, h, .16, M(BOOK[i % BOOK.length]), x + w / 2, 1.765 + h / 2, -1.08); x += w + .006; }
+/* window with night sky and blinds */
+const win = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.2), new THREE.MeshBasicMaterial({ color: 0x15204a })); win.position.set(1.55, 1.75, -1.17); scene.add(win);
+for (let i = 0; i < 9; i++) box(1.12, .03, .02, M(0x2a2c36), 1.55, 2.3 - i * .07, -1.15, false);
+const moon = new THREE.PointLight(0x5a74c8, 3, 6, 1.2); moon.position.set(1.55, 1.8, -.9); scene.add(moon);
+/* bed on the left */
+box(1, .35, 2, M(0x202430), -1.65, .18, .3); box(.95, .12, 1.9, M(0x3b1a1f), -1.65, .41, .32); box(.5, .1, .3, M(0xd8d4cc), -1.65, .5, -.5);
+/* chair */
+const chairM = M(0x121216, { roughness: .5 });
+box(.5, .06, .5, chairM, .15, .48, -.25); box(.5, .55, .06, chairM, .15, .8, .0); box(.04, .45, .04, M(0x333338), .15, .24, -.25);
+scene.add(new THREE.HemisphereLight(0x3a4270, 0x14100c, 1.3));
+/* dark skin and black clothes vanish in a dark room: a soft key from the camera side and a red rim from behind pick him out */
+const key = new THREE.DirectionalLight(0x9aa6d8, 1.2); key.position.set(2, 2.5, 3); scene.add(key);
+const rim = new THREE.PointLight(0xff3040, 6, 3, 1.4); rim.position.set(-.6, 1.5, -1); scene.add(rim);
+
+/* ---------- Onur: the rigged model, posed sitting (bone names lose their dots in three.js) ---------- */
+let onur = null, bones = {}, eyeGlow = [], SEAT = 0;
+const bone = n => bones[n.replace(/\./g, '')];
+const POSE = {   /* radians, applied on top of the rest pose: [x, y, z] */
+  'thigh_stretch.l': [-1.45, 0, .08], 'thigh_stretch.r': [-1.45, 0, -.08],
+  'leg_stretch.l': [1.5, 0, 0], 'leg_stretch.r': [1.5, 0, 0],
+  'spine_01.x': [.15, 0, 0], 'spine_02.x': [.12, 0, 0], 'neck.x': [.1, 0, 0], 'head.x': [.15, 0, 0],
+  'arm_stretch.l': [0, 0, 1.15], 'arm_stretch.r': [0, 0, -1.15],
+  'forearm_stretch.l': [0, -1.1, 0], 'forearm_stretch.r': [0, 1.1, 0],
+};
+const rest = new Map();
+function applyPose(P) {
+  for (const [n, r] of Object.entries(P)) { const b = bone(n); if (!b) continue; if (!rest.has(b)) rest.set(b, b.quaternion.clone());
+    b.quaternion.copy(rest.get(b)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0], r[1], r[2]))); }
+}
+window.ONUR3D = { THREE, scene, POSE, applyPose, bones: () => Object.keys(bones), get model() { return onur; } };   /* for tuning the pose from the console */
+new GLTFLoader().load('./onur.glb', g => {
+  onur = g.scene;
+  onur.traverse(o => {
+    if (o.isBone) bones[o.name] = o;
+    if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.frustumCulled = false;
+      if (/eye/i.test(o.name) && !/lash/i.test(o.name)) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(0xff1a1a); o.material.emissiveIntensity = .35; o.material.emissiveMap = o.material.map; eyeGlow.push(o.material); } }
+  });
+  /* the sitting pose is baked in Blender (the rig's bones only chain together inside Blender) */
+  onur.scale.setScalar(1.12); onur.position.set(.15, SEAT, -.05); onur.rotation.y = Math.PI;   /* facing the desk */
+  scene.add(onur);
+  document.getElementById('load').remove();
+}, undefined, e => { document.getElementById('load').textContent = 'Could not load Onur: ' + e.message; });
+
+/* ---------- camera: drag to orbit a little, never through the walls ---------- */
+let yaw = .55, pitch = .18, drag = null;
+const target = new THREE.Vector3(.1, .95, -.5);
+addEventListener('pointerdown', e => { if (e.isPrimary) drag = [e.clientX, e.clientY, yaw, pitch]; });
+addEventListener('pointermove', e => { if (!drag || !e.isPrimary) return; yaw = Math.max(-.2, Math.min(1.3, drag[2] - (e.clientX - drag[0]) / 300)); pitch = Math.max(.02, Math.min(.6, drag[3] + (e.clientY - drag[1]) / 400)); });
+addEventListener('pointerup', () => drag = null);
+function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 58 : 42; cam.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(t) {
+  const d = 2.6; cam.position.set(target.x + Math.sin(yaw) * d * Math.cos(pitch), target.y + Math.sin(pitch) * d, target.z + Math.cos(yaw) * d * Math.cos(pitch)); cam.lookAt(target);
+  if (!still) { const s = Math.sin(t / 900); screen.material.color.setHSL(.63, .6, .68 + s * .03); glow.intensity = 2.1 + s * .2; for (const m of eyeGlow) m.emissiveIntensity = .3 + .1 * Math.sin(t / 700); }
+  R.render(scene, cam); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
