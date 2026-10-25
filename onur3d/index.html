@@ -18,112 +18,402 @@
 <div id="load">Loading Onur…</div>
 <div id="hud"><span><b>Onur</b> · drag to look around</span></div>
 <script type="module">
-/* Onur's room in 3D: a dark bedroom built from simple shapes, lit by a desk lamp and the monitor, with the rigged
-   character posed in the chair. three.js r160 is kept in this folder, so nothing loads from the network. */
+/* Onur's room in 3D. Everything except Onur is built here from code: rounded shapes, textures painted on canvases
+   (wood, planks, plaster, rug, fabric, paper, the city, the screen), a desk lamp, monitor, LED bias light and a PC
+   that glow through a bloom pass. three.js r160 and its add-ons are kept in this folder: nothing loads from the network. */
 import * as THREE from 'three';
 import { GLTFLoader } from './GLTFLoader.js';
+import { RoundedBoxGeometry } from './RoundedBoxGeometry.js';
+import { RoomEnvironment } from './RoomEnvironment.js';
+import { EffectComposer } from './EffectComposer.js';
+import { RenderPass } from './RenderPass.js';
+import { UnrealBloomPass } from './UnrealBloomPass.js';
+import { OutputPass } from './OutputPass.js';
 
-const R = new THREE.WebGLRenderer({ antialias: true });
-R.setPixelRatio(Math.min(2, devicePixelRatio)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
-R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.1;
+const PHONE = matchMedia('(pointer: coarse)').matches;
+const R = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+R.setPixelRatio(Math.min(PHONE ? 1.5 : 2, devicePixelRatio)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
 document.body.prepend(R.domElement);
-if (/embed/.test(location.search)) document.getElementById("hud").remove();   /* inside Onur's page, which has its own labels */
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x07080d); scene.fog = new THREE.Fog(0x07080d, 6, 14);
+if (/embed/.test(location.search)) document.getElementById('hud').remove();   /* inside Onur's page, which has its own labels */
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05060a); scene.fog = new THREE.Fog(0x05060a, 7, 16);
 const cam = new THREE.PerspectiveCamera(42, 1, .05, 50);
+const pmrem = new THREE.PMREMGenerator(R); scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;   /* soft reflections; each material keeps it faint */
 
-/* ---------- the room (metres; desk against the back wall, window to the right) ---------- */
-const M = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .85 }, o));
-const box = (w, h, d, mat, x, y, z, cast = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; };
-box(6, .02, 6, M(0x1a1714), 0, -.01, 0, false);                                   /* floor */
-box(6, 3, .05, M(0x1b1d26), 0, 1.5, -1.2, false);                                 /* back wall */
-box(.05, 3, 6, M(0x181a22), -2.2, 1.5, 0, false);                                 /* left wall */
-const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 40), M(0x3a1216)); rug.rotation.x = -Math.PI / 2; rug.scale.set(1.3, .8, 1); rug.position.set(0, .005, .5); rug.receiveShadow = true; scene.add(rug);
-/* desk and chair are built around Onur's measured pose (Blender): seat top 0.44 m, hands on the keys at 0.67 m,
-   knees tucked under a 0.64 m desk. He sits at x 0.15, z 0, facing -z. */
-const wood = M(0x2b1e16, { roughness: .7 }), DT = .64;
-box(1.6, .03, .65, wood, .2, DT - .015, -.625); for (const x of [-.57, .97]) box(.05, DT - .03, .6, wood, x, (DT - .03) / 2, -.64);
-/* monitor straight in front of him, with a glowing screen */
-box(.62, .38, .03, M(0x0b0b10), .15, DT + .3, -.88);
-const screen = new THREE.Mesh(new THREE.PlaneGeometry(.58, .34), new THREE.MeshBasicMaterial({ color: 0x9fb4ff })); screen.position.set(.15, DT + .3, -.864); scene.add(screen);
-box(.06, .11, .06, M(0x222228), .15, DT + .055, -.9); box(.25, .012, .16, M(0x222228), .15, DT + .006, -.88);
-box(.44, .022, .15, M(0x151518), .15, DT + .011, -.38);                             /* keyboard, under his hands */
-for (let i = 0; i < 4; i++) box(.4 - (i === 3 ? .16 : 0), .006, .022, M(0x2a2a30), .15, DT + .025, -.43 + i * .032, false);   /* key rows */
-/* notebook, mug */
-box(.3, .01, .22, M(0xe9e4d6), -.32, DT + .005, -.45);
-const mug = new THREE.Mesh(new THREE.CylinderGeometry(.04, .035, .1, 16), M(0x8c1f24)); mug.position.set(.7, DT + .05, -.5); mug.castShadow = true; scene.add(mug);
-/* desk lamp: arm + shade, a warm spotlight onto the desk */
-box(.12, .02, .12, M(0x1c1c20), -.45, DT + .01, -.85);
-const arm = box(.02, .45, .02, M(0x1c1c20), -.45, DT + .23, -.85); arm.rotation.z = -.35;
-const shade = new THREE.Mesh(new THREE.ConeGeometry(.09, .14, 20, 1, true), M(0x242428, { side: THREE.DoubleSide })); shade.position.set(-.35, DT + .45, -.8); shade.rotation.z = .7; scene.add(shade);
-const bulb = new THREE.Mesh(new THREE.SphereGeometry(.03, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd9a0 })); bulb.position.set(-.32, DT + .4, -.78); scene.add(bulb);
-const lamp = new THREE.SpotLight(0xffc98a, 18, 4, .75, .6, 1.6); lamp.position.copy(bulb.position); lamp.target.position.set(.1, DT, -.45); lamp.castShadow = true; lamp.shadow.mapSize.set(1024, 1024); lamp.shadow.bias = -.0004; scene.add(lamp, lamp.target);
-const glow = new THREE.PointLight(0x7f95ff, 2.2, 2.5, 1.5); glow.position.set(.15, DT + .3, -.7); scene.add(glow);   /* monitor spill */
-/* shelf with books */
-box(1.2, .03, .22, wood, -1.2, 1.75, -1.08);
-const BOOK = [0x5b1a1e, 0x22304f, 0x2f3b2a, 0x4a3a1c, 0x3a2140, 0x1f3d44];
-for (let i = 0, x = -1.75; i < 16; i++) { const w = .035 + (i * 7 % 5) * .008, h = .2 + (i * 5 % 4) * .025; box(w, h, .16, M(BOOK[i % BOOK.length]), x + w / 2, 1.765 + h / 2, -1.08); x += w + .006; }
-/* window with night sky and blinds */
-const win = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.2), new THREE.MeshBasicMaterial({ color: 0x15204a })); win.position.set(1.55, 1.75, -1.17); scene.add(win);
-for (let i = 0; i < 9; i++) box(1.12, .03, .02, M(0x2a2c36), 1.55, 2.3 - i * .07, -1.15, false);
-const moon = new THREE.PointLight(0x5a74c8, 3, 6, 1.2); moon.position.set(1.55, 1.8, -.9); scene.add(moon);
-/* bed on the left */
-box(1, .35, 2, M(0x202430), -1.65, .18, .3); box(.95, .12, 1.9, M(0x3b1a1f), -1.65, .41, .32); box(.5, .1, .3, M(0xd8d4cc), -1.65, .5, -.5);
-/* chair: seat top at 0.44 m under his thighs, backrest just behind his back */
-const chairM = M(0x121216, { roughness: .5 });
-box(.48, .05, .46, chairM, .15, .415, -.07); box(.48, .5, .05, chairM, .15, .72, .2); box(.04, .39, .04, M(0x333338), .15, .2, -.05);
-for (let a = 0; a < 5; a++) { const leg = box(.32, .025, .04, M(0x333338), .15 + Math.cos(a * 1.257) * .15, .03, -.05 + Math.sin(a * 1.257) * .15); leg.rotation.y = -a * 1.257; }
-scene.add(new THREE.HemisphereLight(0x3a4270, 0x14100c, 1.3));
-/* dark skin and black clothes vanish in a dark room: a soft key from the camera side and a red rim from behind pick him out */
-const key = new THREE.DirectionalLight(0x9aa6d8, 1.2); key.position.set(2, 2.5, 3); scene.add(key);
-const rim = new THREE.PointLight(0xff3040, 6, 3, 1.4); rim.position.set(-.6, 1.5, -1); scene.add(rim);
-
-/* ---------- Onur: the rigged model, posed sitting (bone names lose their dots in three.js) ---------- */
-let onur = null, bones = {}, eyeGlow = [], SEAT = 0, mixer = null, last = 0;
-const bone = n => bones[n.replace(/\./g, '')];
-const POSE = {   /* radians, applied on top of the rest pose: [x, y, z] */
-  'thigh_stretch.l': [-1.45, 0, .08], 'thigh_stretch.r': [-1.45, 0, -.08],
-  'leg_stretch.l': [1.5, 0, 0], 'leg_stretch.r': [1.5, 0, 0],
-  'spine_01.x': [.15, 0, 0], 'spine_02.x': [.12, 0, 0], 'neck.x': [.1, 0, 0], 'head.x': [.15, 0, 0],
-  'arm_stretch.l': [0, 0, 1.15], 'arm_stretch.r': [0, 0, -1.15],
-  'forearm_stretch.l': [0, -1.1, 0], 'forearm_stretch.r': [0, 1.1, 0],
-};
-const rest = new Map();
-function applyPose(P) {
-  for (const [n, r] of Object.entries(P)) { const b = bone(n); if (!b) continue; if (!rest.has(b)) rest.set(b, b.quaternion.clone());
-    b.quaternion.copy(rest.get(b)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0], r[1], r[2]))); }
+/* ---------- tools ---------- */
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const ANISO = Math.min(8, R.capabilities.getMaxAnisotropy());
+function tex(w, h, draw, rep) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANISO;
+  if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t;
 }
-window.ONUR3D = { THREE, scene, POSE, applyPose, bones: () => Object.keys(bones), get model() { return onur; } };   /* for tuning the pose from the console */
+const M = o => new THREE.MeshStandardMaterial(Object.assign({ roughness: .8, envMapIntensity: .15 }, o));
+const glow = (r, g, b) => new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b) });   /* above 1 = it blooms */
+function add(geo, mat, x, y, z, o = {}) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(o.rx || 0, o.ry || 0, o.rz || 0);
+  m.castShadow = o.cast !== false; m.receiveShadow = o.recv !== false; (o.parent || scene).add(m); return m;
+}
+const rbox = (w, h, d, r = .01) => new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4));
+const cyl = (rt, rb, h, s = 24) => new THREE.CylinderGeometry(rt, rb, h, s);
+const V = (x, y, z) => new THREE.Vector3(x, y, z), UP = V(0, 1, 0);
+function rod(a, b, r, mat, parent = scene) {
+  const d = b.clone().sub(a), m = new THREE.Mesh(cyl(r, r, d.length(), 12), mat);
+  m.position.copy(a).add(b).multiplyScalar(.5); m.quaternion.setFromUnitVectors(UP, d.normalize()); m.castShadow = true; parent.add(m); return m;
+}
+function scribble(g, x, y, w, col, lw) {   /* a line of handwriting-ish strokes */
+  g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x, y); let cx = x;
+  while (cx < x + w) { const s = 4 + rnd() * 9; g.quadraticCurveTo(cx + s * .5, y - 3 - rnd() * 7, cx + s, y + (rnd() - .5) * 3); cx += s; if (rnd() < .12) { cx += 6 + rnd() * 6; g.moveTo(cx, y); } }
+  g.stroke();
+}
+function grain(g, x, y, w, h, n, dark, light, wav = 3) {   /* wood grain streaks */
+  for (let i = 0; i < n; i++) {
+    const yy = y + rnd() * h; g.globalAlpha = .05 + rnd() * .12; g.strokeStyle = rnd() < .6 ? dark : light; g.lineWidth = .5 + rnd() * 2;
+    g.beginPath(); g.moveTo(x, yy); for (let xx = 0; xx <= w; xx += 12) g.lineTo(x + xx, yy + Math.sin(xx / 80 + i) * wav + Math.sin(xx / 21 + i * 1.7) * 1.1); g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+const soft = tex(64, 64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
+
+/* ---------- textures ---------- */
+const planks = tex(1024, 1024, (g, w, h) => {
+  const rows = 8, ph = h / rows;
+  for (let r = 0; r < rows; r++) {
+    let x = -rnd() * w * .5;
+    while (x < w) {
+      const pw = w * (.35 + rnd() * .4); g.fillStyle = `hsl(${22 + rnd() * 6},${26 + rnd() * 8}%,${15 + rnd() * 7}%)`; g.fillRect(x, r * ph, pw, ph);
+      grain(g, x, r * ph, pw, ph, 18, '#000', '#e8c49a', 2); g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(x, r * ph, 2, ph); x += pw;
+    }
+    g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(0, r * ph, w, 2);
+  }
+}, [3, 3]);
+const walnut = tex(1024, 512, (g, w, h) => { g.fillStyle = '#3b271b'; g.fillRect(0, 0, w, h); grain(g, 0, 0, w, h, 320, '#140b06', '#7a5539'); });
+const plaster = tex(512, 512, (g, w, h) => {
+  g.fillStyle = '#b9bac4'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = rnd() < .5 ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.05)'; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 3, 1 + rnd() * 3); }
+}, [4, 2]);
+const rugT = tex(1024, 768, (g, w, h) => {
+  g.fillStyle = '#4a0f15'; g.fillRect(0, 0, w, h);
+  const band = (m, c, t) => { g.strokeStyle = c; g.lineWidth = t; g.strokeRect(m, m, w - 2 * m, h - 2 * m); };
+  band(28, '#1a0507', 26); band(56, '#c7ad86', 6); band(72, '#1a0507', 10); band(92, '#c7ad86', 3);
+  g.strokeStyle = 'rgba(199,173,134,.55)'; g.lineWidth = 3;
+  for (let i = -6; i <= 6; i++) { g.beginPath(); g.moveTo(w / 2 + i * 60, 120); g.lineTo(w / 2 + i * 60 + (h - 240) * .5, h - 120); g.stroke(); g.beginPath(); g.moveTo(w / 2 + i * 60, 120); g.lineTo(w / 2 + i * 60 - (h - 240) * .5, h - 120); g.stroke(); }
+  g.save(); g.translate(w / 2, h / 2); g.rotate(Math.PI / 4); g.fillStyle = '#2a070b'; g.fillRect(-90, -90, 180, 180); g.strokeStyle = '#c7ad86'; g.lineWidth = 5; g.strokeRect(-70, -70, 140, 140); g.restore();
+  for (let i = 0; i < 40000; i++) { g.strokeStyle = rnd() < .5 ? 'rgba(0,0,0,.12)' : 'rgba(255,200,180,.06)'; g.lineWidth = 1; const x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - .5) * 4, y + (rnd() - .5) * 4); g.stroke(); }
+});
+const weave = (base, line) => tex(512, 512, (g, w, h) => {
+  g.fillStyle = base; g.fillRect(0, 0, w, h); g.strokeStyle = line; g.lineWidth = 1;
+  for (let i = 0; i < w; i += 4) { g.globalAlpha = .25 + rnd() * .2; g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); }
+  g.globalAlpha = 1;
+}, [3, 3]);
+const leather = tex(512, 512, (g, w, h) => {   /* black leatherette with a quilted red-stitched panel down the middle */
+  g.fillStyle = '#151519'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 6000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .03})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); }
+  g.fillStyle = '#1d1d23'; g.fillRect(w * .28, 0, w * .44, h);
+  g.strokeStyle = '#b3202c'; g.lineWidth = 3; g.setLineDash([9, 6]);
+  for (const x of [w * .28, w * .72]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+  for (let y = -h; y < 2 * h; y += 64) { g.beginPath(); g.moveTo(w * .28, y); g.lineTo(w * .72, y + 110); g.stroke(); g.beginPath(); g.moveTo(w * .72, y); g.lineTo(w * .28, y + 110); g.stroke(); }
+});
+const spine = tex(128, 256, (g, w, h) => {
+  g.fillStyle = '#ddd'; g.fillRect(0, 0, w, h); g.fillStyle = '#999'; g.fillRect(0, 18, w, 8); g.fillRect(0, h - 26, w, 8);
+  g.fillStyle = '#fff'; g.fillRect(w * .3, 60, w * .4, 110); g.fillStyle = '#777'; for (let y = 70; y < 160; y += 14) g.fillRect(w * .38, y, w * .24, 5);
+});
+const paper = tex(512, 700, (g, w, h) => {
+  g.fillStyle = '#efe9da'; g.fillRect(0, 0, w, h); g.strokeStyle = '#9fb4d8'; g.lineWidth = 2;
+  for (let y = 70; y < h; y += 26) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  g.strokeStyle = '#d98a8a'; g.beginPath(); g.moveTo(60, 0); g.lineTo(60, h); g.stroke();
+  for (let y = 92; y < h * .78; y += 26) scribble(g, 70, y - 6, 300 + rnd() * 130, '#1f2a55', 2);
+  g.strokeStyle = '#b3202c'; g.lineWidth = 4; g.beginPath(); g.ellipse(250, 300, 120, 40, -.05, 0, 7); g.stroke();
+});
+const sticky = col => tex(128, 128, (g, w) => { g.fillStyle = col; g.fillRect(0, 0, w, w); for (let y = 34; y < 110; y += 20) scribble(g, 14, y, 90, '#222', 3); });
+const city = tex(1024, 1024, (g, w, h) => {
+  const s = g.createLinearGradient(0, 0, 0, h); s.addColorStop(0, '#04061a'); s.addColorStop(.55, '#151a4a'); s.addColorStop(.8, '#3a1d4a'); g.fillStyle = s; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 220; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .8})`; g.fillRect(rnd() * w, rnd() * h * .5, 1.5, 1.5); }
+  const m = g.createRadialGradient(760, 190, 0, 760, 190, 120); m.addColorStop(0, 'rgba(220,226,255,1)'); m.addColorStop(.28, 'rgba(220,226,255,1)'); m.addColorStop(.32, 'rgba(160,170,255,.35)'); m.addColorStop(1, 'rgba(120,130,255,0)');
+  g.fillStyle = m; g.fillRect(600, 30, 320, 320);
+  for (const [far, col] of [[1, '#0b0e26'], [0, '#05060f']]) {
+    let x = -20; while (x < w) {
+      const bw = 40 + rnd() * 90, bh = (far ? 160 : 220) + rnd() * (far ? 260 : 380), y0 = h - bh; g.fillStyle = col; g.fillRect(x, y0, bw, bh);
+      for (let yy = y0 + 10; yy < h - 8; yy += 14) for (let xx = x + 6; xx < x + bw - 6; xx += 11) if (rnd() < (far ? .18 : .28)) { g.fillStyle = rnd() < .85 ? `rgba(255,${200 + rnd() * 40 | 0},${130 + rnd() * 60 | 0},${.5 + rnd() * .5})` : 'rgba(170,200,255,.8)'; g.fillRect(xx, yy, 5, 7); }
+      if (!far && bh > 480) { g.fillStyle = '#ff2a2a'; g.fillRect(x + bw / 2 - 2, y0 - 6, 5, 5); }
+      x += bw + (far ? 4 : 10);
+    }
+  }
+});
+
+/* ---------- room shell: back wall with a window opening, left wall, floor, ceiling, skirting ---------- */
+const wallM = M({ map: plaster, bumpMap: plaster, bumpScale: .4, color: 0x272b3d, roughness: .95 });
+const wall = (x0, x1, y0, y1) => add(new THREE.BoxGeometry(x1 - x0, y1 - y0, .1), wallM, (x0 + x1) / 2, (y0 + y1) / 2, -1.25, { cast: false });
+wall(-2.2, 1, 0, 2.7); wall(2.1, 3.2, 0, 2.7); wall(1, 2.1, 0, 1.05); wall(1, 2.1, 2.25, 2.7);
+add(new THREE.BoxGeometry(.1, 2.7, 6), wallM, -2.25, 1.35, .8, { cast: false });
+add(new THREE.PlaneGeometry(6, 6), M({ map: planks, bumpMap: planks, bumpScale: .5, roughness: .5, envMapIntensity: .3 }), .4, 0, .8, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(6, 6), M({ color: 0x0c0d12 }), .4, 2.7, .8, { rx: Math.PI / 2, cast: false });
+const trim = M({ color: 0x121319, roughness: .5 });
+add(rbox(5.4, .1, .02, .004), trim, .5, .05, -1.19, { cast: false }); add(rbox(.02, .1, 6, .004), trim, -2.19, .05, .8, { cast: false });
+add(rbox(1.7, .006, 1.25, .003), M({ map: rugT, bumpMap: rugT, bumpScale: .8, roughness: 1 }), .2, .003, .1, { cast: false });
+
+/* ---------- window: frame, sill, the city outside, blinds half down, curtains ---------- */
+add(new THREE.PlaneGeometry(1.4, 1.5), new THREE.MeshBasicMaterial({ map: city, color: new THREE.Color(1.15, 1.15, 1.25), fog: false }), 1.55, 1.65, -1.36, { cast: false });
+const frameM = M({ color: 0x1b1d26, roughness: .45, envMapIntensity: .4 });
+for (const [x, y, w, h] of [[1.55, 2.24, 1.14, .05], [1.55, 1.06, 1.14, .05], [1.005, 1.65, .05, 1.22], [2.095, 1.65, .05, 1.22], [1.55, 1.65, .03, 1.18], [1.55, 1.65, 1.1, .03]]) add(rbox(w, h, .08, .006), frameM, x, y, -1.26);
+add(rbox(1.3, .04, .22, .01), M({ color: 0x2a2d38, roughness: .4 }), 1.55, 1.03, -1.15);
+const slats = new THREE.InstancedMesh(rbox(1.08, .003, .04, .0015), M({ color: 0x3a3d4a, roughness: .5, side: THREE.DoubleSide }), 16), o3 = new THREE.Object3D();
+for (let i = 0; i < 16; i++) { o3.position.set(1.55, 2.2 - i * .034, -1.2); o3.rotation.set(.85, 0, 0); o3.updateMatrix(); slats.setMatrixAt(i, o3.matrix); } scene.add(slats);
+add(rbox(1.12, .025, .05, .008), M({ color: 0x2f3240 }), 1.55, 1.66, -1.2);
+rod(V(.75, 2.42, -1.12), V(2.35, 2.42, -1.12), .012, M({ color: 0x0e0e12, metalness: .8, roughness: .3 }));
+const curtainM = M({ map: weave('#3c0b12', '#120306'), color: 0xffffff, roughness: .95, side: THREE.DoubleSide });
+for (const x of [.86, 2.24]) {
+  const geo = new THREE.PlaneGeometry(.42, 1.75, 32, 1), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) * 46) * .025 + Math.sin(p.getX(i) * 17) * .012); geo.computeVertexNormals();
+  add(geo, curtainM, x, 1.53, -1.1, { cast: false });
+}
+
+/* ---------- desk: walnut top on a black steel frame, built around Onur's measured pose (hands on the keys at 0.67 m) ---------- */
+const DT = .64, steel = M({ color: 0x111115, metalness: .85, roughness: .35, envMapIntensity: .6 });
+add(rbox(1.6, .035, .66, .012), M({ map: walnut, bumpMap: walnut, bumpScale: .25, roughness: .42, envMapIntensity: .35 }), .2, DT - .0175, -.62);
+for (const x of [-.52, .92]) {
+  for (const z of [-.36, -.9]) add(rbox(.045, DT - .035, .045, .008), steel, x, (DT - .035) / 2, z);
+  add(rbox(.05, .03, .64, .01), steel, x, .015, -.63); add(rbox(.04, .04, .58, .008), steel, x, DT - .055, -.63);
+}
+add(rbox(1.42, .05, .03, .008), steel, .2, DT - .12, -.92);
+add(rbox(.92, .003, .37, .0015), M({ map: tex(512, 256, (g, w, h) => { g.fillStyle = '#0d0d11'; g.fillRect(0, 0, w, h); g.strokeStyle = '#b3202c'; g.lineWidth = 4; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = '#2a0a0e'; g.font = 'bold 26px system-ui'; g.fillText('ONUR', w - 92, h - 18); }), roughness: .95 }), .3, DT + .0015, -.42, { cast: false });
+
+/* monitor, straight in front of him, showing Archeron */
+const mon = new THREE.Group(); mon.position.set(.15, DT, -.86); scene.add(mon);
+const plastic = M({ color: 0x0b0b0f, roughness: .38, envMapIntensity: .5 });
+add(rbox(.27, .012, .18, .006), plastic, 0, .006, -.03, { parent: mon });
+add(rbox(.05, .24, .022, .008), plastic, 0, .13, -.055, { parent: mon, rx: -.08 });
+add(rbox(.48, .26, .05, .02), plastic, 0, .34, -.035, { parent: mon });
+add(rbox(.625, .372, .016, .006), plastic, 0, .335, 0, { parent: mon });
+const scrC = document.createElement('canvas'); scrC.width = 1024; scrC.height = 576; const scrG = scrC.getContext('2d');
+const scrT = new THREE.CanvasTexture(scrC); scrT.colorSpace = THREE.SRGBColorSpace; scrT.anisotropy = ANISO;
+add(new THREE.PlaneGeometry(.605, .34), new THREE.MeshBasicMaterial({ map: scrT, color: new THREE.Color(1.3, 1.3, 1.3) }), 0, .337, .0085, { parent: mon, cast: false });
+add(new THREE.SphereGeometry(.0028, 8, 6), glow(4, .3, .3), .29, .154, .009, { parent: mon, cast: false });
+add(new THREE.PlaneGeometry(.06, .06), M({ map: sticky('#f2d64b') }), -.29, .47, .0095, { parent: mon, rz: .1, cast: false });
+add(new THREE.PlaneGeometry(.055, .055), M({ map: sticky('#ef7aa6') }), .292, .2, .0095, { parent: mon, rz: -.15, cast: false });
+const QS = [['Biology · Cells', 'Which part of the cell releases energy from glucose?', ['Nucleus', 'Mitochondria', 'Ribosome', 'Cell wall'], 1],
+  ['Maths · Ratio', 'Share £45 in the ratio 2 : 7. What is the larger share?', ['£10', '£35', '£30', '£40'], 1],
+  ['Chemistry · Bonding', 'Which bond forms between a metal and a non-metal?', ['Covalent', 'Metallic', 'Ionic', 'Hydrogen'], 2],
+  ['Physics · Energy', 'What is the unit of power?', ['Joule', 'Newton', 'Watt', 'Volt'], 2],
+  ['RE · Christianity', 'What is the belief that God is three persons in one?', ['Incarnation', 'Trinity', 'Atonement', 'Salvation'], 1]];
+function drawScreen(now) {
+  const g = scrG, W = 1024, H = 576, cyc = Math.floor(now / 7000), k = (now % 7000) / 7000, q = QS[cyc % QS.length], n = 118 + cyc % 70;
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0d1022'); bg.addColorStop(1, '#070812'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#10142a'; g.fillRect(0, 0, W, 58); g.fillStyle = '#e0313f'; g.beginPath(); g.arc(34, 29, 11, 0, 7); g.fill();
+  g.fillStyle = '#eef'; g.font = 'bold 26px system-ui'; g.fillText('ARCHERON', 56, 39);
+  g.textAlign = 'right'; g.fillStyle = '#ff5a64'; g.fillText(`Onur ${n}`, W - 150, 39); g.fillStyle = '#8a92b8'; g.fillText('You 97', W - 24, 39); g.textAlign = 'left';
+  g.fillStyle = '#0b0e1d'; g.fillRect(0, 58, 200, H - 58); g.font = '20px system-ui';
+  ['Focus', 'Learn', 'Mocks', 'Profile'].forEach((s, i) => { g.fillStyle = i === 0 ? '#e0313f' : '#6c7398'; g.fillText(s, 34, 110 + i * 44); });
+  g.fillStyle = '#7f88b8'; g.font = '22px system-ui'; g.fillText(`${q[0]}  ·  Question ${n % 40 + 1} of 40`, 236, 106);
+  g.fillStyle = '#f2f3fb'; g.font = 'bold 33px system-ui';
+  const words = q[1].split(' '); let line = '', y = 158; for (const w of words) { if (g.measureText(line + w).width > 740) { g.fillText(line, 236, y); line = ''; y += 44; } line += w + ' '; } g.fillText(line, 236, y);
+  const pick = k < .5 ? Math.floor(k * 9) % 4 : q[3];
+  q[2].forEach((o, i) => {
+    const x = 236 + (i % 2) * 382, yy = 262 + Math.floor(i / 2) * 92, on = i === pick, done = k > .72 && i === q[3];
+    g.fillStyle = done ? '#123a29' : on ? '#2a0f16' : '#121630'; g.beginPath(); g.roundRect(x, yy, 362, 72, 14); g.fill();
+    g.strokeStyle = done ? '#36c27e' : on ? '#e0313f' : '#262c52'; g.lineWidth = on || done ? 3 : 2; g.stroke();
+    g.fillStyle = '#e7e9f6'; g.font = '26px system-ui'; g.fillText(`${'ABCD'[i]}   ${o}`, x + 24, yy + 46);
+  });
+  if (k > .72) { g.fillStyle = '#36c27e'; g.font = 'bold 26px system-ui'; g.fillText('✓ Correct', 236, 488); }
+  g.fillStyle = '#1a1f3d'; g.fillRect(236, 520, 744, 10); g.fillStyle = '#e0313f'; g.fillRect(236, 520, 744 * ((n % 40) + k) / 40, 10);
+  scrT.needsUpdate = true;
+}
+
+/* keyboard (every key), mouse, under his hands */
+const kb = new THREE.Group(); kb.position.set(.135, DT + .003, -.38); scene.add(kb);
+add(rbox(.44, .016, .145, .005), M({ color: 0x0e0e12, metalness: .4, roughness: .35, envMapIntensity: .5 }), 0, .008, 0, { parent: kb });
+add(new THREE.PlaneGeometry(.45, .155), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, .12, .16), transparent: true, opacity: .55, map: soft, depthWrite: false }), 0, .001, 0, { parent: kb, rx: -Math.PI / 2, cast: false, recv: false });
+const keySpots = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 21; c++) { if (r === 4 && c >= 4 && c <= 10) continue; if ((c === 15 || c === 16) && r > 0 && r < 3) continue; keySpots.push([-.195 + c * .0195 + (c > 14 ? .006 : 0), -.052 + r * .0215]); }
+const caps = new THREE.InstancedMesh(rbox(.0168, .008, .0175, .0028), M({ color: 0x1c1c22, roughness: .55, envMapIntensity: .4 }), keySpots.length);
+keySpots.forEach(([x, z], i) => { o3.position.set(x, .02, z); o3.rotation.set(0, 0, 0); o3.updateMatrix(); caps.setMatrixAt(i, o3.matrix); }); caps.castShadow = caps.receiveShadow = true; kb.add(caps);
+add(rbox(.133, .008, .0175, .0028), M({ color: 0x1c1c22, roughness: .55 }), -.0975, .02, .034, { parent: kb });
+const mouse = add(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M({ color: 0x101014, roughness: .3, envMapIntensity: .6 }), .53, DT + .003, -.41);
+mouse.scale.set(.031, .02, .055); add(rbox(.004, .003, .02, .0015), glow(3, .2, .25), .53, DT + .022, -.432, { cast: false });
+
+/* lamp: weighted base, two arms with joints, a shade aimed at the desk, a bulb that blooms, a soft cone of light */
+const lampM = M({ color: 0x17171b, metalness: .7, roughness: .35, envMapIntensity: .6 });
+const L0 = V(-.48, DT + .03, -.82), L1 = V(-.44, DT + .34, -.78), L2 = V(-.3, DT + .44, -.66), aim = V(.02, DT, -.46);
+add(cyl(.07, .078, .025, 32), lampM, L0.x, DT + .0125, L0.z);
+for (const p of [L0, L1, L2]) add(new THREE.SphereGeometry(.014, 12, 8), lampM, p.x, p.y, p.z);
+rod(L0, L1, .008, lampM); rod(L1, L2, .008, lampM);
+const dir = aim.clone().sub(L2).normalize();
+const shade = new THREE.Mesh(new THREE.LatheGeometry([V(.016, 0, 0), V(.03, -.02, 0), V(.055, -.065, 0), V(.08, -.125, 0), V(.082, -.13, 0)].map(v => new THREE.Vector2(v.x, v.y)), 32), M({ color: 0x1a1a1f, metalness: .6, roughness: .4, side: THREE.DoubleSide }));
+shade.position.copy(L2); shade.quaternion.setFromUnitVectors(V(0, -1, 0), dir); shade.castShadow = true; scene.add(shade);
+const bulbP = L2.clone().add(dir.clone().multiplyScalar(.07));
+add(new THREE.SphereGeometry(.022, 16, 12), glow(5, 4, 2.6), bulbP.x, bulbP.y, bulbP.z, { cast: false });
+const lamp = new THREE.SpotLight(0xffc68a, 22, 4, .72, .55, 1.6); lamp.position.copy(bulbP); lamp.target.position.copy(aim);
+lamp.castShadow = true; lamp.shadow.mapSize.set(PHONE ? 512 : 1024, PHONE ? 512 : 1024); lamp.shadow.bias = -.0004; lamp.shadow.radius = 4; scene.add(lamp, lamp.target);
+const beamLen = bulbP.distanceTo(aim), beam = new THREE.Mesh(new THREE.ConeGeometry(.42, beamLen, 32, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb070, transparent: true, opacity: .045, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+beam.position.copy(bulbP).add(aim).multiplyScalar(.5); beam.quaternion.setFromUnitVectors(V(0, -1, 0), dir); scene.add(beam);
+
+/* mug with a handle and steam, open notebook and pen, headphones, revision books, phone */
+const mug = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [.036, 0], [.04, .006], [.041, .095], [.037, .095], [.035, .01], [0, .01]].map(p => new THREE.Vector2(p[0], p[1])), 32), M({ color: 0x8e1a24, roughness: .22, envMapIntensity: .7 }));
+mug.position.set(.72, DT, -.62); mug.castShadow = true; scene.add(mug);
+add(new THREE.TorusGeometry(.024, .006, 10, 20, Math.PI), M({ color: 0x8e1a24, roughness: .22 }), .761, DT + .05, -.62, { rz: -Math.PI / 2 });
+add(new THREE.CircleGeometry(.035, 24), M({ color: 0x2a140a, roughness: .2 }), .72, DT + .085, -.62, { rx: -Math.PI / 2, cast: false });
+const steam = Array.from({ length: 7 }, (_, i) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); s.userData.o = i / 7; scene.add(s); return s; });
+const paperM = M({ map: paper, roughness: .9 });
+add(rbox(.2, .006, .28, .002), paperM, -.42, DT + .003, -.52, { ry: .12, rz: .02 }); add(rbox(.2, .006, .28, .002), paperM, -.22, DT + .003, -.5, { ry: .12, rz: -.02 });
+rod(V(-.25, DT + .006, -.43), V(-.13, DT + .006, -.47), .004, M({ color: 0x1b2a6a, roughness: .3 }));
+const phones = new THREE.Group(); phones.position.set(-.2, DT, -.77); phones.rotation.y = .5; scene.add(phones);
+add(new THREE.TorusGeometry(.085, .011, 10, 36, Math.PI), M({ color: 0x131317, roughness: .4 }), 0, .045, 0, { parent: phones });
+for (const x of [-.085, .085]) add(cyl(.042, .042, .035, 24), M({ color: 0x141418, roughness: .5 }), x, .04, 0, { parent: phones, rz: Math.PI / 2 });
+const BOOKC = [0x7a1d26, 0x23345e, 0x2f4a30, 0x5c4a20, 0x40244f, 0x1f4a52, 0x6a2a18, 0x2b2b33];
+[[.28, .045, .2, 0], [.26, .03, .19, .25], [.24, .04, .18, -.15]].reduce((y, [w, h, d, ry], i) => { add(rbox(w, h, d, .004), M({ map: spine, color: BOOKC[i * 3 % 8] }), -.5, DT + y + h / 2, -.62, { ry }); add(rbox(w - .01, h - .006, d - .006, .002), M({ color: 0xe9e2cf }), -.497, DT + y + h / 2, -.62, { ry }); return y + h; }, 0);
+add(rbox(.075, .008, .155, .008), M({ color: 0x0a0a0d, roughness: .15, envMapIntensity: .9 }), .56, DT + .004, -.72, { ry: .35 });
+
+/* LED bias light behind the monitor and under the shelf: the red glow on the wall */
+const halo = add(new THREE.PlaneGeometry(1.5, .9), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.1, .08, .12), map: soft, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false }), .15, DT + .34, -1.195, { cast: false, recv: false });
+const bias = new THREE.PointLight(0xff2a3a, 2.2, 1.8, 2); bias.position.set(.15, DT + .36, -1.06); scene.add(bias);
+
+/* ---------- PC tower under the desk: glass side, red fans ---------- */
+const pc = new THREE.Group(); pc.position.set(.72, 0, -.74); scene.add(pc);
+add(rbox(.21, .46, .44, .012), M({ color: 0x0c0c10, metalness: .6, roughness: .35, envMapIntensity: .5 }), 0, .25, 0, { parent: pc });
+for (const y of [.11, .25, .39]) {
+  add(new THREE.TorusGeometry(.052, .006, 10, 40), glow(3.2, .18, .25), 0, y, .222, { parent: pc, cast: false });
+  add(new THREE.CircleGeometry(.05, 24), M({ color: 0x15151a }), 0, y, .221, { parent: pc, cast: false });
+}
+add(new THREE.PlaneGeometry(.4, .4), new THREE.MeshStandardMaterial({ color: 0x0a0a14, transparent: true, opacity: .55, roughness: .05, metalness: .2, envMapIntensity: 1.2 }), .106, .25, 0, { parent: pc, ry: Math.PI / 2, cast: false });
+add(rbox(.04, .14, .26, .006), M({ color: 0x1a1a20, metalness: .5, roughness: .4 }), .03, .26, -.02, { parent: pc });
+add(rbox(.004, .006, .24, .002), glow(3, .15, .2), .052, .335, -.02, { parent: pc, cast: false });
+add(new THREE.TorusGeometry(.04, .005, 8, 32), glow(2.6, .12, .2), .05, .38, -.1, { parent: pc, ry: Math.PI / 2, cast: false });
+const pcL = new THREE.PointLight(0xff2030, .8, 1.1, 2); pcL.position.set(.6, .3, -.5); scene.add(pcL);
+const cable = new THREE.CatmullRomCurve3([V(.15, DT + .3, -.92), V(.3, DT + .1, -1.0), V(.55, .45, -1.02), V(.72, .32, -.98)]);
+add(new THREE.TubeGeometry(cable, 32, .005, 6), M({ color: 0x08080a, roughness: .6 }), 0, 0, 0);
+
+/* ---------- chair: gaming chair, seat top 0.44 m under his thighs, backrest just behind his back ---------- */
+const leatherM = M({ map: leather, roughness: .45, envMapIntensity: .35 }), redM = M({ color: 0x8e1622, roughness: .45 }), chrome = M({ color: 0x9a9aa4, metalness: 1, roughness: .2, envMapIntensity: 1 });
+add(rbox(.5, .08, .48, .035), leatherM, .15, .4, -.07);
+add(rbox(.5, .64, .09, .04), leatherM, .15, .77, .21, { rx: -.1 });
+for (const s of [-1, 1]) {
+  add(rbox(.08, .56, .11, .035), leatherM, .15 + s * .235, .76, .18, { rx: -.1, rz: s * .05 });
+  add(rbox(.014, .5, .012, .005), redM, .15 + s * .12, .78, .158, { rx: -.1, cast: false });
+  add(rbox(.04, .2, .06, .01), steel, .15 + s * .28, .52, -.05); add(rbox(.075, .03, .26, .012), M({ color: 0x18181c, roughness: .6 }), .15 + s * .28, .635, -.07);
+}
+add(rbox(.26, .12, .08, .04), redM, .15, 1.08, .265, { rx: -.1 });
+add(rbox(.22, .05, .22, .01), steel, .15, .335, -.06);
+add(cyl(.022, .022, .16, 20), chrome, .15, .24, -.06); add(cyl(.032, .036, .12, 20), M({ color: 0x0d0d10, roughness: .3 }), .15, .13, -.06);
+for (let a = 0; a < 5; a++) {
+  const ang = a * Math.PI * 2 / 5 + .3, x = .15 + Math.cos(ang) * .17, z = -.06 + Math.sin(ang) * .17;
+  add(rbox(.34, .035, .05, .012), M({ color: 0x0d0d10, roughness: .3, metalness: .4 }), .15 + Math.cos(ang) * .17, .07, -.06 + Math.sin(ang) * .17, { ry: -ang });
+  add(cyl(.026, .026, .022, 16), M({ color: 0x08080a, roughness: .5 }), .15 + Math.cos(ang) * .33, .026, -.06 + Math.sin(ang) * .33, { rx: Math.PI / 2, ry: -ang });
+}
+
+/* ---------- bed in the corner, nightstand with a red clock, school bag ---------- */
+const bedWood = M({ map: walnut, color: 0x7a6a62, roughness: .5 });
+add(rbox(1.04, .3, 2.04, .02), bedWood, -1.7, .15, -.16);
+add(rbox(1.04, .62, .06, .02), M({ map: weave('#2b2d38', '#15161d'), roughness: .95 }), -1.7, .56, -1.16);
+add(rbox(.98, .18, 1.96, .06), M({ color: 0xd6d2c8, roughness: .95 }), -1.7, .39, -.16);
+add(rbox(1.04, .08, 1.45, .04), M({ map: weave('#3c0e15', '#14050a'), roughness: 1 }), -1.7, .5, .12);
+add(rbox(1.05, .1, .26, .05), M({ map: weave('#5a1620', '#22070c'), roughness: 1 }), -1.7, .52, -.55);
+add(rbox(.42, .11, .28, .055), M({ color: 0xc9c5bb, roughness: 1 }), -1.92, .53, -.95, { ry: .08 }); add(rbox(.42, .11, .28, .055), M({ color: 0x8a8f9e, roughness: 1 }), -1.47, .54, -.93, { ry: -.12 });
+add(rbox(.4, .48, .38, .015), bedWood, -.98, .24, -.98); add(rbox(.34, .14, .02, .008), M({ color: 0x0f0f13, roughness: .5 }), -.98, .3, -.785, { cast: false });
+const ckC = document.createElement('canvas'); ckC.width = 256; ckC.height = 96; const ckT = new THREE.CanvasTexture(ckC); ckT.colorSpace = THREE.SRGBColorSpace;
+add(rbox(.16, .07, .06, .01), M({ color: 0x0b0b0e, roughness: .4 }), -.98, .515, -1.0); add(new THREE.PlaneGeometry(.14, .052), new THREE.MeshBasicMaterial({ map: ckT, color: new THREE.Color(2.2, 2.2, 2.2) }), -.98, .515, -.969, { cast: false });
+function drawClock() { const g = ckC.getContext('2d'), d = new Date(); g.fillStyle = '#000'; g.fillRect(0, 0, 256, 96); g.fillStyle = '#ff2a2a'; g.font = 'bold 74px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`, 128, 76); ckT.needsUpdate = true; }
+const bag = new THREE.Group(); bag.position.set(-1.05, 0, .75); bag.rotation.y = -.6; scene.add(bag);
+add(rbox(.3, .42, .16, .06), M({ color: 0x1b1d26, roughness: .9 }), 0, .21, 0, { parent: bag, rx: -.12 }); add(rbox(.22, .17, .06, .03), M({ color: 0x23263a, roughness: .9 }), 0, .14, .09, { parent: bag, rx: -.12 });
+add(new THREE.TorusGeometry(.06, .012, 8, 20, Math.PI), M({ color: 0x0e0e12 }), 0, .42, -.01, { parent: bag });
+
+/* ---------- shelves, books, plant, trophy; posters, calendar, clock ---------- */
+const shelf = (x, y, w) => add(rbox(w, .03, .22, .006), M({ map: walnut, roughness: .45 }), x, y, -1.09);
+shelf(.05, 1.55, 1.1); shelf(-1.7, 1.7, .95);
+add(rbox(1.0, .006, .01, .003), glow(3.4, .2, .28), .05, 1.532, -1.0, { cast: false });
+const shelfL = new THREE.PointLight(0xff2a3a, .9, 1.2, 2); shelfL.position.set(.05, 1.45, -1.02); scene.add(shelfL);
+function books(x0, x1, y) {
+  let x = x0;
+  while (x < x1) { const w = .025 + rnd() * .025, h = .17 + rnd() * .09, lean = x + w > x1 - .05 && rnd() < .7 ? .25 : 0; add(rbox(w, h, .15 + rnd() * .03, .003), M({ map: spine, color: BOOKC[(rnd() * 8) | 0], roughness: .7 }), x + w / 2, y + h / 2 * Math.cos(lean), -1.09, { rz: -lean }); x += w + .003 + lean * .2; if (rnd() < .07) x += .08; }
+}
+books(-.45, .2, 1.565); books(-2.12, -1.45, 1.715);
+const pot = add(cyl(.05, .04, .09, 24), M({ color: 0xc8bfae, roughness: .9 }), .45, 1.61, -1.09); add(cyl(.046, .046, .01, 24), M({ color: 0x2a1c12 }), .45, 1.65, -1.09);
+for (let i = 0; i < 9; i++) { const a = i * 2.4, l = add(new THREE.SphereGeometry(1, 10, 8), M({ color: i % 2 ? 0x2f5a35 : 0x234a2b, roughness: .7 }), .45 + Math.cos(a) * .045, 1.7 + i * .008, -1.09 + Math.sin(a) * .045, { ry: -a, rz: .5 + rnd() * .4 }); l.scale.set(.06, .012, .025); }
+const cup = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [.03, 0], [.03, .01], [.008, .015], [.008, .05], [.035, .07], [.04, .11], [0, .1]].map(p => new THREE.Vector2(p[0], p[1])), 24), M({ color: 0xd9a63a, metalness: 1, roughness: .25, envMapIntensity: 1 }));
+cup.position.set(-1.35, 1.715, -1.09); scene.add(cup);
+const poster = (w, h, x, y, z, ry, draw) => { add(rbox(w + .03, h + .03, .015, .004), M({ color: 0x0a0a0d, roughness: .4 }), x, y, z, { ry, cast: false }); add(new THREE.PlaneGeometry(w, h), M({ map: tex(512, Math.round(512 * h / w), draw), roughness: .6 }), x + Math.sin(ry) * .009, y, z + Math.cos(ry) * .009, { ry, cast: false }); };
+poster(.5, .7, -2.19, 1.55, -.25, Math.PI / 2, (g, w, h) => {
+  g.fillStyle = '#0b0b0e'; g.fillRect(0, 0, w, h); g.fillStyle = '#c51f2c'; g.beginPath(); g.arc(w / 2, h * .38, w * .3, 0, 7); g.fill();
+  g.fillStyle = '#f2f2f2'; g.font = `900 ${w * .27}px system-ui`; g.textAlign = 'center'; g.fillText('11.01', w / 2, h * .46); g.font = `700 ${w * .07}px system-ui`; g.fillText('MOCKS', w / 2, h * .78); g.fillStyle = '#6a6a74'; g.font = `${w * .045}px system-ui`; g.fillText('no days off', w / 2, h * .86);
+});
+poster(.62, .44, -2.19, 1.6, .55, Math.PI / 2, (g, w, h) => {   /* the periodic table, as blocks */
+  g.fillStyle = '#0e1430'; g.fillRect(0, 0, w, h); const s = w / 20, at = (c, r, col) => { g.fillStyle = col; g.fillRect(s * (c + 1) + 1, s * (r + 1) + 1, s - 2, s - 2); };
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 18; c++) { if (r === 0 && c > 0 && c < 17) continue; if (r < 3 && c > 1 && c < 12) continue; at(c, r, c < 2 ? '#c84b4b' : c < 12 ? '#d79a3a' : c > 15 ? '#5c7fd6' : '#3fa37a'); }
+  for (let r = 0; r < 2; r++) for (let c = 2; c < 17; c++) at(c, r + 7.5, '#8a5cc8');
+});
+poster(.7, .42, -1.7, 1.18, -1.195, 0, (g, w, h) => {
+  const b = g.createLinearGradient(0, 0, w, 0); b.addColorStop(0, '#120408'); b.addColorStop(1, '#2a0710'); g.fillStyle = b; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9; i++) { g.strokeStyle = `rgba(230,40,60,${.15 + i * .08})`; g.lineWidth = 3; g.beginPath(); for (let x = 0; x <= w; x += 8) g.lineTo(x, h * .55 + Math.sin(x / 55 + i * .6) * (20 + i * 4) - i * 6); g.stroke(); }
+  g.fillStyle = '#eee'; g.font = `800 ${h * .14}px system-ui`; g.fillText('RUN IT BACK', 26, h * .25);
+});
+poster(.3, .4, .78, 1.22, -1.195, 0, (g, w, h) => {
+  g.fillStyle = '#f1efe8'; g.fillRect(0, 0, w, h); g.fillStyle = '#c51f2c'; g.fillRect(0, 0, w, h * .14); g.fillStyle = '#fff'; g.font = `700 ${h * .07}px system-ui`; g.textAlign = 'center'; g.fillText('JANUARY 2027', w / 2, h * .1);
+  g.fillStyle = '#333'; g.font = `${h * .045}px system-ui`;
+  for (let d = 1; d <= 31; d++) { const c = (d + 3) % 7, r = Math.floor((d + 3) / 7), x = w * (.1 + c * .135), y = h * (.27 + r * .13); g.fillText(d, x, y); if (d === 11) { g.strokeStyle = '#c51f2c'; g.lineWidth = 5; g.beginPath(); g.ellipse(x, y - h * .015, w * .065, h * .045, 0, 0, 7); g.stroke(); } }
+  g.fillStyle = '#c51f2c'; g.font = `700 ${h * .05}px system-ui`; g.fillText('MOCKS', w * .5, h * .95);
+});
+const clock = new THREE.Group(); clock.position.set(-2.185, 2.05, -.75); clock.rotation.y = Math.PI / 2; scene.add(clock);
+add(cyl(.15, .15, .03, 40), M({ color: 0x0d0d10, roughness: .4 }), 0, 0, 0, { parent: clock, rx: Math.PI / 2 });
+add(new THREE.CircleGeometry(.135, 40), M({ map: tex(256, 256, (g, w) => { g.fillStyle = '#e9e6dd'; g.fillRect(0, 0, w, w); g.fillStyle = '#111'; for (let i = 0; i < 12; i++) { g.save(); g.translate(w / 2, w / 2); g.rotate(i * Math.PI / 6); g.fillRect(-3, -w * .46, 6, i % 3 ? 14 : 26); g.restore(); } }), roughness: .5 }), 0, 0, .016, { parent: clock, cast: false });
+const hand = (len, wid, col) => { const p = new THREE.Group(); p.position.z = .02; clock.add(p); add(new THREE.BoxGeometry(wid, len, .004), M({ color: col }), 0, len / 2 - .015, 0, { parent: p, cast: false }); return p; };
+const hH = hand(.07, .008, 0x111111), hM = hand(.1, .006, 0x111111), hS = hand(.11, .003, 0xc51f2c);
+
+/* dust in the lamp light */
+const dustN = PHONE ? 70 : 140, dustP = new Float32Array(dustN * 3), dust0 = [];
+for (let i = 0; i < dustN; i++) dust0.push([-.35 + rnd() * .7, DT + .05 + rnd() * .5, -.85 + rnd() * .45, rnd() * 6]);
+const dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THREE.BufferAttribute(dustP, 3));
+scene.add(new THREE.Points(dustG, new THREE.PointsMaterial({ size: .006, map: soft, color: 0xffd9a8, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false })));
+
+/* ---------- light: the lamp and screens do the work, a little moonlight and fill so he doesn't vanish ---------- */
+scene.add(new THREE.HemisphereLight(0x2a3152, 0x0a0806, .6));
+const scr = new THREE.PointLight(0x8fa6ff, 1.7, 2.2, 2); scr.position.set(.15, DT + .33, -.72); scene.add(scr);
+const moon = new THREE.PointLight(0x4a62c8, 2.4, 4.5, 2); moon.position.set(1.55, 1.7, -1.0); scene.add(moon);
+const fill = new THREE.DirectionalLight(0x8d97c8, .45); fill.position.set(2, 2.5, 3); scene.add(fill);
+const rimL = new THREE.PointLight(0xff3446, .9, 2.2, 2); rimL.position.set(-.5, 1.3, -.4); scene.add(rimL);
+
+/* ---------- Onur: rigged model, typing loop keyframed in Blender ---------- */
+let onur = null, eyeGlow = [], mixer = null, last = 0;
+window.ONUR3D = { THREE, scene, get model() { return onur; } };
 new GLTFLoader().load('./onur.glb', g => {
   onur = g.scene;
   onur.traverse(o => {
-    if (o.isBone) bones[o.name] = o;
-    if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.frustumCulled = false;
-      if (/eye/i.test(o.name) && !/lash/i.test(o.name)) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(0xff1a1a); o.material.emissiveIntensity = .35; o.material.emissiveMap = o.material.map; eyeGlow.push(o.material); } }
+    if (!o.isMesh) return; o.castShadow = o.receiveShadow = true; o.frustumCulled = false; o.material.envMapIntensity = .3;
+    if (/eye/i.test(o.name) && !/lash/i.test(o.name)) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(0xff1a1a); o.material.emissiveIntensity = .9; o.material.emissiveMap = o.material.map; eyeGlow.push(o.material); }
   });
-  /* the sitting pose is baked in Blender (the rig's bones only chain together inside Blender) */
-  onur.scale.setScalar(1.3); onur.position.set(.15, -.372, 0); onur.rotation.y = Math.PI;   /* facing the desk */
+  onur.scale.setScalar(1.3); onur.position.set(.15, -.372, 0); onur.rotation.y = Math.PI;   /* sitting in the chair, facing the desk */
   scene.add(onur);
-  /* the typing loop is keyframed in Blender and sampled onto the bones at export */
   if (g.animations.length) { mixer = new THREE.AnimationMixer(onur); mixer.clipAction(g.animations[0]).play(); }
-  window.ONUR3D.clips = g.animations.map(a => a.name + ' ' + a.duration.toFixed(1) + 's ' + a.tracks.length);
   document.getElementById('load').remove();
 }, undefined, e => { document.getElementById('load').textContent = 'Could not load Onur: ' + e.message; });
 
-/* ---------- camera: drag to orbit a little, never through the walls ---------- */
-let yaw = .55, pitch = .18, drag = null;
-const target = new THREE.Vector3(.15, .8, -.35);
+/* ---------- camera: drag to orbit, wheel to zoom, never through the walls ---------- */
+let yaw = .55, pitch = .18, dist = 2.6, drag = null;
+const target = V(.15, .85, -.42);
 addEventListener('pointerdown', e => { if (e.isPrimary) drag = [e.clientX, e.clientY, yaw, pitch]; });
 addEventListener('pointermove', e => { if (!drag || !e.isPrimary) return; yaw = Math.max(-.2, Math.min(1.3, drag[2] - (e.clientX - drag[0]) / 300)); pitch = Math.max(.02, Math.min(.6, drag[3] + (e.clientY - drag[1]) / 400)); });
 addEventListener('pointerup', () => drag = null);
-function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 58 : 42; cam.updateProjectionMatrix(); }
+addEventListener('wheel', e => { dist = Math.max(1.5, Math.min(3.4, dist + e.deltaY * .002)); }, { passive: true });
+
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: PHONE ? 0 : 4 });
+const composer = new EffectComposer(R, rt); composer.addPass(new RenderPass(scene, cam));
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .45, .45, .92); composer.addPass(bloom); composer.addPass(new OutputPass());
+function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); composer.setPixelRatio(R.getPixelRatio()); composer.setSize(w, h); cam.aspect = w / h; cam.fov = w < h ? 58 : 42; cam.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
 const still = /still/.test(location.search);   /* Runo's PC reports reduced motion, which froze everything before; ?still stops it */
+let scrAt = -1e9, ckAt = -1e9;
 function frame(t) {
-  const d = 2.6; cam.position.set(target.x + Math.sin(yaw) * d * Math.cos(pitch), target.y + Math.sin(pitch) * d, target.z + Math.cos(yaw) * d * Math.cos(pitch)); cam.lookAt(target);
-  if (!still) { const s = Math.sin(t / 900); screen.material.color.setHSL(.63, .6, .68 + s * .03); glow.intensity = 2.1 + s * .2; for (const m of eyeGlow) m.emissiveIntensity = .3 + .1 * Math.sin(t / 700); }
-  if (mixer && !still) mixer.update(Math.min(.1, (t - last) / 1000)); last = t;
-  R.render(scene, cam); requestAnimationFrame(frame);
+  const now = Date.now();
+  cam.position.set(target.x + Math.sin(yaw) * dist * Math.cos(pitch), target.y + Math.sin(pitch) * dist, target.z + Math.cos(yaw) * dist * Math.cos(pitch)); cam.lookAt(target);
+  if (now - scrAt > 250) { drawScreen(now); scrAt = now; }
+  if (now - ckAt > 1000) { drawClock(); ckAt = now; const d = new Date(now); hS.rotation.z = -d.getSeconds() / 60 * Math.PI * 2; hM.rotation.z = -(d.getMinutes() + d.getSeconds() / 60) / 60 * Math.PI * 2; hH.rotation.z = -((d.getHours() % 12) + d.getMinutes() / 60) / 12 * Math.PI * 2; }
+  if (!still) {
+    const s = Math.sin(t / 900); scr.intensity = 1.6 + s * .15; for (const m of eyeGlow) m.emissiveIntensity = .8 + .25 * Math.sin(t / 700);
+    for (const sp of steam) { const k = (t / 3200 + sp.userData.o) % 1; sp.position.set(.72 + Math.sin(k * 6 + sp.userData.o * 9) * .015, DT + .1 + k * .2, -.62); sp.scale.setScalar(.03 + k * .07); sp.material.opacity = Math.sin(k * Math.PI) * .16; }
+    for (let i = 0; i < dustN; i++) { const d = dust0[i]; dustP[i * 3] = d[0] + Math.sin(t / 4000 + d[3]) * .04; dustP[i * 3 + 1] = d[1] + Math.sin(t / 5200 + d[3] * 2) * .05; dustP[i * 3 + 2] = d[2] + Math.cos(t / 4600 + d[3]) * .04; }
+    dustG.attributes.position.needsUpdate = true;
+    if (mixer) mixer.update(Math.min(.1, (t - last) / 1000));
+  }
+  last = t; composer.render(); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 </script>
