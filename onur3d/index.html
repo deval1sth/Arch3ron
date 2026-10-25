@@ -74,7 +74,7 @@ const key = new THREE.DirectionalLight(0x9aa6d8, 1.2); key.position.set(2, 2.5, 
 const rim = new THREE.PointLight(0xff3040, 6, 3, 1.4); rim.position.set(-.6, 1.5, -1); scene.add(rim);
 
 /* ---------- Onur: the rigged model, posed sitting (bone names lose their dots in three.js) ---------- */
-let onur = null, bones = {}, eyeGlow = [], SEAT = 0;
+let onur = null, bones = {}, eyeGlow = [], SEAT = 0, mixer = null, last = 0;
 const bone = n => bones[n.replace(/\./g, '')];
 const POSE = {   /* radians, applied on top of the rest pose: [x, y, z] */
   'thigh_stretch.l': [-1.45, 0, .08], 'thigh_stretch.r': [-1.45, 0, -.08],
@@ -99,6 +99,9 @@ new GLTFLoader().load('./onur.glb', g => {
   /* the sitting pose is baked in Blender (the rig's bones only chain together inside Blender) */
   onur.scale.setScalar(1.12); onur.position.set(.15, SEAT, -.05); onur.rotation.y = Math.PI;   /* facing the desk */
   scene.add(onur);
+  /* the typing loop is keyframed in Blender and sampled onto the bones at export */
+  if (g.animations.length) { mixer = new THREE.AnimationMixer(onur); mixer.clipAction(g.animations[0]).play(); }
+  window.ONUR3D.clips = g.animations.map(a => a.name + ' ' + a.duration.toFixed(1) + 's ' + a.tracks.length);
   document.getElementById('load').remove();
 }, undefined, e => { document.getElementById('load').textContent = 'Could not load Onur: ' + e.message; });
 
@@ -111,10 +114,11 @@ addEventListener('pointerup', () => drag = null);
 function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 58 : 42; cam.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
-const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const still = /still/.test(location.search);   /* Runo's PC reports reduced motion, which froze everything before; ?still stops it */
 function frame(t) {
   const d = 2.6; cam.position.set(target.x + Math.sin(yaw) * d * Math.cos(pitch), target.y + Math.sin(pitch) * d, target.z + Math.cos(yaw) * d * Math.cos(pitch)); cam.lookAt(target);
   if (!still) { const s = Math.sin(t / 900); screen.material.color.setHSL(.63, .6, .68 + s * .03); glow.intensity = 2.1 + s * .2; for (const m of eyeGlow) m.emissiveIntensity = .3 + .1 * Math.sin(t / 700); }
+  if (mixer && !still) mixer.update(Math.min(.1, (t - last) / 1000)); last = t;
   R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
