@@ -661,7 +661,7 @@
   playEl.addEventListener('click', () => tour ? stopTour() : startTour());
   /* the 3D room (onur3d/) sits over the pixel room; remembered in P */
   const d3El = $('d3'), set3d = on => { let f = room.querySelector('iframe.d3'); if (on && !f) { f = document.createElement('iframe'); f.className = 'd3'; f.title = 'Onur in 3D'; f.src = 'onur3d/index.html?embed'; room.prepend(f); } if (!on && f) f.remove(); d3El.setAttribute('aria-pressed', on); d3El.textContent = on ? 'Pixel' : '3D'; };
-  d3El.addEventListener('click', () => { P.d3 = !P.d3; saveP(); set3d(P.d3); }); if (P.d3) set3d(true);
+  d3El.addEventListener('click', () => { P.d3 = P.d3 === false; saveP(); set3d(P.d3); }); if (P.d3 !== false) set3d(true);   /* 3D unless switched off */
   if (popEl) popEl.addEventListener('click', popOut);
 
   /* Archeron saves in another tab or window → the storage event fires here; a 1-second check covers the rest */
