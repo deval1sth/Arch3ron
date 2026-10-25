@@ -434,13 +434,16 @@ const RESCUE_M = { id: 'rescue', title: 'Rescue set', steps: ['These are the fac
 const PRACTISE_STEPS = ['Answer each question from memory, no notes', 'Wrong? Read the method, then hit "Try a similar one"', 'Anything that keeps tripping you up: add it to your fix list'];
 /* A planned subject you are already well above your aim in hands its set to your biggest gap, where extra marks are worth more.
    Found by the 10-student simulation: fixed Maths sessions kept piling into Maths at 90%+ while Science sat just under a 4. */
+/* a swap is only a suggestion: Keep my plan puts the set back on the planned subject (sim, Oct 2026: no swap cost nothing) */
+const SWAP_KEEP = new Set();
+const swapNote = M => h('p', { class: 'm-swap' }, M.swap, ' ', B('Keep my plan', 'swapKeep', 'link', { 'data-l': M.from }));
 function missionFor(label) {
   const M = missionPlan(label);
-  if (M.id !== 'drill') return M;
+  if (M.id !== 'drill' || SWAP_KEEP.has(label)) return M;
   /* decided once when a set starts and kept on the timer, so the subject never changes halfway through a set */
   const lock = timerActive() && T.mode === 'focus', sw = lock && T.swap != null ? T.swap : swapFor(M.subj);
   if (lock && T.swap == null) { T.swap = sw || false; saveT(); }
-  return sw ? { id: 'drill', subj: sw.to, title: `${TRACK_NAME(sw.to)} practice`, steps: PRACTISE_STEPS, swap: sw.msg } : M;
+  return sw ? { id: 'drill', subj: sw.to, title: `${TRACK_NAME(sw.to)} practice`, steps: PRACTISE_STEPS, swap: sw.msg, from: label } : M;
 }
 /* the name of what a set is actually about once any swap is applied; every screen uses this, so they agree */
 const setTitle = label => { const M = missionFor(label); return M.swap ? TRACK_NAME(M.subj) : label; };
@@ -572,7 +575,7 @@ function vHome() {
 /* what the next set holds, folded away until wanted: Begin already shows it all */
 function setPreview(M) {
   return acc('set-pv', h('span', { class: 'sp-h' }, h('small', null, 'In this set'), h('b', null, M.title)),
-    h('div', { class: 'sp-b' }, M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s))), M.why || null), { cls: 'card set-pv' });
+    h('div', { class: 'sp-b' }, M.swap && swapNote(M), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s))), M.why || null), { cls: 'card set-pv' });
 }
 /* After 4 or more days without a set, Focus offers two 10-minute rescue sets of what you are closest to forgetting, and
    nothing about the days missed. Students who study in patches gained least in every simulation; a small, kind first
@@ -621,7 +624,7 @@ function noticeLine() {
 function missionCard(M, live) {
   const head = h('div', { class: 'm-head' }, h('span', { class: 'lc-ic' }, icon(M.id === 'fixes' ? 'wrench' : M.id === 'paper' ? 'scroll' : M.id === 'lit' ? 'feather' : M.id === 'lang' ? 'book' : M.id === 're' ? 'sparkle' : 'target')),
     h('div', null, h('p', { class: 'eyebrow' }, live ? 'Your mission' : 'In this set you will'), h('h2', null, M.title)));
-  const steps = [M.swap && h('p', { class: 'm-swap' }, M.swap), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)))];
+  const steps = [M.swap && swapNote(M), h('ol', { class: 'm-steps' }, M.steps.map(s => h('li', null, s)))];
   if (!live) return h('section', { class: 'card mission' }, head, steps, M.why || null, h('p', { class: 'muted xs' }, 'Press Begin and everything you need appears here.'));
   return h('section', { class: 'card mission live' }, head, steps, missionPanel(M));
 }
@@ -1853,6 +1856,7 @@ const CHG = {
 };
 
 Object.assign(ACT, EXACT, MPACT, STUDYACT, PLUSACT);
+ACT.swapKeep = el => { SWAP_KEEP.add(el.dataset.l); if (timerActive() && T.mode === 'focus') { T.swap = false; saveT(); } render(); };
 CHG.sessTick = STUDYACT.sessTick; /* checkbox: arrives as a change event, not a click */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
