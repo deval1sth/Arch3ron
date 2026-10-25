@@ -27,6 +27,7 @@ const R = new THREE.WebGLRenderer({ antialias: true });
 R.setPixelRatio(Math.min(2, devicePixelRatio)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
 R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.1;
 document.body.prepend(R.domElement);
+if (/embed/.test(location.search)) document.getElementById("hud").remove();   /* inside Onur's page, which has its own labels */
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x07080d); scene.fog = new THREE.Fog(0x07080d, 6, 14);
 const cam = new THREE.PerspectiveCamera(42, 1, .05, 50);
 

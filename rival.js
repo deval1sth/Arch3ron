@@ -226,7 +226,7 @@
   app.innerHTML = `
 <header class="top"><div class="brand"><h1><b>Onur</b></h1><p>Your rival. A copy of you, living your day, studying every free minute.</p></div><a class="back" href="./">Archeron</a></header>
 <section class="room" aria-label="Onur's room"><div id="scene"></div>
-  <div class="acts"><button type="button" class="play" id="play">Watch Onur's day</button>${PIP ? '<button type="button" class="play" id="pop">Pop out</button>' : ''}</div>
+  <div class="acts"><button type="button" class="play" id="d3" aria-pressed="false">3D</button><button type="button" class="play" id="play">Watch Onur's day</button>${PIP ? '<button type="button" class="play" id="pop">Pop out</button>' : ''}</div>
   <div class="score num" id="score"><b class="sy">You 0</b><b class="sr">Onur 0</b></div>
   <div class="chip"><i class="dot" id="dot"></i><span id="chip"></span></div></section>
 <div id="away"></div>
@@ -659,6 +659,9 @@
   $('mot').addEventListener('change', e => { motion = e.target.checked; P.motion = motion; saveP(); setMotion(); tick(); });
   $('clean').checked = !!P.clean; $('clean').addEventListener('change', e => { P.clean = e.target.checked; saveP(); dirty = true; tick(); });
   playEl.addEventListener('click', () => tour ? stopTour() : startTour());
+  /* the 3D room (onur3d/) sits over the pixel room; remembered in P */
+  const d3El = $('d3'), set3d = on => { let f = room.querySelector('iframe.d3'); if (on && !f) { f = document.createElement('iframe'); f.className = 'd3'; f.title = 'Onur in 3D'; f.src = 'onur3d/index.html?embed'; room.prepend(f); } if (!on && f) f.remove(); d3El.setAttribute('aria-pressed', on); d3El.textContent = on ? 'Pixel' : '3D'; };
+  d3El.addEventListener('click', () => { P.d3 = !P.d3; saveP(); set3d(P.d3); }); if (P.d3) set3d(true);
   if (popEl) popEl.addEventListener('click', popOut);
 
   /* Archeron saves in another tab or window → the storage event fires here; a 1-second check covers the rest */
