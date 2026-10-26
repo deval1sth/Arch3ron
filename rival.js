@@ -292,6 +292,7 @@
     <p class="tally" id="wkTally"></p><p class="sub" id="wkMore"></p></section>
 </div>
 <section class="card" id="c30"></section>
+<section class="card lg" id="lg" hidden></section>
 <div id="rlog"></div>
 <div class="grid">
   <section class="card"><h2>By subject today <small>answers · <span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
@@ -347,6 +348,93 @@
     const data = [];
     for (let i = 29; i >= 0; i--) { const t0 = midnight(now, -i), k = dkey(new Date(t0)); if (FIRST && k >= FIRST) { const n = neurons(t0, now); data.push({ d: k, you: n.you, riv: n.riv }); } }
     $("c30").hidden = !data.length; if (data.length) RIVALCHART.mount($("c30"), data);
+  }
+
+  /* ---------- the AI league (rival-league.js + three coach files): the same simulated student, coached by Claude, Codex
+     and Antigravity, scored in neurons next to you and Onur from the day it started. The student's starting subjects and
+     grades are kept in P.lg the first time, so later grade changes don't rewrite the season. ---------- */
+  const LGN = { COACH_CLAUDE: ['Claude', 'claude'], COACH_CODEX: ['Codex', 'codex'], COACH_ANTI: ['Antigravity', 'anti'] };
+  let LG = null, LGFP = '';
+  function league() {
+    if (typeof LEAGUE !== 'object' || !HAS_N) return null;
+    if (!P.lg || !Array.isArray(P.lg.subs) || P.lg.start !== LEAGUE.START) {
+      const subs = subjects().flatMap(s => s.tracks.map(t => ({ track: t, name: s.tracks.length > 1 ? LEAGUE.NAMES[t] || t : s.name, cur: s.cur, tgt: s.tgt })));
+      saveP(latest => { if (!latest.lg || latest.lg.start !== LEAGUE.START) latest.lg = { start: LEAGUE.START, subs }; });
+    }
+    const M = mirror(), mock = dkey(new Date(M.mock));
+    const world = { mock, subjects: P.lg.subs, routine: P.r, off: P.off,
+      isSick: k => typeof RIVALSICK === 'object' && Math.abs(dateSerial(new Date(k + 'T12:00').getTime()) - dateSerial(M.mock)) >= 7 && RIVALSICK.isSick(k) };
+    const fp = JSON.stringify([mock, world.subjects, world.routine, world.off]);
+    if (!LG || fp !== LGFP) { LGFP = fp; LG = LEAGUE.make(world); }
+    return LG;
+  }
+  function drawLeague(now) {
+    const el = $('lg'), L = league();
+    el.hidden = !L; if (!L) return;
+    const today = dkey(new Date(now)), last = today < L.mock ? today : dkey(new Date(midnight(new Date(L.mock + 'T12:00').getTime(), -1)));
+    const days = []; for (let t = new Date(L.start + 'T12:00').getTime(); dkey(new Date(t)) <= last; t = midnight(t, 1) + 12 * 36e5) days.push(midnight(t));
+    const live = t0 => t0 === midnight(now), mon = midnight(now, -((new Date(now).getDay() + 6) % 7));
+    const rows = [];
+    const add = (key, who, cls, per, extra) => {
+      let season = 0, week = 0, td = 0;
+      for (const t0 of days) { const v = per(t0); season += v; if (t0 >= mon) week += v; if (live(t0)) td = v; }
+      rows.push(Object.assign({ key, who, cls, season, week, td }, extra));
+    };
+    add('you', 'You', 'you', t0 => neurons(t0, now).you, {});
+    add('onur', 'Onur', 'riv', t0 => neurons(t0, now).riv, {});
+    for (const g of LEAGUE.COACHES) {
+      const [fallback, cls] = LGN[g] || [g, 'claude'], c = globalThis[g], who = (c && c.name ? String(c.name).slice(0, 20) : fallback) + "'s student";
+      if (!L.has(g)) { rows.push({ key: g, who, cls, missing: true, season: -1 }); continue; }
+      const hist = [];
+      add(g, who, cls, t0 => {
+        const res = L.day(g, dkey(new Date(t0)));
+        if (!res) return 0;
+        const v = live(t0) ? Math.round(NEURONS.day(LEAGUE.record(res, now), hist.slice(0, 7)).total) : res.neurons;
+        hist.unshift(res.rec);
+        return v;
+      }, { coach: c, res: L.day(g, last), prev: L.day(g, dkey(new Date(midnight(new Date(last + 'T12:00').getTime(), -1)))) });
+    }
+    rows.sort((a, b) => b.season - a.season || (a.who < b.who ? -1 : 1));
+    const open = new Set([...el.querySelectorAll('details[open]')].map(d => d.dataset.k));
+    const n = v => Math.round(v).toLocaleString('en-GB'), span = (a, b) => `${hm(at(last, a))}–${hm(at(last, b))}`;
+    const at = (k, m) => wallTime(new Date(k + 'T12:00').getTime(), Math.round(m));
+    const status = r => {
+      const x = r.res; if (!x) return '';
+      if (x.error) return 'Coach error today, so a rest day';
+      if (x.cut === 'sick') return 'Off sick';
+      if (!x.blocks.length) return x.minutes ? '' : (L.info(x.d).sick ? 'Off sick' : 'Rest day');
+      const endT = at(x.d, x.blocks[x.blocks.length - 1].end), startT = at(x.d, x.blocks[0].start);
+      const when = x.d !== today || now >= endT ? `${x.blocks.length} block${x.blocks.length === 1 ? '' : 's'} · ${x.minutes} min` : now < startT ? `Starts ${hm(startT)} · ${x.minutes} min planned` : `Studying today · ${x.minutes} min planned`;
+      return (x.cut === 'tired' ? `Too tired: stopped after ${x.minutes} min` : when) + (x.note ? ' · ' + x.note : '');
+    };
+    const subj = t => esc(LEAGUE.NAMES[t.track] || t.track);
+    /* one block's tasks in words; runs of the same kind in the same subject are merged: "quiz Maths 2, 3, 4" */
+    const tasks = list => {
+      const out = [];
+      for (const t of list) {
+        const head = t.kind === 'paper' ? '' : `${t.kind === 'learn' ? 'new topic' : t.kind === 'notes' ? 'notes' : 'quiz'} ${subj(t)}`, num = t.topic ? esc(t.topic.split('.')[1]) : '';
+        const prev = out[out.length - 1];
+        if (head && prev && prev.head === head) prev.nums.push(num);
+        else out.push(t.kind === 'paper' ? { text: `past paper, ${subj(t)}: ${t.pct}%` } : { head, nums: [num] });
+      }
+      return out.map(x => x.text || `${x.head} ${x.nums.join(', ')}`).join(' · ');
+    };
+    const mockNow = r => { const x = r.res, done = x && (x.d !== today || !x.blocks.length || now >= at(x.d, x.blocks[x.blocks.length - 1].end)); return done ? x.mockPct : r.prev ? r.prev.mockPct : null; };
+    let rank = 0;
+    el.innerHTML = `<h2>AI league <small>same student, three coaches · since ${new Date(L.start + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}${today >= L.mock ? ' · Final' : ''}</small></h2>
+<div class="lg-head" aria-hidden="true"><span></span><span>Who</span><span>Today</span><span class="lg-wk">This week</span><span>Season</span><span>Mock<span class="lg-st"> now</span></span></div>
+<div class="lg-rows">${rows.map(r => {
+      const pos = r.missing ? '' : ++rank, ai = !!LGN[r.key], m = ai && !r.missing ? mockNow(r) : null;
+      const cells = `<span class="lg-pos num">${pos}</span><span class="lg-who"><i></i><span class="lg-nm">${esc(r.who).replace("'s student", '<span class="lg-st">&#39;s student</span>')}</span></span>`
+        + (r.missing ? '<span class="lg-sub lg-none">coach not in yet</span>'
+          : `<span class="num">${n(r.td)}</span><span class="num lg-wk">${n(r.week)}</span><span class="num lg-season">${n(r.season)}</span><span class="num">${m == null ? '–' : m.toFixed(0) + '%'}</span>`);
+      if (!ai || r.missing) return `<div class="lg-row lg-${r.cls}${r.missing ? ' lg-miss' : ''}">${cells}</div>`;
+      const x = r.res, s = status(r);
+      const blocks = x && x.blocks.length ? `<ul>${x.blocks.map(b => `<li><b class="num">${span(b.start, b.end)}</b> ${tasks(b.tasks)}</li>`).join('')}</ul>` : '';
+      return `<details class="lg-${r.cls}" data-k="${r.key}"${open.has(r.key) ? ' open' : ''}><summary class="lg-row">${cells}${s ? `<span class="lg-sub">${esc(s)}</span>` : ''}</summary>
+<div class="lg-more"><p>${esc(String(r.coach.about || '').slice(0, 200))}</p>${x ? `<p class="lg-dim">${x.d === today ? 'Today' : 'Last day'}: energy ${Math.round(x.energy * 100)}% at the start${x.dropped ? ` · ${x.dropped} planned task${x.dropped === 1 ? '' : 's'} didn't fit` : ''}</p>${blocks}` : ''}</div></details>`;
+    }).join('')}</div>
+<p class="sub">Each coach plans every day for an identical simulated student: same subjects and starting grades as you, your routine, Onur's sick days, the same luck. Neurons are scored by the same rules as yours. Mock now is how that student would score on a paper today. Tap a student to see how its coach works.</p>`;
   }
   /* this week, Monday to Sunday: bars, a win or loss under each day, and the record */
   function drawWeek(now) {
@@ -627,7 +715,7 @@
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
-      talk(p, now); drawStrip(p); drawWeek(now); draw30(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawPaper(now); drawRevenge(); drawHours(now); drawBrains(now);
+      talk(p, now); drawStrip(p); drawWeek(now); draw30(now); drawLeague(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawPaper(now); drawRevenge(); drawHours(now); drawBrains(now);
       $('tdate').textContent = new Date(now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;

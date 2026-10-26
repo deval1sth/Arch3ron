@@ -1,0 +1,38 @@
+/* AI league card on Onur's page (rival.js drawLeague). Classes are prefixed lg-. */
+.lg{--lg-claude:#c9a2ff;--lg-codex:#62cfff;--lg-anti:#f4cf5f}
+.lg-head,.lg-row{display:grid;grid-template-columns:22px minmax(0,1fr) 64px 78px 82px 70px;align-items:baseline;column-gap:10px}
+.lg-head{font-size:12px;color:var(--dim);padding:0 10px 6px;border-bottom:1px solid var(--line)}
+.lg-head span:nth-child(n+3),.lg-row>.num{text-align:right}
+.lg-rows{display:grid}
+.lg-rows>*{border-bottom:1px solid var(--line2)}
+.lg-row{padding:10px;font-size:15px;border-radius:var(--r-sm)}
+.lg-pos{color:var(--dim);font-size:13px}
+.lg-who{display:flex;align-items:center;gap:8px;min-width:0;font-weight:700;white-space:nowrap}
+.lg-nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lg-who i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c)}
+.lg-season{font-weight:700}
+.lg-sub{grid-column:2/-1;font-size:13px;color:var(--m);margin-top:3px;line-height:1.35;overflow-wrap:anywhere}
+.lg-row.lg-miss{grid-template-columns:22px minmax(0,1fr) auto}
+.lg-none{grid-column:3/-1;margin:0;text-align:right}
+.lg-you{--c:var(--you)}.lg-riv{--c:var(--riv)}
+.lg-claude{--c:var(--lg-claude)}.lg-codex{--c:var(--lg-codex)}.lg-anti{--c:var(--lg-anti)}
+.lg-you .lg-season{color:var(--you)}.lg-riv .lg-season{color:var(--riv)}
+.lg details>summary{list-style:none;cursor:pointer;font-family:var(--font);font-weight:400;line-height:1.5;transition:background .2s var(--ease)}
+.lg details>summary::-webkit-details-marker{display:none}
+.lg details>summary::after{content:none}
+.lg details>summary:hover{background:rgba(237,240,252,.04)}
+.lg details[open]>summary{background:rgba(237,240,252,.05);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.lg-more{padding:4px 10px 14px 42px;font-size:14px;color:var(--t);border-left:2px solid var(--c);margin:0 0 6px 10px}
+.lg-more p{margin:6px 0}
+.lg-dim{color:var(--m);font-size:13px}
+.lg-more ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--m)}
+.lg-more li b{color:var(--t);font-weight:700;margin-right:6px}
+.lg .sub{margin:12px 0 0}
+@media (max-width:560px){
+  .lg-head,.lg-row{grid-template-columns:16px minmax(0,1fr) 44px 56px 46px;column-gap:6px}
+  .lg-head{font-size:11px}
+  .lg-wk,.lg-st{display:none}
+  .lg-row.lg-miss{grid-template-columns:18px minmax(0,1fr) auto}
+  .lg-row{padding:9px 6px;font-size:14px}
+  .lg-more{padding-left:20px;margin-left:6px}
+}
