@@ -191,10 +191,20 @@
   const HAS_N = typeof NEURONS === 'object' && NEURONS && typeof NEURONS.day === 'function';
   const NC = new Map();   /* finished days only; cleared when your progress or your log changes */
   const logFor = k => typeof RIVALLOG === 'object' ? RIVALLOG.entries(k) : [];
+  /* Archeron only records focus time, written answers, on-time reviews and study sessions from 26 Oct 2026 (11.9.17).
+     Days before that are scored for both of you on the sources you both had, so the old record is a fair fight. */
+  const FULL_FROM = '2026-10-26';
+  function fair(r, k) {
+    if (k >= FULL_FROM) return r;
+    const starts = (r.studyBlocks || []).map(b => typeof b === 'number' ? b : b && b.start).filter(v => v > 0);
+    if (r.firstStudyAt == null && starts.length) r.firstStudyAt = Math.min(...starts);   /* one start time, like your hourly record */
+    r.focusMin = 0; r.written = 0; r.onTime = 0; r.studyBlocks = [];
+    return r;
+  }
   function youRec(k) {
     const r = NEURONS.fromState(S || {}, k, logFor(k));
     r.schoolDay = (Array.isArray(P.r.days) ? P.r.days : DEF.days).includes(new Date(k + 'T12:00').getDay());
-    return r;
+    return fair(r, k);
   }
   /* Onur: his answers from the simulated day, plus his lessons, papers etc. arriving through the day rather than all at midnight */
   function onurRec(t0, now) {
@@ -202,7 +212,7 @@
     const r = NEURONS.fromPlan(p, now), x = p.sick ? { log: [], planned: null } : NEURONS.onurExtras(p.k);
     for (const k of ['written', 'lessons', 'guides', 'examiner', 'revenge', 'onTime', 'newTopics']) r[k] = (r[k] || 0) + Math.round((x[k] || 0) * f);
     r.log = (x.log || []).filter(e => !e.at || e.at <= now); r.planned = f >= 1 ? x.planned : null;
-    return r;
+    return fair(r, p.k);
   }
   function neurons(t0, now) {
     const k = dkey(new Date(t0)), live = t0 === midnight(now);
@@ -228,7 +238,7 @@
     let chip, note, pose = 'away', lamp = false;
     switch (run.kind) {
       case 'study': pose = 'write'; lamp = true;
-        chip = `${cur && cur.topic ? `Revising your mistake: ${cur.topic}` : cur && cur.tp ? `${cur.s.name}: ${cur.tp.name}` : `Revising ${cur ? cur.s.name : 'notes'}`} · ${n} of ${p.goal}${cur && cur.tired ? ' · tired' : ''}`;
+        chip = `${cur && cur.topic ? `Revising your mistake: ${cur.topic}` : cur && cur.tp ? `${cur.s.name}: ${cur.tp.name}` : `Revising ${cur ? cur.s.name : 'notes'}`} · ${n} of ${p.goal} answers${cur && cur.tired ? ' · tired' : ''}`;
         note = [`Goal: ${p.goal}`, `Done: ${n}`]; break;
       case 'break': pose = 'phone'; lamp = true; chip = `Short break · back at ${hm(end)}`; note = ['Break', `till ${hm(end)}`]; break;
       case 'free': pose = 'phone'; lamp = true;
@@ -284,7 +294,7 @@
 <section class="card" id="c30"></section>
 <div id="rlog"></div>
 <div class="grid">
-  <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
+  <section class="card"><h2>By subject today <small>answers · <span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
   <section class="card"><h2>Onur's homework <small>your mistakes today</small></h2><div id="hw"></div></section>
 </div>
 <section class="card chal" id="chal"></section>
@@ -412,7 +422,7 @@
       tile('Accuracy today', `${pct(ts.qr, ts.qa)} vs ${pct(done.filter(a => a.ok).length, n)}`, 'You vs Onur, share of answers right.', ts.qa && n ? (ts.qr / ts.qa >= done.filter(a => a.ok).length / n ? 'win' : 'lose') : ''),
       tile('Best day', `${youBest} vs ${onBest}`, 'Your record day vs Onur\'s.', youBest >= onBest ? 'win' : 'lose'),
       tile('Onur, all time', life.toLocaleString(), `answers in ${Math.round(mins / 60)} hours of study since ${new Date(M.born).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. You: ${youLife.toLocaleString()}.`),
-      tile(`Level ${lvl + 1} · ${TITLES[lvl]}`, `Day ${Math.min(daysIn, daysAll)} of ${daysAll}`, `${Math.round(p.pr * 100)}% of the way to his mock-day form: ${Math.round(M.base * (1 + GROW))} a day, ${Math.round(Math.min(.96, M.acc + SHARP) * 100)}% right.`)
+      tile(`Level ${lvl + 1} · ${TITLES[lvl]}`, `Day ${Math.min(daysIn, daysAll)} of ${daysAll}`, `${Math.round(p.pr * 100)}% of the way to his mock-day form: ${Math.round(M.base * (1 + GROW))} answers a day, ${Math.round(Math.min(.96, M.acc + SHARP) * 100)}% right.`)
     ].join('');
   }
 
