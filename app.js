@@ -98,7 +98,7 @@ const successCheck = () => { const s = h('span', { class: 't-success-check', 'da
 const digits = (n, animate) => h('span', { class: 't-digit-group' + (animate ? ' is-animating' : '') }, String(n).split('').map(c => h('span', { class: 't-digit' }, c)));
 /* Transitions.dev "Card hover tilt": outer wrapper is the flat hit area, the card inside tilts */
 function tilt(el) { el.classList.add('t-tilt-card'); el.append(h('span', { class: 't-tilt-glare', 'aria-hidden': 'true' })); return h('div', { class: 't-tilt' }, el); }
-const BACKS = { lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Guides', listen: 'Listen', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
+const BACKS = { dailyarc: 'Daily five archive', lab: 'Experimental', ppp: 'PPP mode', feedback: 'Writing feedback', search: 'Search', ready: 'Readiness', mockstart: 'Mock hall', week: 'Weekly review', study: 'Guides', listen: 'Listen', guide: 'Guide', session: 'Your session', stats: 'Learned', numbers: 'Stats', exam: 'Exam practice', home: 'Focus', learn: 'Learn', tools: 'Toolkit', profile: 'Profile', mocks: 'Mocks', wrapped: 'Wrapped', subject: 'Subject' };
 const hero = (eyebrow, title, lede) => h('div', { class: 'hero' }, h('p', { class: 'eyebrow' }, eyebrow), h('h1', null, title), lede && h('p', { class: 'lede' }, lede));
 /* the small label above a title is dropped when it would only repeat the back button ("Mocks" twice) */
 const subHero = (eyebrow, title, back, lede, backLabel, bl = backLabel || BACKS[back]) => h('div', { class: 'hero' },
@@ -113,7 +113,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, dailyLog: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -131,6 +131,8 @@ function normalize(raw) {
   s.mock = isKey(r.mock) && (r.mock !== '2027-01-11' || r.me) ? r.mock : s.mock; /* old placeholder date → real first mock, unless a set-up picked it */
   s.guided = !!r.guided;
   s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
+  for (const [k, v] of Object.entries(obj(r.dailyLog))) if (isKey(k) && [0, 1, 2, 3, 4, 5].includes(v)) s.dailyLog[k] = v;
+  if (s.daily) s.dailyLog[s.daily.d] = s.daily.s; /* scores from before the archive existed */
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
@@ -640,7 +642,7 @@ function alsoToday(rough) {
   const rows = [
     ses && row('play', 'Carry on your revision session', `${sessDone(ses)} of ${sessSteps(ses)} steps done`, 'go', { 'data-tab': 'session' }),
     rough && row('shield', 'Rough day? A 10-minute rescue set', 'It still counts, and it stops you forgetting', 'rescue'),
-    !dailyDoneToday() && row('star', 'Daily five', 'Five Maths questions, about 3 minutes', 'daily'),
+    !dailyDoneToday() && row('star', 'Daily five', `Five questions from ${dailyNames()}, about 3 minutes`, 'daily'),
     dueM > 0 && row('wrench', `${dueM} mistake${dueM === 1 ? '' : 's'} to redo`, 'Win back marks you lost once', 'go', { 'data-tab': 'fix' }),
     dueC > 0 && row('cards', `${dueC} flashcard${dueC === 1 ? '' : 's'} ready`, 'Even ten helps', 'go', { 'data-tab': 'cards' }),
     wrap && row('star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
@@ -786,18 +788,31 @@ function queueBack() {
   const q = DR.q; if (!q || !q.key || q.back || !lowTopic(q.id)) return;
   (DR.retry = DR.retry || []).push({ q: Object.assign({}, q, { back: true }), at: DR.count + 3 });
 }
-/* Daily five: five Maths questions that are the same for everyone today. The date seeds the random numbers while they are
-   made, so every device builds identical questions. Maths because every GCSE student takes it. Only the first go counts. */
+/* Daily five: five questions from your Maths, Chemistry and Physics (whichever you take), taken in turn. The date seeds the
+   random numbers while they are made, so a day always rebuilds the same five; that is what lets the archive replay any past
+   day without storing it. Only the first go on the day counts; replays never change the score. */
+const DAILY_TRACKS = ['maths', 'chemistry', 'physics'];
+function dailyPools() {
+  const mine = new Set(mySubjects().map(s => s.id)), t = DAILY_TRACKS.filter(x => mine.has(x));
+  return (t.length ? t : ['maths']).map(x => LEARN.SUBJECTS.find(s => s.id === x).topics.filter(id => !LEARN.TOPIC[id].tier && LEARN.TOPIC[id].type !== 'def').sort()).filter(p => p.length);
+}
+const dailyNames = () => { const n = dailyPools().map(p => TRACK_NAME(LEARN.trackOf(p[0]))); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
 function dailyQs(day = dkey()) {
   let seed = (dayNum(day) * 2654435761) >>> 0;
   const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const pool = LEARN.MATHS.filter(id => !LEARN.TOPIC[id].tier).sort(), keep = Math.random;
+  const pools = dailyPools(), keep = Math.random, ids = [], out = [];
   Math.random = rnd;
-  try { const ids = []; while (ids.length < 5) { const id = pool[Math.floor(rnd() * pool.length)]; if (!ids.includes(id)) ids.push(id); } return ids.map(id => LEARN.gen(id, 2)).filter(Boolean); }
-  finally { Math.random = keep; }
+  try {
+    for (let i = 0; out.length < 5 && i < 40; i++) {
+      const pool = pools[out.length % pools.length], id = pool[Math.floor(rnd() * pool.length)];
+      if (ids.includes(id)) continue;
+      const q = LEARN.gen(id, 2); if (q) { ids.push(id); out.push(q); }
+    }
+    return out;
+  } finally { Math.random = keep; }
 }
 const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
-function dailyDone() { if (!dailyDoneToday()) { S.daily = { d: dkey(), s: Math.min(5, DR.ok) }; save(); SFX.play('fanfare'); } }
+function dailyDone() { if (DR.replay || dailyDoneToday()) return; const s = Math.min(5, DR.ok); S.daily = { d: dkey(), s }; S.dailyLog[S.daily.d] = s; save(); SFX.play('fanfare'); }
 /* the first thing a new (or returning) person sees on Focus: what Begin does and what each tab is for, until they close it */
 function guideCard() {
   if (S.guided) return null;
@@ -809,11 +824,24 @@ function guideCard() {
     h('p', { class: 'muted xs' }, 'Learn: lessons, practice and exam questions for every subject. Mocks: timed papers and grade tests. Stats: your progress. Toolkit: your set-up, plan and settings.'));
 }
 function dailyCard(inDrill) {
-  if (inDrill || dailyDoneToday()) return card('Daily five', h('span', { class: 'muted' }, 'the same five for everyone today'),
+  const arc = B([icon('calendar'), 'Archive'], 'go', 'ghost sm', { 'data-tab': 'dailyarc' });
+  if (inDrill && DR.replay) return card(`Daily five · ${fmtDate(DR.replay)}`, arc, h('p', { class: 'big-score' }, `${DR.ok} / 5`),
+    h('p', { class: 'muted xs' }, 'A replay, so your score on the day stays as it was.'));
+  if (inDrill || dailyDoneToday()) return card('Daily five', arc,
     h('p', { class: 'big-score' }, `${dailyDoneToday() ? S.daily.s : DR.ok} / 5`),
-    h('p', { class: 'muted xs' }, 'New questions tomorrow. Everyone using Archeron gets the same five each day, so you can compare with friends.'));
+    h('p', { class: 'muted xs' }, 'New questions tomorrow. Every past day is in the archive to replay.'));
   return h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'daily' }, h('span', { class: 'wc-ic' }, icon('star')),
-    h('span', { class: 'grow' }, h('b', null, 'Daily five'), h('small', null, 'Five Maths questions, the same for everyone today. About 3 minutes.')), h('span', { class: 'btn primary sm' }, 'Start'));
+    h('span', { class: 'grow' }, h('b', null, 'Daily five'), h('small', null, `Five questions from ${dailyNames()}. About 3 minutes.`)), h('span', { class: 'btn primary sm' }, 'Start'));
+}
+/* the Daily five archive: the last 60 days, newest first; any day can be replayed because its questions rebuild from the date */
+function vDailyArc() {
+  const days = Array.from({ length: 60 }, (_, i) => addDays(-i));
+  return h('div', { class: 'stack narrow' },
+    subHero('Daily five', 'Archive', 'home', 'Every day from the last two months. Replays are for practice and never change a score.'),
+    card(null, null, h('ul', { class: 'darc' }, days.map(k => h('li', null,
+      h('b', null, k === dkey() ? 'Today' : fmtDate(k)),
+      h('span', { class: 'muted' }, k in S.dailyLog ? `${S.dailyLog[k]} / 5` : '–'),
+      k === dkey() && !dailyDoneToday() ? B('Start', 'daily', 'primary sm') : B([icon('reset'), 'Replay'], 'dailyReplay', 'ghost sm', { 'data-d': k }))))));
 }
 function nextQ(sameTopic) {
   if (DR.ctx === 'daily') { DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null; DR.q = (DR.dq || [])[DR.count] || null; DR.state = 'ask'; if (!DR.q && DR.dq) dailyDone(); return; }
@@ -1580,8 +1608,8 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['learn', 'sparkle', 'Learn'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', study: 'learn', guide: 'learn', session: 'home', listen: 'learn', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
-const VIEWS = { lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
+const PARENT = { dailyarc: 'home', lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', study: 'learn', guide: 'learn', session: 'home', listen: 'learn', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const VIEWS = { dailyarc: vDailyArc, lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();
 
@@ -1762,6 +1790,9 @@ const ACT = {
   daily() {
     if (dailyDoneToday()) { toast('You have done today\'s five. New ones tomorrow.'); return; }
     startDrill('maths', null, 'daily'); DR.dq = dailyQs(); DR.count = 0; nextQ(); go('drill', '#ans');
+  },
+  dailyReplay(el) {
+    startDrill('maths', null, 'daily'); DR.replay = el.dataset.d; DR.dq = dailyQs(DR.replay); DR.count = 0; nextQ(); go('drill', '#ans');
   },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
