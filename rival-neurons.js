@@ -234,14 +234,14 @@
     const firstTopics = s.tc && s.tc.tn && typeof s.tc.tn === 'object'
       ? Object.values(s.tc.tn).filter(entry => Array.isArray(entry) && entry[2] === d).length : 0;
     return {
-      d, answers: answersFromState(day), written: 0, focusMin: 0,
+      d, answers: answersFromState(day), written: whole(events.written), focusMin: amount(events.focusms) / 60000,
       lessons: whole(events.lesson), guides: readCount, examiner: whole(events.exm),
-      revenge: whole(events.fix), onTime: 0, newTopics: firstTopics,
+      revenge: whole(events.fix), onTime: whole(events.ontime), newTopics: firstTopics,
       papers, log: (Array.isArray(log) ? log : []).filter(entry => entry && entry.d === d),
       planned: plannedSets > 0 ? completedSets >= plannedSets : null,
       schoolDay: null,
-      firstStudyAt: firstHour >= 0 ? localAt(d, firstHour * 60) : null,
-      studyBlocks: []
+      firstStudyAt: Array.isArray(day.studyStarts) && day.studyStarts.length ? number(day.studyStarts[0]) : firstHour >= 0 ? localAt(d, firstHour * 60) : null,
+      studyBlocks: Array.isArray(day.studyStarts) ? day.studyStarts.slice(-12).map(start => ({ start: number(start) })).filter(block => block.start > 0) : []
     };
   };
   const fromPlan = (plan, now) => {
@@ -355,20 +355,21 @@
     check('zero-day penalty from previous week average', zero.parts.zeroDay, -6.75);
     check('zero-day floor', zero.total, 0);
 
-    const source = { days: { '2026-10-26': { qa: 4, qr: 3, t: { maths: 2, biology: 2 }, ev: { 's:maths': 1, 's:biology': 2 } } }, tc: { hrs: { '2026-10-26': [0, 0, 0, 0, 0, 0, 0, 9] } } };
+    const source = { days: { '2026-10-26': { qa: 4, qr: 3, t: { maths: 2, biology: 2 }, ev: { 's:maths': 1, 's:biology': 2, focusms: 90000, written: 2, ontime: 3 }, studyStarts: [localAt('2026-10-26', 9 * 60), localAt('2026-10-26', 12 * 60)] } }, tc: { hrs: { '2026-10-26': [0, 0, 0, 0, 0, 0, 0, 9] } } };
     const adapted = fromState(source, '2026-10-26', []);
     check('state adapter answer count', adapted.answers.length, 4);
     check('state adapter correct count', adapted.answers.filter(answer => answer.ok).length, 3);
+    check('state adapter focus minutes', adapted.focusMin, 1.5);
+    check('state adapter written answers', adapted.written, 2);
+    check('state adapter on-time reviews', adapted.onTime, 3);
+    check('state adapter study blocks', adapted.studyBlocks.length, 2);
+    check('state adapter first study timestamp', adapted.firstStudyAt, localAt('2026-10-26', 9 * 60));
     if (fails.length) return { ok: false, fails };
     return { ok: true, fails: [] };
   };
   const missing = Object.freeze([
     'per-answer timestamps, response times, and question levels (daily count/correctness and track totals are available)',
-    'daily focus minutes (only a cumulative total and completed-set counts are stored)',
-    'written-answer counts',
-    'on-time review counts',
     'actual school-day and holiday status',
-    'reliable study-block boundaries for Runo (recent answer-hour bins are not block records)',
     'paper provenance when an in-app score has no topic detail',
     'out-of-app activities unless they are supplied in the day log'
   ]);

@@ -202,6 +202,9 @@ function normalize(raw) {
     if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
     const e = Object.entries(obj(src.ev)).filter(([k, v]) => /^[a-z0-9:]{1,24}$/.test(k) && Number.isFinite(+v)); if (e.length) out.ev = Object.fromEntries(e.map(([k, v]) => [k, Math.max(0, Math.round(+v))]));
     const tt = Object.entries(obj(src.t)).filter(([k, v]) => /^[a-z]{1,16}$/.test(k) && +v > 0 && Number.isFinite(+v)); if (tt.length) out.t = Object.fromEntries(tt.map(([k, v]) => [k, Math.round(+v)]));
+    const starts = arr(src.studyStarts).map(Number).filter(v => Number.isFinite(v) && v > 0).slice(-12);
+    if (starts.length) out.studyStarts = starts;
+    const lastAt = num(src.studyLastAt); if (lastAt > 0) out.studyLastAt = lastAt;
     s.days[k] = out;
   }
   for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x));
@@ -246,6 +249,15 @@ const dayOf = k => S.days[k] || { s: {}, f: {} };
 const ensureDay = k => S.days[k] = S.days[k] || { s: {}, f: {} };
 /* per-day counters (sets, fixes, papers, best run): the weekly Wrapped reads them */
 function dayEv(name, n = 1, asMax = false) { const d = ensureDay(dkey()); d.ev = d.ev || {}; d.ev[name] = asMax ? Math.max(d.ev[name] || 0, n) : (d.ev[name] || 0) + n; }
+function recordStudyActivity(at = Date.now(), sessionStart = false) {
+  const k = dkey(new Date(at)), d = ensureDay(k), prev = num(d.studyLastAt) || num(S.days[addDays(-1, k)] && S.days[addDays(-1, k)].studyLastAt);
+  const timerActiveNow = T && T.run && T.mode === 'focus';
+  if ((!prev || at - prev >= 30 * 60000) && (!timerActiveNow || sessionStart)) {
+    d.studyStarts = arr(d.studyStarts).slice(-12);
+    if (d.studyStarts.length < 12) d.studyStarts.push(at);
+  }
+  d.studyLastAt = at;
+}
 function setsOn(k) { const d = S.days[k]; if (!d) return 0; let n = 0; for (const a of Object.values(d.s)) n += a.filter(Boolean).length; return n; }
 function lifeSets() { let n = 0; for (const k in S.days) n += setsOn(k); return n; }
 function daysTrained() { let n = 0; for (const k in S.days) if (setsOn(k)) n++; return n; }
@@ -286,6 +298,7 @@ function levelUp(id, ok) {
   else { m.r = 0; m.w++; if (m.w >= 2 && m.l > 1) { m.l--; m.w = 0; } }
 }
 function record(id, ok, key) {
+  recordStudyActivity();
   levelUp(id, ok);
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
@@ -378,10 +391,25 @@ const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math
 const tTotal = (m = T.mode) => m === 'focus' && T && T.len ? T.len : (m === 'focus' ? S.timer.focus : S.timer.brk) * 60; /* T.len: a one-off length, e.g. the 10-minute rescue set */
 let T;
 (function loadTimer() {
-  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), sid: t.sid ? str(t.sid, 30) : null, len: clamp(Math.round(num(t.len)), 0, 7200), rescue: !!t.rescue, swap: t.swap === false ? false : t.swap && typeof t.swap.to === 'string' ? { to: str(t.swap.to, 20), msg: str(t.swap.msg, 300) } : null }; } catch (e) {}
+  try { const t = JSON.parse(read(TK) || 'null'); if (t && (t.mode === 'focus' || t.mode === 'break') && Number.isFinite(t.left)) T = { mode: t.mode, left: t.left, run: !!t.run, end: num(t.end), focusSavedAt: num(t.focusSavedAt), sid: t.sid ? str(t.sid, 30) : null, len: clamp(Math.round(num(t.len)), 0, 7200), rescue: !!t.rescue, swap: t.swap === false ? false : t.swap && typeof t.swap.to === 'string' ? { to: str(t.swap.to, 20), msg: str(t.swap.msg, 300) } : null }; } catch (e) {}
   if (!T) T = { mode: 'focus', left: S.timer.focus * 60, run: false, end: 0, sid: null };
 })();
 const saveT = () => store(TK, JSON.stringify(T));
+function accountFocusTime(until, force) {
+  if (!T || !T.run || T.mode !== 'focus') return;
+  const end = Math.min(until, T.end || until), start = num(T.focusSavedAt) || Math.max(0, (T.end || end) - Math.max(0, T.left) * 1000);
+  if (end <= start || (!force && end - start < 60000)) return;
+  let cursor = start;
+  while (cursor < end) {
+    const boundary = new Date(cursor); boundary.setHours(24, 0, 0, 0);
+    const stop = Math.min(end, boundary.getTime()), d = ensureDay(dkey(new Date(cursor)));
+    d.ev = d.ev || {}; d.ev.focusms = (d.ev.focusms || 0) + stop - cursor;
+    cursor = stop;
+  }
+  T.focusSavedAt = end;
+  recordStudyActivity(end, false);
+  saveT(); save();
+}
 const RING = 2 * Math.PI * 54;
 const timerActive = () => T.run || T.left < tTotal() - .5;
 function paintTimer() {
@@ -395,10 +423,12 @@ function paintTimer() {
 }
 function timerTick() {
   if (!T.run) return;
+  if (T.mode === 'focus') accountFocusTime(Date.now(), false);
   T.left = Math.max(0, (T.end - Date.now()) / 1000);
   if (T.left <= 0) timerDone(); else paintTimer();
 }
 function timerDone() {
+  if (T.mode === 'focus') accountFocusTime(T.end || Date.now(), true);
   T.run = false; beep();
   if (T.mode === 'focus') {
     S.focusSets++; S.focusMin += T.len ? T.len / 60 : S.timer.focus; dayEv('sets'); if (T.rescue) dayEv('rescue');
@@ -415,10 +445,10 @@ function timerDone() {
     } else (d.s.free = d.s.free || []).push(true);
     /* rest starts by itself, timed from when the set actually ended (correct even if the phone was locked) */
     const ended = T.end || Date.now();
-    T.mode = 'break'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
+    T.mode = 'break'; T.len = 0; T.rescue = false; T.swap = null; T.focusSavedAt = 0; T.left = tTotal(); T.sid = null; T.run = true; T.end = ended + T.left * 1000; T.left = Math.max(0, (T.end - Date.now()) / 1000);
     saveT(); save();
     FXS.reveal('Set complete', `${lifeSets()} sets finished`, sub); SFX.play('fanfare');
-  } else { T.mode = 'focus'; T.left = tTotal(); saveT(); toast('Rest over. Ready when you are.'); SFX.play('rest'); }
+  } else { T.mode = 'focus'; T.left = tTotal(); T.focusSavedAt = 0; saveT(); toast('Rest over. Ready when you are.'); SFX.play('rest'); }
   render(); checkAch();
 }
 function beep() {
@@ -1095,6 +1125,10 @@ function vExamQ() {
 }
 function exOpen(i) { S.exam.i = i; DRAFT.ex = S.exam.ans[i] || ''; save(); }
 const EXACT = {
+  countWritten(E, i) {
+    const q = paperOf(E.pid).qs[i], a = String(E.ans[i] || '').trim();
+    if (!E.marked[i] && !E.printed && a && !(qX(q).auto && qX(q).auto.kind === 'mcq')) dayEv('written');
+  },
   exStart(el) {
     const p = paperOf(el.dataset.id);
     if (S.exam && S.exam.pid !== p.id && !sure('You have another paper in progress. Abandon it and start this one?')) return;
@@ -1109,15 +1143,17 @@ const EXACT = {
     const blank = p.qs.filter((q, k) => !qX(q).same && !E.ans[k]).length;
     if (blank && !mockOver() && !sure(`${blank} part${blank > 1 ? 's are' : ' is'} blank and will score 0. Put your pen down and start marking?`)) return save();
     if (E.end) { E.used = Math.max(1, Math.min(p.mins, Math.round((Math.min(Date.now(), E.end) - (E.end - p.mins * 60000)) / 60000))); E.timed = true; E.end = 0; }
+    E.ans.forEach((_, i) => EXACT.countWritten(E, i));
     E.ph = 'mark'; E.marked = E.marked.map(() => true); exOpen(0); toast('Pens down. Now mark it like an examiner.'); render(); scrollTo({ top: 0 });
   },
-  exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); E.marked[E.i] = true; save(); render(); },
+  exMark() { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); EXACT.countWritten(E, E.i); E.marked[E.i] = true; save(); render(); },
   exLevel(el) {
+    S.exam.ans[S.exam.i] = (DRAFT.ex || '').trim(); EXACT.countWritten(S.exam, S.exam.i);
     const E = S.exam, [lo, hi] = paperOf(E.pid).qs[E.i][2].lv[+el.dataset.l];
     if (!(E.lv[E.i] >= lo && E.lv[E.i] <= hi)) E.lv[E.i] = Math.floor((lo + hi) / 2);
     E.marked[E.i] = true; save(); render();
   },
-  exMarkSet(el) { const E = S.exam; E.lv[E.i] = +el.dataset.m; E.marked[E.i] = true; save(); render(); },
+  exMarkSet(el) { const E = S.exam; E.ans[E.i] = (DRAFT.ex || '').trim(); EXACT.countWritten(E, E.i); E.lv[E.i] = +el.dataset.m; E.marked[E.i] = true; save(); render(); },
   exGo(el) { if (S.exam.i !== +el.dataset.i && !S.exam.marked[S.exam.i]) S.exam.ans[S.exam.i] = (DRAFT.ex || '').trim(); exOpen(+el.dataset.i); render({ focus: '#exans' }); scrollTo({ top: 0 }); },
   exQuit() { if (!sure('Abandon this paper? Nothing from it will be saved.')) return; S.exam = null; save(); render(); },
   exClose() { EXRES = null; render(); },
@@ -1230,7 +1266,7 @@ const MPACT = {
     const blank = M.ans.filter(a => !a).length;
     if (blank && !sure(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
     if (M.ppp && !M.self) { M.self = { i: 0, my: M.qs.map(() => null), why: M.qs.map(() => '') }; save(); render(); return scrollTo({ top: 0 }); } /* PPP: you mark it first */
-    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
+    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); if (q.kind !== 'mcq' && a.trim()) dayEv('written'); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
@@ -1653,6 +1689,7 @@ function countAns() {
   if (DR.five && DR.n === 5 && !DR.topic) { DR.topic = pickTopic(DR.track, DR.q.id); const t = LEARN.name(DR.topic); setTimeout(() => toast(`Warm-up done. Next: ${t} until the timer ends.`, "big"), 600); }
 }
 function finishAnswer(res) {
+  if (DR.q && DR.q.kind === 'def') dayEv('written');
   record(DR.q.id, res.ok, DR.q.key); countAns();
   if (!res.ok) queueBack();
   DR.state = res.ok ? 'right' : 'wrong'; DR.msg = res.msg || '';
@@ -1679,18 +1716,18 @@ const ACT = {
     save(); render({ pulse: `.dot[data-sid="${CSS.escape(s.id)}"][data-j="${j}"]`, burst: a[j] ? (full ? 70 : 24) : 0 });
   },
   tgl() {
-    if (T.run) { T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; }
-    else { if (T.mode === 'focus' && !timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; SFX.play('start'); } T.end = Date.now() + T.left * 1000; T.run = true; }
+    if (T.run) { if (T.mode === 'focus') accountFocusTime(Date.now(), true); T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; T.focusSavedAt = 0; }
+    else { if (T.mode === 'focus') { if (!timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; SFX.play('start'); } T.focusSavedAt = Date.now(); recordStudyActivity(T.focusSavedAt, true); save(); } T.end = Date.now() + T.left * 1000; T.run = true; }
     saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
-  rst() { if (T.mode === 'focus' && T.run && !sure('End this set early? It will not count as a set.')) return; T.run = false; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
-  skip() { T.run = false; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
+  rst() { if (T.mode === 'focus' && T.run && !sure('End this set early? It will not count as a set.')) return; if (T.run && T.mode === 'focus') accountFocusTime(Date.now(), true); T.run = false; T.focusSavedAt = 0; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
+  skip() { if (T.run && T.mode === 'focus') accountFocusTime(Date.now(), true); T.run = false; T.focusSavedAt = 0; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
   pick(el) { SEL = el.dataset.sid; CHOOSE = false; if (!T.run) { T.mode = 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); } render(); },
   /* bad day: 10 minutes of what you are closest to forgetting, instead of a zero day */
   guided() { S.guided = true; save(); render(); },
   rescue() {
     if (timerActive() && !(T.mode === 'focus' && !T.run && T.rescue)) return toast('Finish or end the set you are on first.');
-    T = { mode: 'focus', left: 600, run: true, end: Date.now() + 600000, sid: null, len: 600, rescue: true }; DR = null; saveT(); go('home');
+    T = { mode: 'focus', left: 600, run: true, end: Date.now() + 600000, focusSavedAt: Date.now(), sid: null, len: 600, rescue: true }; recordStudyActivity(T.focusSavedAt, true); DR = null; saveT(); save(); go('home');
   },
   choose() { CHOOSE = !CHOOSE; render(); },
   atMore() { AT_MORE = !AT_MORE; render(); },
@@ -1791,6 +1828,7 @@ const ACT = {
   rate(el) {
     const ok = el.dataset.ok === '1', list = dueCards(CD.deck); if (!list.length) return;
     const o = list[CD.i % list.length], s = S.cards[o.id] || { box: 0 };
+    if (s.due === dkey()) dayEv('ontime');
     s.box = ok ? Math.min(s.box + 1, 5) : 0; s.due = addDays(INT[s.box]); S.cards[o.id] = s;
     if (ok) xp(2); else CD.i++;
     CD.flip = false; save(); render({ pulse: '.flash' });
