@@ -27,7 +27,14 @@
   const P = (() => { try { const v = JSON.parse(read(PREF)); if (v && typeof v === 'object') return v; } catch (e) {} return {}; })();
   P.r = Object.assign({}, DEF, P.r || {});
   P.off = Array.isArray(P.off) ? P.off.filter(k => /^\d{4}-\d\d-\d\d$/.test(k)).slice(-60) : [];
-  const saveP = () => write(PREF, JSON.stringify(P));
+  const saveP = update => {
+    let next = {}; try { const value = JSON.parse(read(PREF)); if (value && typeof value === 'object') next = value; } catch (e) {}
+    next.r = Object.assign({}, DEF, next.r || {});
+    next.off = Array.isArray(next.off) ? next.off.filter(k => /^\d{4}-\d\d-\d\d$/.test(k)).slice(-60) : [];
+    if (typeof update === 'function') update(next);
+    else { const patch = update || {}; Object.assign(next, patch); if (patch.r) next.r = Object.assign({}, next.r, patch.r); }
+    Object.keys(P).forEach(k => delete P[k]); Object.assign(P, next); write(PREF, JSON.stringify(P));
+  };
 
   /* ---------- Archeron's saved progress for the active profile (same rules as me.js) ---------- */
   function stateKey() {
@@ -647,23 +654,23 @@
     const when = since >= midnight(now) ? hm(since) : yest ? `yesterday at ${hm(since)}` : `${sd.toLocaleDateString('en-GB', { weekday: 'long' })} at ${hm(since)}`;
     $('away').innerHTML = `<section class="card away"><span class="ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><p><b>While you were away</b></p><p>Since you last looked (${when}), Onur answered ${n} question${n === 1 ? '' : 's'} and got ${ok} right. Mostly ${esc(top)}.</p></div></section>`;
   })();
-  const seen = () => { P.seen = Date.now(); saveP(); };
+  const seen = () => saveP({ seen: Date.now() });
   setInterval(seen, 30e3); addEventListener('pagehide', seen); document.addEventListener('visibilitychange', () => { if (document.hidden) seen(); });
 
   /* routine editing */
-  const changed = () => { saveP(); cache.clear(); CHAL.clear(); MIR = null; dirty = true; tick(); };
-  for (const k of Object.keys(DEF)) if (k !== 'days') $('r-' + k).addEventListener('change', e => { if (/^\d\d:\d\d$/.test(e.target.value)) { P.r[k] = e.target.value; changed(); } });
+  const changed = update => { saveP(update); cache.clear(); CHAL.clear(); MIR = null; dirty = true; tick(); };
+  for (const k of Object.keys(DEF)) if (k !== 'days') $('r-' + k).addEventListener('change', e => { if (/^\d\d:\d\d$/.test(e.target.value)) changed(latest => { latest.r[k] = e.target.value; }); });
   $('dows').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return; const d = +b.dataset.d, on = P.r.days.includes(d);
-    P.r.days = on ? P.r.days.filter(x => x !== d) : [...P.r.days, d]; b.setAttribute('aria-pressed', String(!on)); changed();
+    const b = e.target.closest('button'); if (!b) return; const d = +b.dataset.d;
+    changed(latest => { latest.r.days = latest.r.days.includes(d) ? latest.r.days.filter(x => x !== d) : [...latest.r.days, d]; }); b.setAttribute('aria-pressed', String(P.r.days.includes(d)));
   });
-  $('off').addEventListener('change', e => { const k = dkey(new Date()); P.off = P.off.filter(x => x !== k); if (e.target.checked) P.off.push(k); changed(); });
-  $('mot').addEventListener('change', e => { motion = e.target.checked; P.motion = motion; saveP(); setMotion(); tick(); });
-  $('clean').checked = !!P.clean; $('clean').addEventListener('change', e => { P.clean = e.target.checked; saveP(); dirty = true; tick(); });
+  $('off').addEventListener('change', e => { const k = dkey(new Date()); changed(latest => { latest.off = latest.off.filter(x => x !== k); if (e.target.checked) latest.off.push(k); }); });
+  $('mot').addEventListener('change', e => { motion = e.target.checked; saveP({ motion }); setMotion(); tick(); });
+  $('clean').checked = !!P.clean; $('clean').addEventListener('change', e => { saveP({ clean: e.target.checked }); dirty = true; tick(); });
   playEl.addEventListener('click', () => tour ? stopTour() : startTour());
   /* the 3D room (onur3d/) sits over the pixel room; remembered in P */
   const d3El = $('d3'), set3d = on => { let f = room.querySelector('iframe.d3'); if (on && !f) { f = document.createElement('iframe'); f.className = 'd3'; f.title = 'Onur in 3D'; f.src = 'onur3d/index.html?embed'; room.prepend(f); } if (!on && f) f.remove(); d3El.setAttribute('aria-pressed', on); d3El.textContent = on ? 'Pixel' : '3D'; };
-  d3El.addEventListener('click', () => { P.d3 = P.d3 === false; saveP(); set3d(P.d3); }); if (P.d3 !== false) set3d(true);   /* 3D unless switched off */
+  d3El.addEventListener('click', () => { saveP(latest => { latest.d3 = latest.d3 === false; }); set3d(P.d3); }); if (P.d3 !== false) set3d(true);   /* 3D unless switched off */
   if (popEl) popEl.addEventListener('click', popOut);
 
   /* Archeron saves in another tab or window → the storage event fires here; a 1-second check covers the rest */
