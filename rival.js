@@ -475,7 +475,7 @@
   /* ---------- Onur talks like Runo: lowercase, "bro", "ngl", roasts with swearing (clean mode tones it down).
      Short lines for his sticky note, longer ones on the page, all from your real numbers. ---------- */
   const SHORT = { 'English Language': 'eng lang', 'English Literature': 'eng lit', 'Computer Science': 'comp sci', 'Business Studies': 'business' };
-  const CLEAN = [[/fucking/g, 'freaking'], [/fuck/g, 'frick'], [/shit/g, 'stuff'], [/ass\b/g, 'butt'], [/damn/g, 'dang'], [/hell\b/g, 'heck'], [/wtf/g, 'wth']];
+  const CLEAN = [[/fucking/g, 'freaking'], [/fuck/g, 'frick'], [/shit/g, 'stuff'], [/\bass\b/g, 'butt'], [/damn/g, 'dang'], [/\bhell\b/g, 'heck'], [/wtf/g, 'wth']];
   const voice = s => P.clean ? CLEAN.reduce((a, [re, to]) => a.replace(re, to), s) : s;
   const vary = (list, now, salt) => list[(Math.floor(now / 36e5) + hash(salt)) % list.length];   /* changes by the hour, not every second */
   let TALK = [];
