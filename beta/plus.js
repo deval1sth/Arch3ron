@@ -1150,14 +1150,14 @@ const hubTool = (tab, ic, name, sub, act = 'go') => ({ tab, ic, name, sub, act }
 /* the Mocks hub: the bat in the middle, the tools as glowing orbs on a ring joined by dotted lines; they pop in clockwise
    (html.rm skips that). Under 640px it becomes a two-column grid. */
 const ORB_C = ['#2f55e4', '#e0457f', '#8a4fe0', '#0f9a94', '#f06418', '#1f9d55', '#c98a00', '#d93a3a'];
-function mockOrbs(title, sub, list) {
+function mockOrbs(title, sub, list, emblem = 'bat') {
   const n = list.length, pos = list.map((_, i) => { const a = (i / n) * 2 * Math.PI; return [50 + 40 * Math.sin(a), 50 - 39 * Math.cos(a)]; });
   const NS = 'http://www.w3.org/2000/svg', lines = document.createElementNS(NS, 'svg'), poly = document.createElementNS(NS, 'polygon');
   lines.setAttribute('class', 'orb-lines'); lines.setAttribute('viewBox', '0 0 100 100'); lines.setAttribute('preserveAspectRatio', 'none'); lines.setAttribute('aria-hidden', 'true');
   poly.setAttribute('points', pos.map(p => p.join(',')).join(' ')); lines.append(poly);
   return h('div', { class: 'orbhub' }, lines,
-    h('div', { class: 'orb-core' }, emblemEl('bat', 'orb-bat'), h('h1', null, title), h('p', null, sub)),
-    list.map((t, i) => h('button', { type: 'button', class: 'orb', 'data-act': t.act, 'data-tab': t.tab, style: `left:${pos[i][0].toFixed(2)}%;top:${pos[i][1].toFixed(2)}%;--c:${ORB_C[i % ORB_C.length]};--i:${i}` },
+    h('div', { class: 'orb-core' }, emblemEl(emblem, 'orb-bat'), h('h1', null, title), h('p', null, sub)),
+    list.map((t, i) => h('button', { ...t.attrs, type: 'button', class: 'orb', 'data-act': t.act, 'data-tab': t.tab, style: `left:${pos[i][0].toFixed(2)}%;top:${pos[i][1].toFixed(2)}%;--c:${ORB_C[i % ORB_C.length]};--i:${i}` },
       h('span', { class: 'orb-ball' }, icon(t.ic)), h('b', null, t.name), h('small', null, t.sub))));
 }
 function vMocks() {

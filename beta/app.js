@@ -722,12 +722,10 @@ function vLearn() {
     !nx && !fx && hard[0] && atRow('reset', `Another go: ${LEARN.name(hard[0])}`, 'Below 60% lately', 'drill', { 'data-topic': hard[0] })].filter(Boolean);
   const gaps = GAP_PICK && typeof gapLeft === 'function' ? mySubjects().filter(s => testable(s.id).length >= 3) : [];
   return h('div', { class: 'stack' },
-    hero('Learn', 'Practice that sticks', 'Every subject has lessons, practice and exam questions. Wrong answers come back until they stick.'),
+    mockOrbs('Learn', 'Practice that sticks', mySubjects().map(s => { const ids = topicsFor(s.id);
+      return { act: 'subject', ic: s.icon, name: s.name, sub: `${masteredIn(ids)} of ${ids.length} mastered`, attrs: { 'data-track': s.id } }; })),
     learnSummary(),
     next.length > 0 && h('section', { class: 'card also' }, h('p', { class: 'eyebrow' }, 'Next for you'), h('div', { class: 'at-list' }, next)),
-    h('div', { class: 'sgrid' }, mySubjects().map(s => { const ids = topicsFor(s.id);
-      return tilt(h('button', { type: 'button', class: 'scard', 'data-act': 'subject', 'data-track': s.id },
-        h('span', { class: 'lc-ic' }, icon(s.icon)), h('b', null, s.name), h('small', null, `${masteredIn(ids)} of ${ids.length} mastered`), bar(ids.length ? masteredIn(ids) / ids.length * 100 : 0))); })),
     h('div', { class: 'row tools-row' }, B([icon('compass'), 'Mixed practice'], 'drill', 'ghost', { 'data-track': 'all' }), typeof gapLeft === 'function' && B([icon('target'), 'Find your gaps'], 'gapPick', 'ghost' + (GAP_PICK ? ' on' : ''), { 'aria-expanded': String(GAP_PICK) }),
       B([icon('cards'), allDue() ? `Flashcards · ${allDue()}` : 'Flashcards'], 'go', 'ghost', { 'data-tab': 'cards' }), B([icon('edit'), 'Plans and writing'], 'go', 'ghost', { 'data-tab': 'write' }),
       B([icon('listen'), 'Listen'], 'go', 'ghost', { 'data-tab': 'listen' }), B([icon('book'), 'All guides'], 'go', 'ghost', { 'data-tab': 'study' })),
@@ -972,17 +970,16 @@ function vProfile() {
 }
 /* ---------- Toolkit ---------- */
 function vTools() {
-  const tool = (tab, ic, name, sub, extra = {}) => tilt(h('button', Object.assign({ type: 'button', class: 'tool', 'data-act': 'go', 'data-tab': tab }, extra), h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
+  const tool = (tab, ic, name, sub) => ({ act: 'go', tab, ic, name, sub });
   return h('div', { class: 'stack' },
-    hero('Toolkit', 'Everything else', 'Here when you need it.'),
-    ME.card(),
-    h('div', { class: 'tools' },
+    mockOrbs('Toolkit', 'Here when you need it', [
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
       tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
       tool('profile', 'star', 'Profile', `${badgeCount()} badges · emblem and mastery`),
       tool('me', 'user', 'Settings', 'Subjects, grades, timer, backup'),
       tool('friends', 'user', 'Friends', `${S.friends.length} ${S.friends.length === 1 ? 'friend' : 'friends'} · this week's effort`),
-      tool('lab', 'shield', 'Experimental', labOpen() ? 'Unlocked on this device' : 'Locked')));
+      tool('lab', 'shield', 'Experimental', labOpen() ? 'Unlocked on this device' : 'Locked')]),
+    ME.card());
 }
 
 /* Today's plan (manual ticking, finishers) */
