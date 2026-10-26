@@ -846,7 +846,7 @@
       for (const sub of LEARN.SUBJECTS) for (let i = 0; i < sub.topics.length; i++) ids.set(sub.topics[i], { track: sub.id, n: Math.min(24, Math.max(1, Math.ceil((i + 1) * 24 / sub.topics.length))) });
       for (let i = 0; i < paper.length; i++) {
         const q = paper[i], key = q.id, mapped = ids.get(key), u = roll();
-        const ol = lv.get(key), onurP = ol == null ? 0 : clamp(ol, 0, 1);
+        const ol = lv.get(key), onurP = ol == null ? .25 : clamp(ol, 0, 1);   /* a topic he has never met: a guess */
         if (u < onurP) scores.onur++;
         if (L && mapped) for (const [coach, name] of Object.entries(coaches)) {
           if (!L.has(coach)) continue;
@@ -860,7 +860,7 @@
       let latest = {}; try { const v = JSON.parse(read(PREF)); if (v && typeof v === 'object' && !Array.isArray(v)) latest = v; } catch (e) {}
       const all = latest.weeklyTests && typeof latest.weeklyTests === 'object' ? latest.weeklyTests : {};
       if (all[w] && all[w].onur != null) return;
-      all[w] = Object.assign({}, all[w] || {}, scores, { answers: answers.map(a => ({ q: a.q, answer: a.answer, ok: a.ok })), d: dateKey(new Date(now)) });
+      all[w] = Object.assign({}, all[w] || {}, scores, { answers: answers.map(a => ({ q: a.q, answer: a.answer, ok: a.ok })), d: dkey(new Date(now)) });
       latest.weeklyTests = all; write(PREF, JSON.stringify(latest));
     }
   };
