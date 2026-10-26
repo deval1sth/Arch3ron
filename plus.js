@@ -1146,7 +1146,20 @@ function nextMock() {
   });
   return rows.sort((a, b) => b.w - a.w)[0];
 }
-const hubTool = (tab, ic, name, sub, act = 'go') => tilt(h('button', { type: 'button', class: 'tool', 'data-act': act, 'data-tab': tab }, h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
+const hubTool = (tab, ic, name, sub, act = 'go') => ({ tab, ic, name, sub, act });
+/* the Mocks hub: the bat in the middle, the tools as glowing orbs on a ring joined by dotted lines; they pop in clockwise
+   (html.rm skips that). Under 640px it becomes a two-column grid. */
+const ORB_C = ['#2f55e4', '#e0457f', '#8a4fe0', '#0f9a94', '#f06418', '#1f9d55', '#c98a00', '#d93a3a'];
+function mockOrbs(title, sub, list) {
+  const n = list.length, pos = list.map((_, i) => { const a = (i / n) * 2 * Math.PI; return [50 + 40 * Math.sin(a), 50 - 39 * Math.cos(a)]; });
+  const NS = 'http://www.w3.org/2000/svg', lines = document.createElementNS(NS, 'svg'), poly = document.createElementNS(NS, 'polygon');
+  lines.setAttribute('class', 'orb-lines'); lines.setAttribute('viewBox', '0 0 100 100'); lines.setAttribute('preserveAspectRatio', 'none'); lines.setAttribute('aria-hidden', 'true');
+  poly.setAttribute('points', pos.map(p => p.join(',')).join(' ')); lines.append(poly);
+  return h('div', { class: 'orbhub' }, lines,
+    h('div', { class: 'orb-core' }, emblemEl('bat', 'orb-bat'), h('h1', null, title), h('p', null, sub)),
+    list.map((t, i) => h('button', { type: 'button', class: 'orb', 'data-act': t.act, 'data-tab': t.tab, style: `left:${pos[i][0].toFixed(2)}%;top:${pos[i][1].toFixed(2)}%;--c:${ORB_C[i % ORB_C.length]};--i:${i}` },
+      h('span', { class: 'orb-ball' }, icon(t.ic)), h('b', null, t.name), h('small', null, t.sub))));
+}
 function vMocks() {
   const days = daysToMocks(), R = readiness(), fx = fixCount(), nm = nextMock(), run = S.exam && paperOf(S.exam.pid);
   const rows = (m => m.length ? m : SUBJ)(SUBJ.filter(s => mySubjects().some(x => x.subj === s))).map(s => ({ s, p: predict(s), aim: aimOf(s) }))   /* only your subjects */;
@@ -1155,22 +1168,21 @@ function vMocks() {
     : [h('p', null, nm.p ? `${nm.s}: you average ${nm.p.pc}%, and grade ${nm.aim} needs about ${boundFor(nm.s, nm.aim)}%.` : `${nm.s}: no paper yet, so you cannot know where you stand. One timed paper fixes that.`),
       B([icon('flame'), `Sit a timed ${nm.s} paper`], 'mockGo', 'primary', { 'data-subj': nm.s })];
   return h('div', { class: 'stack dash mockhub' },
-    hero('Mocks', days > 0 ? `${days} day${days === 1 ? '' : 's'} to go` : days === 0 ? 'Mocks start today' : 'Mock season', `Your mocks start on ${fmtDate(S.mock)}. You are ${R.pct}% ready.`),
+    mockOrbs('Mocks', `${fmtDate(S.mock)} · ${R.pct}% ready`, [
+      hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
+      typeof vGradeTest === 'function' && hubTool('gtest', 'trophy', 'Grade tests', 'Fifteen questions at one grade'),
+      typeof vExaminer === 'function' && hubTool('examiner', 'mark', 'Be the examiner', 'Mark real-style answers'),
+      typeof vForecast === 'function' && hubTool('forecast', 'curve', 'Mock-day memory', fcLine()),
+      hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
+      hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades and marks`),
+      hubTool('wrapped', 'star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
+      labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')].filter(Boolean)),
     card('Do this next', h('span', { class: 'pill' }, 'moves your grades most'), ...doNext, h('div', { class: 'row' }, B('Choose a different paper', 'go', 'link', { 'data-tab': 'exam' }))),
     card('Predicted grades', B('Details', 'go', 'link sm', { 'data-tab': 'stats' }),
       h('ul', { class: 'mg' }, rows.map(({ s, p, aim }) => h('li', { class: p && typeof p.g === 'number' && p.g >= aim ? 'ok' : '' },
         h('b', null, s), h('span', { class: 'mg-bar', role: 'img', 'aria-label': p ? `${p.pc}%, aim about ${boundFor(s, aim)}%` : 'no paper yet' }, h('i', { style: `width:${p ? p.pc : 0}%` }), h('em', { style: `left:${boundFor(s, aim)}%` })),
         h('span', { class: 'mg-g' }, p ? String(p.g) : '–'), h('small', null, `aim ${aim}`)))),
-      h('p', { class: 'muted xs' }, 'From your last 3 papers in each subject. The line on each bar is roughly where your aim grade starts.')),
-    h('div', { class: 'tools' },
-      hubTool('exam', 'edit', 'Exam practice', S.exam ? 'Paper in progress · carry on' : 'Timed mocks and practice papers'),
-      typeof vGradeTest === 'function' && hubTool('gtest', 'trophy', 'Grade tests', 'Fifteen questions at one grade'),
-      typeof vExaminer === 'function' && hubTool('examiner', 'mark', 'Be the examiner', 'Mark real-style answers, see what earns marks'),
-      typeof vForecast === 'function' && hubTool('forecast', 'curve', 'Mock-day memory', fcLine()),
-      hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
-      hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades, marks and streaks`),
-      hubTool('wrapped', 'star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
-      labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')));
+      h('p', { class: 'muted xs' }, 'From your last 3 papers in each subject. The line on each bar is roughly where your aim grade starts.')));
 }
 
 /* ---------- Your week, wrapped: the week as a story, a slide at a time ---------- */
