@@ -110,6 +110,7 @@
       const tp = st.topics.find(t => t.track === s.track && !t.learned);
       if (tp) Object.assign(tp, { learned: true, how: 'school', S: P.s0 * P.schoolS, last: i, learnedDay: i });
     }
+    if (run.mornings) run.mornings[i] = { topics: new Map(st.topics.map(t => [t.id, { learned: t.learned, S: t.S, last: t.last }])), energy: e };
     const view = {
       d, dayIx: i, daysLeft: total - i, weekday: info.weekday, school, sick, free: free.map(w => w.slice()), energy: r2(e),
       subjects: W.subjects.map(s => Object.assign({}, s)),
@@ -221,11 +222,29 @@
       const i = serial(d) - serial(W.start); if (!(i >= 0 && i < total)) return null;
       const key = typeof c === 'string' ? c : coach;
       let run = runs.get(key);
-      if (!run || run.coach !== coach) { run = { coach, name: typeof c === 'string' ? c : String(coach.name || 'coach'), st: born(W), res: [] }; runs.set(key, run); }
+      if (!run || run.coach !== coach) { run = { coach, name: typeof c === 'string' ? c : String(coach.name || 'coach'), st: born(W), res: [], mornings: [] }; runs.set(key, run); }
       while (run.res.length <= i) run.res.push(simDay(W, run, run.res.length, info(run.res.length), total));
       return run.res[i];
     }
-    return { world: W, days: total, start: W.start, mock: W.mock, has: c => usable(coachOf(c)), day, info: d => valid(d) ? info(serial(d) - serial(W.start)) : null };
+    function recallAt(c, d, id) {
+      const coach = coachOf(c); if (!usable(coach) || !valid(d)) return 0;
+      const i = serial(d) - serial(W.start); if (!(i >= 0 && i < total)) return 0;
+      const key = typeof c === 'string' ? c : coach;
+      let run = runs.get(key);
+      if (!run || run.coach !== coach) { run = { coach, name: typeof c === 'string' ? c : String(coach.name || 'coach'), st: born(W), res: [], mornings: [] }; runs.set(key, run); }
+      while (run.res.length <= i) { const n = run.res.length; run.mornings[n] = { topics: new Map(run.st.topics.map(t => [t.id, { learned: t.learned, S: t.S, last: t.last }])), energy: run.st.energy }; run.res.push(simDay(W, run, n, info(n), total)); }
+      const tp = run.mornings[i].topics.get(id);
+      return tp && tp.learned ? recall(tp.S, i - tp.last) : 0;
+    }
+    function energyAt(c, d) {
+      const coach = coachOf(c); if (!usable(coach) || !valid(d)) return 1;
+      const i = serial(d) - serial(W.start); if (!(i >= 0 && i < total)) return 1;
+      const key = typeof c === 'string' ? c : coach; let run = runs.get(key);
+      if (!run || run.coach !== coach) { run = { coach, name: typeof c === 'string' ? c : String(coach.name || 'coach'), st: born(W), res: [], mornings: [] }; runs.set(key, run); }
+      while (run.res.length <= i) { const n = run.res.length; run.mornings[n] = { topics: new Map(run.st.topics.map(t => [t.id, { learned: t.learned, S: t.S, last: t.last }])), energy: run.st.energy }; run.res.push(simDay(W, run, n, info(n), total)); }
+      return run.mornings[i].energy;
+    }
+    return { world: W, days: total, start: W.start, mock: W.mock, has: c => usable(coachOf(c)), day, recallAt, energyAt, info: d => valid(d) ? info(serial(d) - serial(W.start)) : null };
   }
 
   /* a NEURONS day record cut at `now` (today: only what has happened yet), like NEURONS.fromPlan */

@@ -293,6 +293,7 @@
 </div>
 <section class="card" id="c30"></section>
 <section class="card lg" id="lg" hidden></section>
+<section class="card" id="weekly"></section>
 <div id="rlog"></div>
 <div class="grid">
   <section class="card"><h2>By subject today <small>answers · <span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
@@ -691,7 +692,7 @@
   let prev = null, lastSay = 0, lastYou = 0, lastMin = -1, dirty = true, cur = null, tour = null, FP = '';
   const hype = now => now - lastYou < 90e3;
   function tick() {
-    const now = Date.now(); cur = where(now, hype(now)); const p = cur.p;
+    const now = Date.now(); if (typeof RIVALTEST === 'object') RIVALTEST.mount($('weekly'), weeklyCfg); cur = where(now, hype(now)); const p = cur.p;
     if (!tour) { chipEl.textContent = cur.chip; dotEl.classList.toggle('on', cur.run.kind === 'study'); }
     const NN = neurons(midnight(now), now), you = NN.you, riv = NN.riv, top = Math.max(you, riv, NN.goal, 1), sign = Math.sign(you - riv);
     if (prev && !tour) {
@@ -835,6 +836,35 @@
     }
     tick();
   }
+  const weeklyCfg = {
+    subjects,
+    record(paper, answers, w) {
+      const L = league(), now = Date.now(), p = plan(midnight(now)), lv = levelsAt(p, now), seed = hash('archeron-weekly|' + w), roll = rng(seed);
+      const scores = { you: answers.filter(a => a.ok).length, onur: 0, claude: 0, codex: 0, anti: 0 };
+      const coaches = { COACH_CLAUDE: 'claude', COACH_CODEX: 'codex', COACH_ANTI: 'anti' };
+      const ids = new Map();
+      for (const sub of LEARN.SUBJECTS) for (let i = 0; i < sub.topics.length; i++) ids.set(sub.topics[i], { track: sub.id, n: Math.min(24, Math.max(1, Math.ceil((i + 1) * 24 / sub.topics.length))) });
+      for (let i = 0; i < paper.length; i++) {
+        const q = paper[i], key = q.id, mapped = ids.get(key), u = roll();
+        const ol = lv.get(key), onurP = ol == null ? 0 : clamp(ol, 0, 1);
+        if (u < onurP) scores.onur++;
+        if (L && mapped) for (const [coach, name] of Object.entries(coaches)) {
+          if (!L.has(coach)) continue;
+          const recall = L.recallAt(coach, dkey(new Date(now)), mapped.track + '.' + mapped.n);
+          const energy = L.energyAt(coach, dkey(new Date(now)));
+          const clock = new Date(now), hour = clock.getHours() + clock.getMinutes() / 60;
+          const focus = Math.max(.5, 1 - (1 - energy) * .2 - .05 * Math.max(0, hour - 21));
+          if (u < (.2 + .75 * recall) * focus) scores[name]++;
+        }
+      }
+      let latest = {}; try { const v = JSON.parse(read(PREF)); if (v && typeof v === 'object' && !Array.isArray(v)) latest = v; } catch (e) {}
+      const all = latest.weeklyTests && typeof latest.weeklyTests === 'object' ? latest.weeklyTests : {};
+      if (all[w] && all[w].onur != null) return;
+      all[w] = Object.assign({}, all[w] || {}, scores, { answers: answers.map(a => ({ q: a.q, answer: a.answer, ok: a.ok })), d: dateKey(new Date(now)) });
+      latest.weeklyTests = all; write(PREF, JSON.stringify(latest));
+    }
+  };
+  if (typeof RIVALTEST === 'object') RIVALTEST.mount($('weekly'), weeklyCfg);
   if (typeof RIVALLOG === 'object') { RIVALLOG.mount($('rlog')); RIVALLOG.onChange(() => { NC.clear(); NC.live = null; dirty = true; tick(); }); }
   addEventListener('storage', e => { if (!e.key || e.key === KEY || e.key === 'archeron-profiles') refresh(); });
   setInterval(() => { if (Date.now() - lastRefresh > 900) refresh(); }, 1000);
