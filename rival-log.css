@@ -1,0 +1,31 @@
+/* Log UI for Onur – matches rival.css theme */
+/* Prefix all classes with rl- */
+.rl-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.rl-card h2{margin:0 0 12px;font:700 15px/1.2 var(--head);color:var(--t)}
+.rl-list{margin:0;padding:0;list-style:none}
+.rl-item{border-top:1px solid var(--line2);padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.rl-item:first-child{border-top:none}
+.rl-meta{font-size:13px;color:var(--m)}
+.rl-actions{display:flex;gap:8px}
+/* primary button uses red accent */
+.rl-btn{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;color:var(--t);font-size:13px;cursor:pointer;user-select:none}
+.rl-primary{background:var(--red, #ff6b6b);border-color:var(--red, #ff6b6b);color:#fff}
+@media (prefers-reduced-motion: no-preference){
+  .rl-item{animation:rl-fade-in .4s both}
+}
+.rl-btn:hover{background:var(--panel)}
+.rl-form{display:grid;gap:12px;margin-top:14px}
+.rl-form label{font-size:13px;color:var(--m);display:grid;gap:4px}
+.rl-form input,.rl-form select{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 8px;color:var(--t)}
+.rl-note{font-size:12px;color:var(--dim);margin-top:6px}
+
+/* kind chips */
+.rl-kinds{display:flex;gap:6px;flex-wrap:wrap}
+.rl-chip{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:4px 8px;color:var(--t);cursor:pointer;font-size:13px}
+.rl-chip.active{background:var(--riv);border-color:var(--riv);color:var(--bg)}
+
+/* delete pending state */
+.rl-delete-pending{background:var(--red, #ff6b6b);border-color:var(--red, #ff6b6b);color:#fff}
+
+@keyframes rl-fade-in{from{opacity:0}to{opacity:1}}
+

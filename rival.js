@@ -185,8 +185,37 @@
     return lv;
   }
   const doneBy = (p, now) => { let lo = 0, hi = p.ans.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (p.ans[mid].t <= now) lo = mid + 1; else hi = mid; } return lo; };
+  /* ---------- NEURONS: the score. rival-neurons.js does the maths, rival-log.js holds study done outside the app ---------- */
+  const HAS_N = typeof NEURONS === 'object' && NEURONS && typeof NEURONS.day === 'function';
+  const NC = new Map();   /* finished days only; cleared when your progress or your log changes */
+  const logFor = k => typeof RIVALLOG === 'object' ? RIVALLOG.entries(k) : [];
+  function youRec(k) {
+    const r = NEURONS.fromState(S || {}, k, logFor(k));
+    r.schoolDay = (Array.isArray(P.r.days) ? P.r.days : DEF.days).includes(new Date(k + 'T12:00').getDay());
+    return r;
+  }
+  /* Onur: his answers from the simulated day, plus his lessons, papers etc. arriving through the day rather than all at midnight */
+  function onurRec(t0, now) {
+    const p = plan(t0), n = t0 === midnight(now) ? doneBy(p, now) : p.ans.length, f = p.ans.length ? n / p.ans.length : 1;
+    const r = NEURONS.fromPlan(p, now), x = NEURONS.onurExtras(p.k);
+    for (const k of ['written', 'lessons', 'guides', 'examiner', 'revenge', 'onTime', 'newTopics']) r[k] = (r[k] || 0) + Math.round((x[k] || 0) * f);
+    r.log = (x.log || []).filter(e => !e.at || e.at <= now); r.planned = f >= 1 ? x.planned : null;
+    return r;
+  }
+  function neurons(t0, now) {
+    const k = dkey(new Date(t0)), live = t0 === midnight(now);
+    if (!HAS_N) { const p = plan(t0); return { you: dayStats(k).qa, riv: live ? doneBy(p, now) : p.ans.length, goal: p.goal }; }
+    if (!live && NC.has(k)) return NC.get(k);
+    if (live && NC.live && NC.live.k === k && now - NC.live.at < 5000) return NC.live.v;
+    const prior = rec => Array.from({ length: 7 }, (_, i) => rec(midnight(t0, -i - 1)));
+    const day = midnight(t0, 1), you = NEURONS.day(youRec(k), prior(t => youRec(dkey(new Date(t))))).total;
+    const riv = NEURONS.day(onurRec(t0, now), prior(t => onurRec(t, day))).total;
+    const v = { you: Math.round(you), riv: Math.round(riv), goal: live ? Math.round(NEURONS.day(onurRec(t0, day), prior(t => onurRec(t, day))).total) : 0 };
+    if (live) NC.live = { k, at: now, v }; else NC.set(k, v);
+    return v;
+  }
   const dayResult = (t0, now) => {
-    const p = plan(t0), you = dayStats(p.k).qa, riv = t0 === midnight(now) ? doneBy(p, now) : p.ans.length;
+    const { you, riv } = t0 > midnight(now) ? { you: 0, riv: 0 } : neurons(t0, now);
     return { t0, you, riv, res: t0 > midnight(now) ? 'later' : t0 === midnight(now) ? 'live' : you > riv ? 'W' : riv > you ? 'L' : 'T' };
   };
 
@@ -250,6 +279,7 @@
     <div class="keys"><span><i style="background:var(--you)"></i>You</span><span><i style="background:var(--riv)"></i>Onur</span><span><i class="r-W"></i>W win</span><span><i class="r-L"></i>L loss</span></div>
     <p class="tally" id="wkTally"></p><p class="sub" id="wkMore"></p></section>
 </div>
+<div id="rlog"></div>
 <div class="grid">
   <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
   <section class="card"><h2>Onur's homework <small>your mistakes today</small></h2><div id="hw"></div></section>
@@ -308,7 +338,7 @@
       g += d.res === 'later' ? `<rect x="${cx - 14.5}" y="96" width="29" height="28" rx="4" fill="none" stroke="rgba(237,240,252,.14)" stroke-dasharray="3 3"/>` : bar(d.you, cx - 14.5, 'var(--you)') + bar(d.riv, cx + 1.5, 'var(--riv)');
       g += `<text x="${cx}" y="142" text-anchor="middle" class="${d.res === 'live' ? 'tday' : ''}">${d.res === 'live' ? 'Today' : wday(d.t0)}</text>`;
     });
-    $('week').innerHTML = `<svg viewBox="0 0 330 150" role="img" aria-label="Answers each day this week, you and Onur">${g}</svg>`;
+    $('week').innerHTML = `<svg viewBox="0 0 330 150" role="img" aria-label="Neurons each day this week, you and Onur">${g}</svg>`;
     const lead = d => d.you > d.riv ? 'you' : d.riv > d.you ? 'riv' : '';
     $('wkRes').innerHTML = days.map(d => d.res === 'later' ? '<i class="r-later">·</i>' : d.res === 'live' ? `<i class="r-live ${lead(d)}" title="Today so far">now</i>`
       : `<i class="r-${d.res}" title="${wday(d.t0)}: you ${d.you}, Onur ${d.riv}">${d.res}</i>`).join('');
@@ -366,7 +396,7 @@
     const tile = (k, v, s, cls = '') => `<div class="tile ${cls}"><small>${k}</small><b>${v}</b><span>${s}</span></div>`;
     $('tiles').innerHTML = [
       tile('Streak', st ? `${st.n} ${st.r === 'W' ? 'win' : 'loss'}${st.n === 1 ? '' : st.r === 'W' ? 's' : 'es'}` : '–', st ? (st.n === 1 ? (st.r === 'W' ? 'You won yesterday.' : 'Onur won yesterday.') : st.r === 'W' ? `You've won the last ${st.n} days.` : `Onur has won the last ${st.n} days.`) : H.length ? 'No streak: yesterday was a draw.' : 'No finished days yet.', st ? (st.r === 'W' ? 'win' : 'lose') : ''),
-      t.riv >= t.you ? tile('Comeback watch', `${need} answer${need === 1 ? '' : 's'}`, `to overtake Onur today. About ${Math.ceil(need / 2)} min at 2 a minute${going ? ', and he is still adding about 2 a minute' : ''}.`, 'lose')
+      t.riv >= t.you ? tile('Comeback watch', `${need} neuron${need === 1 ? '' : 's'}`, `to overtake Onur today. A right answer is worth 1.5, a lesson 15, a logged past paper 60 or more${going ? '. He is studying right now' : ''}.`, 'lose')
         : tile('Comeback watch', `${t.you - t.riv} ahead`, `Onur needs ${t.you - t.riv + 1} to pass you${going ? ', and he is studying right now' : ''}.`, 'win'),
       tile('Accuracy today', `${pct(ts.qr, ts.qa)} vs ${pct(done.filter(a => a.ok).length, n)}`, 'You vs Onur, share of answers right.', ts.qa && n ? (ts.qr / ts.qa >= done.filter(a => a.ok).length / n ? 'win' : 'lose') : ''),
       tile('Best day', `${youBest} vs ${onBest}`, 'Your record day vs Onur\'s.', youBest >= onBest ? 'win' : 'lose'),
@@ -544,7 +574,7 @@
   function tick() {
     const now = Date.now(); cur = where(now, hype(now)); const p = cur.p;
     if (!tour) { chipEl.textContent = cur.chip; dotEl.classList.toggle('on', cur.run.kind === 'study'); }
-    const you = youToday(), riv = cur.n, top = Math.max(you, riv, p.goal, 1), sign = Math.sign(you - riv);
+    const NN = neurons(midnight(now), now), you = NN.you, riv = NN.riv, top = Math.max(you, riv, NN.goal, 1), sign = Math.sign(you - riv);
     if (prev && !tour) {
       let ev = null;
       if (you > prev.you && now - lastYou > 10 * MIN) ev = ['glance', pick(START)];
@@ -562,7 +592,7 @@
     $('verdict').textContent = d > 0 ? `You're ${d} ahead.` : d < 0 ? `Onur is ${-d} ahead${going ? ' and still going' : ''}.` : you ? 'Dead level.' : 'Neither of you has started yet.';
     const MI = mirror();
     $('says').textContent = TALK.length ? '“' + taunt(now).f + '”' : '';
-    $('goal').textContent = `Onur's goal today is ${p.goal} answers at about ${Math.round(p.acc * 100)}% right. He started as a copy of ${MI.days ? 'your first week' : 'a typical start'} (${Math.round(MI.base)} a day, ${Math.round(MI.acc * 100)}% right) and gets a little better every day until your mocks, whatever you do.`;
+    $('goal').textContent = `Scores are in neurons: answers, lessons, papers, revision you log below and good habits all count. Onur's goal today is ${p.goal} answers (about ${NN.goal} neurons) at about ${Math.round(p.acc * 100)}% right. He started as a copy of ${MI.days ? 'your first week' : 'a typical start'} (${Math.round(MI.base)} a day, ${Math.round(MI.acc * 100)}% right) and gets a little better every day until your mocks, whatever you do.`;
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
@@ -682,10 +712,11 @@
       const old = MIR; MIR = null; TOPICS = null; const M = mirror(), fp = JSON.stringify([S.me && S.me.subs, S.mock]);
       if (!old || fp !== FP || old.born !== M.born || old.base !== M.base || old.acc !== M.acc) { FP = fp; SUBS = null; cache.clear(); CHAL.clear(); }
       else { const k0 = dkey(new Date()); for (const k of [...cache.keys()]) if (k >= k0) cache.delete(k); }
-      dirty = true;
+      NC.clear(); NC.live = null; dirty = true;
     }
     tick();
   }
+  if (typeof RIVALLOG === 'object') { RIVALLOG.mount($('rlog')); RIVALLOG.onChange(() => { NC.clear(); NC.live = null; dirty = true; tick(); }); }
   addEventListener('storage', e => { if (!e.key || e.key === KEY || e.key === 'archeron-profiles') refresh(); });
   setInterval(() => { if (Date.now() - lastRefresh > 900) refresh(); }, 1000);
   tick(); SCENE.frame(Date.now(), cur.info, motion); startLoop();
