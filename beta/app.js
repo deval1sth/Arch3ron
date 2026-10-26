@@ -227,7 +227,7 @@ function read(k) { try { return localStorage.getItem(k); } catch (e) { return nu
     S = freshState(); bootNote = 'Saved data could not be read. A copy was kept and a fresh start made.';
   }
 })();
-let saveWarned = false;
+let saveWarned = false, RESTORE = null; /* a picked backup file waiting for Replace or Cancel */
 /* full storage: drop old unreadable copies, keeping the newest, so the real save fits */
 function freeSpace() { try { const old = Object.keys(localStorage).filter(k => k.includes('-unreadable-')).sort((a, b) => +a.split('-unreadable-')[1] - +b.split('-unreadable-')[1]); old.slice(0, -1).forEach(k => localStorage.removeItem(k)); return old.length > 1; } catch (e) { return false; } }
 /* warn again whenever saving fails after it had started working, not just once per visit */
@@ -1540,7 +1540,9 @@ function vMe() {
           h('div', { class: 'chips' }, TEXT_SIZES.map(([v, l]) => chip(l, (S.text || 'normal') === v, 'textSize', { 'data-v': v })))),
         card('Backup', h('span', { class: 'muted' }, backupLine()), h('p', { class: 'muted xs' }, 'Progress lives only on this device. Back up weekly: on a phone, choose Save to Files or Google Drive. Restore it on any device.'),
           h('div', { class: 'row' }, B([icon('download'), 'Download'], 'exp', 'primary'),
-            h('label', { class: 'btn ghost' }, icon('upload'), 'Restore', h('input', { type: 'file', accept: '.json,application/json', 'data-act': 'imp', class: 'sr' })))),
+            h('label', { class: 'btn ghost' }, icon('upload'), 'Restore', h('input', { type: 'file', accept: '.json,application/json', 'data-act': 'imp', class: 'sr' }))),
+          RESTORE && h('div', { class: 'notice' }, icon('upload'), h('span', { class: 'grow' }, `${RESTORE.name}: ${RESTORE.days} study day${RESTORE.days === 1 ? '' : 's'}, ${RESTORE.items} topic${RESTORE.items === 1 ? '' : 's'} practised. Replace this device's progress with it?`),
+            B('Replace', 'impYes', 'primary sm'), B('Cancel', 'impNo', 'link sm'))),
         typeof rlogCard === 'function' && rlogCard(),
         card('Install', null, h('p', { class: 'muted xs' }, h('b', null, 'iPhone: '), 'Safari → Share → Add to Home Screen.', h('br'), h('b', null, 'Android: '), 'Chrome menu ⋮ → Install app.')),
         card('Start over', null, h('p', { class: 'muted xs' }, 'Wipes everything on this device. Download a backup first.'), B('Reset everything', 'reset', 'ghost danger')), h('p', { class: 'muted xs', style: 'text-align:center' }, '© 2026 Runo304. All rights reserved.'))));
@@ -1859,11 +1861,13 @@ const CHG = {
     file.text().then(t => {
       const data = JSON.parse(t);
       if (!data || typeof data !== 'object' || !('xp' in data || 'days' in data)) throw new Error('not a backup');
-      if (!confirm('Replace everything on this device with this backup?')) return;
-      S = normalize(data); DRAFT.grades = null; save(); checkAch(true); toast('Backup restored'); render();
+      /* asked on the page, not with confirm(): a switched-off dialog answers no and the restore silently did nothing */
+      RESTORE = { data, name: file.name, days: Object.keys(obj(data.days)).length, items: Object.keys(obj(data.items)).length }; render();
     }).catch(() => toast('That file is not an Archeron or Nightwatch backup')).finally(() => { el.value = ''; });
   }
 };
+ACT.impYes = () => { if (!RESTORE) return; S = normalize(RESTORE.data); RESTORE = null; DRAFT.grades = null; save(); checkAch(true); toast('Backup restored'); render(); };
+ACT.impNo = () => { RESTORE = null; render(); };
 
 Object.assign(ACT, EXACT, MPACT, STUDYACT, PLUSACT);
 ACT.swapKeep = el => { SWAP_KEEP.add(el.dataset.l); if (timerActive() && T.mode === 'focus') { T.swap = false; saveT(); } render(); };
