@@ -1287,6 +1287,19 @@ html.su-open{overflow:hidden}
   background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 22%,var(--card)),color-mix(in srgb,var(--c) 9%,var(--card)) 70%);
   border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent);box-shadow:0 0 24px color-mix(in srgb,var(--c) 28%,transparent);transition:transform .25s var(--spring),box-shadow .25s var(--ease)}
 .orb-ball .i{width:30px;height:30px}
+/* Learn: a thin arc round each subject orb fills as topics are mastered; never goes back down */
+.orb.prog .orb-ball{position:relative}
+.orb.prog .orb-ball::after{content:'';position:absolute;inset:-7px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p) * 1%),color-mix(in srgb,var(--c) 14%,transparent) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px))}
+.orbhub.sm{width:min(100%,600px);margin-bottom:28px}
+/* nine or more orbs: smaller balls and no subline, so neighbours never overlap */
+@media (min-width:641px){
+.orbhub.many{width:min(100%,760px);margin-bottom:24px}
+.orbhub.many .orb{width:110px;transform:translate(-50%,-28px)}
+.orbhub.many .orb-ball{width:54px;height:54px}
+.orbhub.many .orb-ball .i{width:22px;height:22px}
+.orbhub.many .orb b{font-size:13px}
+.orbhub.many .orb small{display:none}
+}
 .orb b{font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:-.01em}
 .orb small{color:var(--m);font-size:11.5px;line-height:1.3;max-width:150px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .orb:hover .orb-ball,.orb:focus-visible .orb-ball{transform:scale(1.07);box-shadow:0 0 34px color-mix(in srgb,var(--c) 45%,transparent)}

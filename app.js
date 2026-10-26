@@ -722,9 +722,9 @@ function vLearn() {
   const gaps = GAP_PICK && typeof gapLeft === 'function' ? mySubjects().filter(s => testable(s.id).length >= 3) : [];
   return h('div', { class: 'stack' },
     mockOrbs('Learn', 'Practice that sticks', mySubjects().map(s => { const ids = topicsFor(s.id);
-      return { act: 'subject', ic: s.icon, name: s.name, sub: `${masteredIn(ids)} of ${ids.length} mastered`, attrs: { 'data-track': s.id } }; })),
-    learnSummary(),
+      return { act: 'subject', ic: s.icon, name: s.name, sub: ids.length ? `${masteredIn(ids)} of ${ids.length} mastered` : 'Planning and tracking', pct: ids.length ? masteredIn(ids) / ids.length * 100 : null, attrs: { 'data-track': s.id } }; }), 'sm'),
     next.length > 0 && h('section', { class: 'card also' }, h('p', { class: 'eyebrow' }, 'Next for you'), h('div', { class: 'at-list' }, next)),
+    learnSummary(),
     h('div', { class: 'row tools-row' }, B([icon('compass'), 'Mixed practice'], 'drill', 'ghost', { 'data-track': 'all' }), typeof gapLeft === 'function' && B([icon('target'), 'Find your gaps'], 'gapPick', 'ghost' + (GAP_PICK ? ' on' : ''), { 'aria-expanded': String(GAP_PICK) }),
       B([icon('cards'), allDue() ? `Flashcards · ${allDue()}` : 'Flashcards'], 'go', 'ghost', { 'data-tab': 'cards' }), B([icon('edit'), 'Plans and writing'], 'go', 'ghost', { 'data-tab': 'write' }),
       B([icon('listen'), 'Listen'], 'go', 'ghost', { 'data-tab': 'listen' }), B([icon('book'), 'All guides'], 'go', 'ghost', { 'data-tab': 'study' })),
