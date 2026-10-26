@@ -214,7 +214,8 @@ function normalize(raw) {
 }
 
 let S, bootNote = '';
-function store(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+let storeErr = '';
+function store(k, v) { try { localStorage.setItem(k, v); storeErr = ''; return true; } catch (e) { storeErr = e && (e.code === 22 || e.code === 1014 || /quota/i.test(e.name)) ? 'full' : 'blocked'; return false; } }
 function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 (function load() {
   const raw = read(K);
@@ -227,7 +228,16 @@ function read(k) { try { return localStorage.getItem(k); } catch (e) { return nu
   }
 })();
 let saveWarned = false;
-function save() { if (!store(K, JSON.stringify(S)) && !saveWarned) { saveWarned = true; toast('Progress cannot be saved in this browser mode'); } }
+/* full storage: drop old unreadable copies, keeping the newest, so the real save fits */
+function freeSpace() { try { const old = Object.keys(localStorage).filter(k => k.includes('-unreadable-')).sort((a, b) => +a.split('-unreadable-')[1] - +b.split('-unreadable-')[1]); old.slice(0, -1).forEach(k => localStorage.removeItem(k)); return old.length > 1; } catch (e) { return false; } }
+/* warn again whenever saving fails after it had started working, not just once per visit */
+function save() {
+  const json = JSON.stringify(S);
+  if (store(K, json) || (storeErr === 'full' && freeSpace() && store(K, json))) { saveWarned = false; return; }
+  if (saveWarned) return;
+  saveWarned = true;
+  toast(storeErr === 'full' ? 'Browser storage is full, so progress is not saving right now' : 'Progress cannot be saved in this browser mode');
+}
 
 /* ---------- progress maths (everything here only ever counts up) ---------- */
 const target = s => s.kind !== 'train' ? 0 : S.deload ? Math.ceil(s.sets / 2) : s.sets;
