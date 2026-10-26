@@ -17,6 +17,11 @@
       const gap = Math.max(5, (P && P.gapMin) || 5);
       const weakTracks = new Set(subjects.filter(s => s.weak).map(s => s.track));
 
+      // Build a track -> human name map for readable notes
+      const nameOf = {};
+      for (let i = 0; i < subjects.length; i++) nameOf[subjects[i].track] = subjects[i].name;
+      const trackName = id => nameOf[id.split('.')[0]] || id.split('.')[0];
+
       // 2. Compute recall estimate R for each learned topic
       // For topics from start with lastDay == null, treat as faded
       const fading = topics
@@ -78,8 +83,11 @@
       let planNote = '';
 
       if (doPaper) {
-        // Pick subject for paper: prefer weak subject, or cycling
-        const paperSubject = subjects.find(s => s.weak) || subjects[view.dayIx % subjects.length];
+        // Pick subject for paper: rotate through weak subjects, then all subjects
+        const weakSubs = subjects.filter(s => s.weak);
+        const paperSubject = weakSubs.length
+          ? weakSubs[view.dayIx % weakSubs.length]
+          : subjects[view.dayIx % subjects.length];
         candidateBlocks.push({
           tasks: [{ kind: 'paper', track: paperSubject.track, min: 60 }]
         });
@@ -92,7 +100,7 @@
         const nTid = getQuizTopic();
         if (nTid) b2Tasks.push({ kind: 'notes', topic: nTid, min: 5 });
         if (b2Tasks.length) candidateBlocks.push({ tasks: b2Tasks });
-        planNote = 'Past paper ' + paperSubject.track + ', 5 reviews, notes';
+        planNote = 'Paper ' + (nameOf[paperSubject.track] || paperSubject.track) + ', 5 reviews, notes';
       } else if (doLearn) {
         const learnTopic = unlearned[0];
         // Block 1: Learn (20 min) + 2 quizzes (6 min) = 26 min
@@ -123,7 +131,7 @@
         if (notesTid2) b3Tasks.push({ kind: 'notes', topic: notesTid2, min: 4 });
         candidateBlocks.push({ tasks: b3Tasks });
 
-        planNote = 'Learn ' + learnTopic.id + ', 18 reviews, notes';
+        planNote = 'New ' + trackName(learnTopic.id) + ' topic, 18 reviews, notes';
       } else {
         // Regular day: 3 blocks of 27-29 min = ~83 min
         // Block 1: 9 quizzes (27 min)
