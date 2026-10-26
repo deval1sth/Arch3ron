@@ -279,6 +279,7 @@
     <div class="keys"><span><i style="background:var(--you)"></i>You</span><span><i style="background:var(--riv)"></i>Onur</span><span><i class="r-W"></i>W win</span><span><i class="r-L"></i>L loss</span></div>
     <p class="tally" id="wkTally"></p><p class="sub" id="wkMore"></p></section>
 </div>
+<section class="card" id="c30"></section>
 <div id="rlog"></div>
 <div class="grid">
   <section class="card"><h2>By subject today <small><span style="color:var(--you)">you</span> · <span style="color:var(--riv)">Onur</span></small></h2><div class="subs" id="subs"></div></section>
@@ -327,6 +328,13 @@
     $('dplan').textContent = `${p.school ? 'School day' : 'Day off'} · ${Math.floor(studyMin / 60)}h ${pad(studyMin % 60)}m of study`;
   }
 
+  /* the last 30 days in neurons (rival-chart.js draws it); days before your first study day are left out */
+  function draw30(now) {
+    if (typeof RIVALCHART !== "object") return;
+    const data = [];
+    for (let i = 29; i >= 0; i--) { const t0 = midnight(now, -i), k = dkey(new Date(t0)); if (FIRST && k >= FIRST) { const n = neurons(t0, now); data.push({ d: k, you: n.you, riv: n.riv }); } }
+    $("c30").hidden = !data.length; if (data.length) RIVALCHART.mount($("c30"), data);
+  }
   /* this week, Monday to Sunday: bars, a win or loss under each day, and the record */
   function drawWeek(now) {
     const mon = midnight(now, -((new Date(now).getDay() + 6) % 7)), days = Array.from({ length: 7 }, (_, i) => dayResult(midnight(mon, i), now));
@@ -596,7 +604,7 @@
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
-      talk(p, now); drawStrip(p); drawWeek(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawRevenge(); drawHours(now); drawBrains(now);
+      talk(p, now); drawStrip(p); drawWeek(now); draw30(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawRevenge(); drawHours(now); drawBrains(now);
       $('tdate').textContent = new Date(now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;
