@@ -975,7 +975,6 @@ function vTools() {
     hero('Toolkit', 'Everything else', 'Here when you need it.'),
     ME.card(),
     h('div', { class: 'tools' },
-      tilt(h('a', { class: 'tool', href: 'rival.html' }, h('span', { class: 'lc-ic' }, icon('flame')), h('b', null, 'Onur'), h('small', null, 'Your personalised study rival · see today’s race'))),
       tool('lists', 'check', 'Checklists', `${examReady()} topics exam-ready · every subject`),
       tool('plan', 'calendar', 'Plan', `${weekTarget()} sets a week${S.deload ? ' · deload' : ''} · tick today's sets`),
       tool('profile', 'star', 'Profile', `${badgeCount()} badges · emblem and mastery`),

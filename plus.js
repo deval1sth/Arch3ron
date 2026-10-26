@@ -33,7 +33,7 @@ function ladder(subj, pc, aim) {
 const medal = (g, cls = '') => h('span', { class: 'medal ' + cls }, h('b', null, String(g)), h('small', null, 'grade'));
 
 function predictCard() {
-  const rows = SUBJ.map(s => ({ s, p: predict(s), aim: aimOf(s) })), have = rows.filter(r => r.p), none = rows.filter(r => !r.p);
+  const rows = (m => m.length ? m : SUBJ)(SUBJ.filter(s => mySubjects().some(x => x.subj === s))).map(s => ({ s, p: predict(s), aim: aimOf(s) }))   /* only your subjects */, have = rows.filter(r => r.p), none = rows.filter(r => !r.p);
   const onTrack = have.filter(r => typeof r.p.g === 'number' && r.p.g >= r.aim).length, days = daysToMocks();
   return h('section', { class: 'card predict' },
     h('div', { class: 'card-h' }, h('h2', null, 'Predicted grades'), h('span', { class: 'pill' }, days > 0 ? `mocks in ${days} days` : 'mock season')),
@@ -1149,7 +1149,7 @@ function nextMock() {
 const hubTool = (tab, ic, name, sub, act = 'go') => tilt(h('button', { type: 'button', class: 'tool', 'data-act': act, 'data-tab': tab }, h('span', { class: 'lc-ic' }, icon(ic)), h('b', null, name), h('small', null, sub)));
 function vMocks() {
   const days = daysToMocks(), R = readiness(), fx = fixCount(), nm = nextMock(), run = S.exam && paperOf(S.exam.pid);
-  const rows = SUBJ.map(s => ({ s, p: predict(s), aim: aimOf(s) }));
+  const rows = (m => m.length ? m : SUBJ)(SUBJ.filter(s => mySubjects().some(x => x.subj === s))).map(s => ({ s, p: predict(s), aim: aimOf(s) }))   /* only your subjects */;
   const doNext = run ? [h('p', null, h('b', null, run.name.replace(/^PPP /, '')), ' is in progress.'), B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id })]
     : fx >= 5 ? [h('p', null, `${fx} things to fix first. Clear them before the next paper, or the same mistakes cost you marks again.`), B([icon('wrench'), 'Do the corrections'], 'go', 'primary', { 'data-tab': 'fix' })]
     : [h('p', null, nm.p ? `${nm.s}: you average ${nm.p.pc}%, and grade ${nm.aim} needs about ${boundFor(nm.s, nm.aim)}%.` : `${nm.s}: no paper yet, so you cannot know where you stand. One timed paper fixes that.`),
