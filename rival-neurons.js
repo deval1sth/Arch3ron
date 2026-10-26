@@ -70,7 +70,7 @@
   const startsOf = rec => {
     const blocks = blocksOf(rec).map(blockStart).filter(Number.isFinite);
     if (blocks.length) return blocks;
-    if (Number.isFinite(+rec.firstStudyAt)) return [+rec.firstStudyAt];
+    if (rec.firstStudyAt != null && +rec.firstStudyAt > 0) return [+rec.firstStudyAt];   /* null means no study, not 1 Jan 1970 */
     return answerRows(rec).map(answer => number(answer && answer.t)).filter(value => value > 0);
   };
   const hasSpacing = rec => {

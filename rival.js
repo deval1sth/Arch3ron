@@ -116,7 +116,9 @@
   function plan(t0) {
     const k = dkey(new Date(t0)); if (cache.has(k)) return cache.get(k);
     const dayIx = dateSerial(t0) - dateSerial(mirror().born), before = dayIx > 0 ? plan(midnight(t0, -1)).end : null;
-    const R = P.r, school = R.days.includes(new Date(t0).getDay()) && !P.off.includes(k);
+    /* sick days (rival-sick.js): about 1 day in 20 he stays home and studies nothing, never in the week around your mock */
+    const sick = typeof RIVALSICK === 'object' && dayIx >= 0 && Math.abs(dateSerial(t0) - dateSerial(mirror().mock)) >= 7 && RIVALSICK.isSick(k);
+    const R = P.r, school = R.days.includes(new Date(t0).getDay()) && !P.off.includes(k) && !sick;
     const wake = mins(school ? R.wake : R.wwake), dinner = mins(school ? R.dinner : R.wdinner), leave = mins(R.leave), home = mins(R.home);
     const bed = mins(school ? R.bed : R.wbed), lateBed = bed <= wake;
     const A = new Array(1440).fill('sleep'), fill = (a, b, kind) => { for (let m = clamp(a, 0, 1440); m < clamp(b, 0, 1440); m++) A[m] = kind; };
@@ -124,7 +126,7 @@
     if (school) { fill(wake, leave, 'ready'); fill(leave, home, 'school'); } else fill(wake, wake + 60, 'ready');
     fill(dinner, Math.min(dinner + 40, lateBed ? 1440 : bed), 'dinner');
 
-    const M = mirror(), pr = progAt(t0), goal = dayIx < 0 ? 0 : clamp(Math.round(M.base * (1 + GROW * pr)), 40, 400), acc = clamp(M.acc + SHARP * pr, .4, .96);
+    const M = mirror(), pr = progAt(t0), goal = dayIx < 0 || sick ? 0 : clamp(Math.round(M.base * (1 + GROW * pr)), 40, 400), acc = clamp(M.acc + SHARP * pr, .4, .96);
 
     let need = Math.ceil(goal * PACE / MIN), m = school ? home + 30 : wake + 90, n = 0;
     const free = x => x < 1440 && A[x] === 'free';
@@ -174,7 +176,7 @@
       studied += run.b - run.a;
     }
     for (const v of st.values()) v.k = Math.max(.05, v.k * (v.last === dayIx ? .99 : .975));   /* everything fades a little each day, what he left alone fades more */
-    const p = { k, t0, dayIx, school, wake, bed, dinner, leave, home, runs, ans, goal, acc, pr, A, miss, start, end: st };
+    const p = { k, t0, dayIx, sick, school, wake, bed, dinner, leave, home, runs, ans, goal, acc, pr, A, miss, start, end: st };
     if (t0 <= midnight(Date.now())) cache.set(k, p);
     return p;
   }
@@ -197,7 +199,7 @@
   /* Onur: his answers from the simulated day, plus his lessons, papers etc. arriving through the day rather than all at midnight */
   function onurRec(t0, now) {
     const p = plan(t0), n = t0 === midnight(now) ? doneBy(p, now) : p.ans.length, f = p.ans.length ? n / p.ans.length : 1;
-    const r = NEURONS.fromPlan(p, now), x = NEURONS.onurExtras(p.k);
+    const r = NEURONS.fromPlan(p, now), x = p.sick ? { log: [], planned: null } : NEURONS.onurExtras(p.k);
     for (const k of ['written', 'lessons', 'guides', 'examiner', 'revenge', 'onTime', 'newTopics']) r[k] = (r[k] || 0) + Math.round((x[k] || 0) * f);
     r.log = (x.log || []).filter(e => !e.at || e.at <= now); r.planned = f >= 1 ? x.planned : null;
     return r;
@@ -326,7 +328,7 @@
     const kinds = [...new Set(p.runs.map(r => r.kind))];
     $('legend').innerHTML = ['sleep', 'ready', 'school', 'study', 'break', 'dinner', 'free'].filter(k => kinds.includes(k)).map(k => `<span><i class="k-${k}"></i>${LABEL[k]}</span>`).join('');
     const studyMin = p.runs.filter(r => r.kind === 'study').reduce((a, r) => a + r.b - r.a, 0);
-    $('dplan').textContent = `${p.school ? 'School day' : 'Day off'} · ${Math.floor(studyMin / 60)}h ${pad(studyMin % 60)}m of study`;
+    $('dplan').textContent = `${p.sick ? `Off sick: "${voice(RIVALSICK.note(p.k))}"` : `${p.school ? 'School day' : 'Day off'} · ${Math.floor(studyMin / 60)}h ${pad(studyMin % 60)}m of study`}`;
   }
 
   /* the last 30 days in neurons (rival-chart.js draws it); days before your first study day are left out */
