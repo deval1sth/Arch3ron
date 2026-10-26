@@ -10,6 +10,8 @@
   const pad = n => String(n).padStart(2, '0');
   const dkey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   const midnight = (t, off = 0) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + off).getTime(); };
+  const dateSerial = t => { const d = new Date(t); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5; };
+  const wallTime = (t0, minute) => { const d = new Date(t0); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(minute / 60), minute % 60).getTime(); };
   const hm = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
   const mins = s => { const [h, m] = String(s).split(':').map(Number); return (h || 0) * 60 + (m || 0); };
   const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -82,10 +84,10 @@
     const first = Object.keys(S.days).filter(k => +S.days[k].qa > 0).sort().slice(0, 7);
     let qa = 0, qr = 0; for (const k of first) { qa += +S.days[k].qa || 0; qr += +S.days[k].qr || 0; }
     const born = FIRST ? new Date(FIRST + 'T00:00').getTime() : midnight(Date.now());
-    const mk = S.mock && /^\d{4}-\d\d-\d\d$/.test(S.mock) ? new Date(S.mock + 'T00:00').getTime() : born + 90 * 864e5;
-    return (MIR = { born, mock: Math.max(mk, born + 14 * 864e5), base: first.length ? clamp(qa / first.length, 40, 300) : 100, acc: qa >= 30 ? clamp(qr / qa, .4, .88) : .7, days: first.length });
+    const mk = S.mock && /^\d{4}-\d\d-\d\d$/.test(S.mock) ? new Date(S.mock + 'T00:00').getTime() : wallTime(born, 90 * 1440);
+    return (MIR = { born, mock: Math.max(mk, wallTime(born, 14 * 1440)), base: first.length ? clamp(qa / first.length, 40, 300) : 100, acc: qa >= 30 ? clamp(qr / qa, .4, .88) : .7, days: first.length });
   }
-  const progAt = t => { const M = mirror(); return clamp((t - M.born) / (M.mock - M.born), 0, 1); };
+  const progAt = t => { const M = mirror(); return clamp((dateSerial(t) - dateSerial(M.born)) / (dateSerial(M.mock) - dateSerial(M.born)), 0, 1); };
 
   /* ---------- Onur's topics: every topic you practise joins his list from the day you first did it. Each has a knowledge
      level that starts from a fixed natural strength or weakness, rises when he practises it (more after he gets it
@@ -106,7 +108,7 @@
   const LABEL = { sleep: 'Asleep', ready: 'Getting ready', school: 'School', free: 'Free time', dinner: 'Dinner', study: 'Studying', break: 'Break' };
   function plan(t0) {
     const k = dkey(new Date(t0)); if (cache.has(k)) return cache.get(k);
-    const dayIx = Math.round((t0 - mirror().born) / 864e5), before = dayIx > 0 ? plan(midnight(t0, -1)).end : null;
+    const dayIx = dateSerial(t0) - dateSerial(mirror().born), before = dayIx > 0 ? plan(midnight(t0, -1)).end : null;
     const R = P.r, school = R.days.includes(new Date(t0).getDay()) && !P.off.includes(k);
     const wake = mins(school ? R.wake : R.wwake), dinner = mins(school ? R.dinner : R.wdinner), leave = mins(R.leave), home = mins(R.home);
     let bed = mins(school ? R.bed : R.wbed); if (bed <= wake) bed = 1439;
@@ -144,7 +146,7 @@
     const subs = subjects(), W = subs.reduce((a, s) => a + s.w, 0), r = rng(hash(k + '|rival')), miss = missesFor(k), ans = [];
     let studied = 0;
     for (const run of runs) if (run.kind === 'study') {
-      let t = t0 + run.a * MIN; const runStart = t, end = t0 + run.b * MIN;
+      let t = wallTime(t0, run.a); const runStart = t, end = wallTime(t0, run.b);
       for (;;) {
         t += PACE * (.7 + r() * .6); if (t > end) break;
         const xs = r(), rm = r(), rk = r(), ro = r(), rt = r();
@@ -157,7 +159,7 @@
           if (cand.length) { const ws = cand.map(c => pickW(st.get(c.id).k)); let y = rt * ws.reduce((a, b) => a + b, 0), i = 0; while (i < cand.length - 1 && (y -= ws[i]) > 0) i++; tp = cand[i]; }
         }
         /* tired: after 45 minutes of study today he slips a little, and more after 9pm */
-        const hr = (t - t0) / 36e5, tired = Math.max(0, studied + (t - runStart) / MIN - 45) * .0005 + Math.max(0, hr - 21) * .05;
+        const clock = new Date(t), hr = clock.getHours() + clock.getMinutes() / 60, tired = Math.max(0, studied + (t - runStart) / MIN - 45) * .0005 + Math.max(0, hr - 21) * .05;
         const kv = tp ? st.get(tp.id) : null, ok = ro < clamp(acc + s.dc * .035 + (kv ? kv.k - kbar : 0) - tired, .25, .97);
         if (kv) { kv.k = clamp(kv.k + (ok ? .006 : .02) * (1 - kv.k), 0, .99); kv.last = dayIx; }
         ans.push({ t, s, tp, fromMiss, topic: fromMiss ? tp.name : null, k: kv ? kv.k : null, ok, run, tired: tired > .025 });
@@ -183,8 +185,8 @@
 
   /* ---------- what the rival is doing right now ---------- */
   function where(now, hype) {
-    const p = plan(midnight(now)), m = clamp(Math.floor((now - p.t0) / MIN), 0, 1439), run = p.runs.find(r => m >= r.a && m < r.b), n = doneBy(p, now);
-    const next = p.runs.find(r => r.kind === 'study' && r.a > m), end = p.t0 + run.b * MIN, cur = p.ans[n] && p.ans[n].run === run ? p.ans[n] : null;
+    const p = plan(midnight(now)), clock = new Date(now), m = clamp(clock.getHours() * 60 + clock.getMinutes(), 0, 1439), run = p.runs.find(r => m >= r.a && m < r.b), n = doneBy(p, now);
+    const next = p.runs.find(r => r.kind === 'study' && r.a > m), end = wallTime(p.t0, run.b), cur = p.ans[n] && p.ans[n].run === run ? p.ans[n] : null;
     let chip, note, pose = 'away', lamp = false;
     switch (run.kind) {
       case 'study': pose = 'write'; lamp = true;
@@ -192,19 +194,19 @@
         note = [`Goal: ${p.goal}`, `Done: ${n}`]; break;
       case 'break': pose = 'phone'; lamp = true; chip = `Short break · back at ${hm(end)}`; note = ['Break', `till ${hm(end)}`]; break;
       case 'free': pose = 'phone'; lamp = true;
-        chip = next ? `Free time · next session at ${hm(p.t0 + next.a * MIN)}` : `Free time · ${n} answers done today`;
-        note = next ? ['Next session', hm(p.t0 + next.a * MIN)] : ['Done today', `${n} answers`]; break;
-      case 'ready': chip = p.school ? `Getting ready · leaves at ${hm(p.t0 + p.leave * MIN)}` : 'Having breakfast'; note = p.school ? ['Morning!', `out at ${hm(p.t0 + p.leave * MIN)}`] : ['Weekend', 'breakfast first']; break;
-      case 'school': chip = `At school until ${hm(p.t0 + p.home * MIN)}`; note = ['At school', `back ${hm(p.t0 + p.home * MIN)}`]; break;
+        chip = next ? `Free time · next session at ${hm(wallTime(p.t0, next.a))}` : `Free time · ${n} answers done today`;
+        note = next ? ['Next session', hm(wallTime(p.t0, next.a))] : ['Done today', `${n} answers`]; break;
+      case 'ready': chip = p.school ? `Getting ready · leaves at ${hm(wallTime(p.t0, p.leave))}` : 'Having breakfast'; note = p.school ? ['Morning!', `out at ${hm(wallTime(p.t0, p.leave))}`] : ['Weekend', 'breakfast first']; break;
+      case 'school': chip = `At school until ${hm(wallTime(p.t0, p.home))}`; note = ['At school', `back ${hm(wallTime(p.t0, p.home))}`]; break;
       case 'dinner': chip = `Having dinner · back at ${hm(end)}`; note = ['Dinner', `back ${hm(end)}`]; break;
       default: { pose = 'sleep';
-        const up = m < p.wake ? p.t0 + p.wake * MIN : (q => q.t0 + q.wake * MIN)(plan(midnight(now, 1)));
+        const up = m < p.wake ? wallTime(p.t0, p.wake) : (q => wallTime(q.t0, q.wake))(plan(midnight(now, 1)));
         chip = `Asleep · up at ${hm(up)}`; note = ['Asleep', `up at ${hm(up)}`]; }
     }
     if (TALK.length && Math.floor(now / 1e4) % 2) note = taunt(now).s;
     const info = { pose, lamp, note, hype: !!hype, tired: !!(cur && cur.tired), subject: cur ? (cur.tp ? cur.tp.name : cur.s.name) : '', prog: p.goal ? n / p.goal : 0, spread: 0, line: 0, frac: 0, marks: [] };
     if (pose === 'write') {
-      const prev = n && p.ans[n - 1].run === run ? p.ans[n - 1].t : p.t0 + run.a * MIN, nt = cur ? cur.t : end;
+      const prev = n && p.ans[n - 1].run === run ? p.ans[n - 1].t : wallTime(p.t0, run.a), nt = cur ? cur.t : end;
       info.spread = Math.floor(n / 6) + run.a * 1000; info.line = n % 6; info.frac = clamp((now - prev) / Math.max(1, nt - prev), 0, 1);
       for (let j = 0; j < 6; j++) { const a = p.ans[n - (n % 6) + j]; info.marks.push(a ? a.ok : true); }
     }
@@ -281,7 +283,7 @@
   const subToday = s => { const t = dayStats(dkey(new Date())).t; return s.tracks.reduce((a, k) => a + (+t[k] || 0), 0); };
 
   function drawStrip(p) {
-    $('strip').innerHTML = p.runs.map(r => `<i class="k-${r.kind}" style="width:${((r.b - r.a) / 14.4).toFixed(3)}%" title="${LABEL[r.kind]} ${hm(p.t0 + r.a * MIN)}–${hm(p.t0 + r.b * MIN)}"></i>`).join('') + '<b class="now" id="now"></b>';
+    $('strip').innerHTML = p.runs.map(r => `<i class="k-${r.kind}" style="width:${((r.b - r.a) / 14.4).toFixed(3)}%" title="${LABEL[r.kind]} ${hm(wallTime(p.t0, r.a))}–${hm(wallTime(p.t0, r.b))}"></i>`).join('') + '<b class="now" id="now"></b>';
     const kinds = [...new Set(p.runs.map(r => r.kind))];
     $('legend').innerHTML = ['sleep', 'ready', 'school', 'study', 'break', 'dinner', 'free'].filter(k => kinds.includes(k)).map(k => `<span><i class="k-${k}"></i>${LABEL[k]}</span>`).join('');
     const studyMin = p.runs.filter(r => r.kind === 'study').reduce((a, r) => a + r.b - r.a, 0);
@@ -353,7 +355,7 @@
     const youBest = Math.max(t.you, 0, ...H.map(d => d.you)), onBest = Math.max(t.riv, 0, ...H.map(d => d.riv));
     const n = doneBy(p, now), done = p.ans.slice(0, n), ts = dayStats(p.k), going = where(now).run.kind === 'study';
     let life = n, mins = n / 2, youLife = t.you; for (const d of H) { const q = plan(d.t0); life += q.ans.length; mins += q.runs.filter(r => r.kind === 'study').reduce((a, r) => a + r.b - r.a, 0); youLife += d.you; }
-    const need = t.riv - t.you + 1, lvl = Math.min(9, Math.floor(p.pr * 10)), daysIn = Math.max(1, Math.round((p.t0 - M.born) / 864e5) + 1), daysAll = Math.round((M.mock - M.born) / 864e5);
+    const need = t.riv - t.you + 1, lvl = Math.min(9, Math.floor(p.pr * 10)), daysIn = Math.max(1, dateSerial(p.t0) - dateSerial(M.born) + 1), daysAll = dateSerial(M.mock) - dateSerial(M.born);
     const tile = (k, v, s, cls = '') => `<div class="tile ${cls}"><small>${k}</small><b>${v}</b><span>${s}</span></div>`;
     $('tiles').innerHTML = [
       tile('Streak', st ? `${st.n} ${st.r === 'W' ? 'win' : 'loss'}${st.n === 1 ? '' : st.r === 'W' ? 's' : 'es'}` : '–', st ? (st.n === 1 ? (st.r === 'W' ? 'You won yesterday.' : 'Onur won yesterday.') : st.r === 'W' ? `You've won the last ${st.n} days.` : `Onur has won the last ${st.n} days.`) : H.length ? 'No streak: yesterday was a draw.' : 'No finished days yet.', st ? (st.r === 'W' ? 'win' : 'lose') : ''),
@@ -447,7 +449,7 @@
   /* ---------- Onur's diary: a few lines at the end of his day, in his own words ---------- */
   function diaryEntry(t0, now) {
     const p = plan(t0), n = p.ans.length; if (!n) return null;
-    const last = p.runs.filter(r => r.kind === 'study').pop(); if (t0 === midnight(now) && (!last || now < p.t0 + last.b * MIN)) return null;
+    const last = p.runs.filter(r => r.kind === 'study').pop(); if (t0 === midnight(now) && (!last || now < wallTime(p.t0, last.b))) return null;
     const r = rng(hash(p.k + '|diary')), one = a => a[Math.floor(r() * a.length)], ok = p.ans.filter(a => a.ok).length;
     const by = new Map(); for (const a of p.ans) by.set(a.s, (by.get(a.s) || 0) + 1);
     const top = [...by].sort((a, b) => b[1] - a[1])[0][0].name, T = new Map(topics().map(t => [t.id, t]));
@@ -562,7 +564,7 @@
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;
     }
-    $('now').style.left = ((now - p.t0) / 864e3).toFixed(2) + '%';
+    const marker = new Date(now); $('now').style.left = ((marker.getHours() * 60 + marker.getMinutes()) / 14.4).toFixed(2) + '%';
     if (!tour && (!motion || !visible())) SCENE.frame(now, cur.info, false);
     if (brains && !motion) { brains.runo.draw(now, false); brains.onur.draw(now, false); }
   }
@@ -604,7 +606,7 @@
   }
   function startTour() {
     const p = plan(midnight(Date.now())), steps = [], first = k => p.runs.find(r => r.kind === k);
-    const add = (r, off, d, s) => { if (r) steps.push({ t: p.t0 + Math.min(r.b - 1, r.a + off) * MIN, d, s }); };
+    const add = (r, off, d, s) => { if (r) steps.push({ t: wallTime(p.t0, Math.min(r.b - 1, r.a + off)), d, s }); };
     add(p.runs[0], 180, 3, 60); add(first('ready'), 15, 2.5, 30); add(first('school'), 200, 2.5, 60);
     add(first('study'), 1, 8, 12); add(first('break'), 1, 3, 20); add(first('dinner'), 10, 2.5, 30);
     add(p.runs.find(r => r.kind === 'free' && r.a > p.dinner), 30, 3, 30); add(p.runs[p.runs.length - 1], 40, 3.5, 60);
