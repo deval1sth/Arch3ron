@@ -236,4 +236,4 @@ details summary small{font:400 13px var(--font);color:var(--m);margin-left:auto}
 .cmp{margin:8px 0 0;font-size:13.5px;color:var(--m)}.cmp b{margin-right:4px}
 .dentry{padding:10px 0;border-bottom:1px solid var(--line2)}.dentry:last-child{border:0}
 .dentry small{color:var(--m);font-size:12px}.dentry p{margin:4px 0 0;font:700 15.5px/1.45 var(--hand);color:var(--t)}
-.room iframe.d3{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1}.room .acts,.room .score,.room .chip{z-index:2}
+.room .acts,.room .score,.room .chip{z-index:2}
