@@ -207,7 +207,7 @@
       case 'school': chip = `At school until ${hm(wallTime(p.t0, p.home))}`; note = ['At school', `back ${hm(wallTime(p.t0, p.home))}`]; break;
       case 'dinner': chip = `Having dinner · back at ${hm(end)}`; note = ['Dinner', `back ${hm(end)}`]; break;
       default: { pose = 'sleep';
-        const up = m < p.wake ? wallTime(p.t0, p.wake) : (q => wallTime(q.t0, q.wake))(plan(midnight(now, 1)));
+        const up = run.a === 0 ? wallTime(p.t0, p.wake) : (q => wallTime(q.t0, q.wake))(plan(midnight(now, 1)));
         chip = `Asleep · up at ${hm(up)}`; note = ['Asleep', `up at ${hm(up)}`]; }
     }
     if (TALK.length && Math.floor(now / 1e4) % 2) note = taunt(now).s;
