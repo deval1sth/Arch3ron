@@ -7,13 +7,13 @@
     answer: Object.freeze({ base: 1, level: 0.5, right: 0.5 }),
     written: 3,
     focusMinute: 0.5, focusCap: 240,
-    lesson: 15,
+    lesson: 30,
     guide: 8, guideCap: 10,
     inAppPaper: Object.freeze({ base: 40, mark: 60 }),
     examiner: 5,
     revenge: 4,
     onTime: 2,
-    newTopic: 10,
+    newTopic: 40,
     externalPaper: Object.freeze({ base: 60, mark: 90 }),
     revisionMinute: 0.4, revisionEntryCap: 120, revisionDayCap: 240,
     classTest: Object.freeze({ base: 20, mark: 20 }),
@@ -331,7 +331,7 @@
     check('teaching cap', richResult.parts.teaching, 30);
     check('tutor cap', richResult.parts.tutor, 60);
     check('video cap', richResult.parts.video, 9);
-    check('richer day total', richResult.total, 776.25);
+    check('richer day total', richResult.total, 866.25);
 
     const rushing = { d: '2026-10-26', answers: Array.from({ length: 10 }, (_, i) => ({ t: i * 5000 + 1, track: 'englit', ok: i < 4, lvl: 1, ms: 3999 })) };
     const rushingResult = scoreDay(rushing, [], 0);
