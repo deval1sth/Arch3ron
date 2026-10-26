@@ -113,7 +113,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, dailyLog: {}, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, dailyLog: {}, dailyStreak: false, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -133,6 +133,7 @@ function normalize(raw) {
   s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
   for (const [k, v] of Object.entries(obj(r.dailyLog))) if (isKey(k) && [0, 1, 2, 3, 4, 5].includes(v)) s.dailyLog[k] = v;
   if (s.daily) s.dailyLog[s.daily.d] = s.daily.s; /* scores from before the archive existed */
+  s.dailyStreak = !!r.dailyStreak;
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
@@ -642,7 +643,8 @@ function alsoToday(rough) {
   const rows = [
     ses && row('play', 'Carry on your revision session', `${sessDone(ses)} of ${sessSteps(ses)} steps done`, 'go', { 'data-tab': 'session' }),
     rough && row('shield', 'Rough day? A 10-minute rescue set', 'It still counts, and it stops you forgetting', 'rescue'),
-    !dailyDoneToday() && row('star', 'Daily five', `Five questions from ${dailyNames()}, about 3 minutes`, 'daily'),
+    dailyDoneToday() ? row('calendar', 'Daily five archive', `Today ${S.daily.s} / 5${dailyRunTxt()} · replay any day`, 'go', { 'data-tab': 'dailyarc' })
+      : row('star', 'Daily five', `Five questions from ${dailyNames()}, about 3 minutes${dailyRunTxt()}`, 'daily'),
     dueM > 0 && row('wrench', `${dueM} mistake${dueM === 1 ? '' : 's'} to redo`, 'Win back marks you lost once', 'go', { 'data-tab': 'fix' }),
     dueC > 0 && row('cards', `${dueC} flashcard${dueC === 1 ? '' : 's'} ready`, 'Even ten helps', 'go', { 'data-tab': 'cards' }),
     wrap && row('star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
@@ -812,6 +814,9 @@ function dailyQs(day = dkey()) {
   } finally { Math.random = keep; }
 }
 const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
+/* opt-in (Archive page): days in a row ending today, or yesterday while today is still open; a gap just starts it again */
+const dailyRun = () => { let n = 0, k = dailyDoneToday() ? dkey() : addDays(-1); while (k in S.dailyLog) { n++; k = addDays(-1, k); } return n; };
+const dailyRunTxt = () => S.dailyStreak && dailyRun() > 1 ? ` · ${dailyRun()} days in a row` : '';
 function dailyDone() { if (DR.replay || dailyDoneToday()) return; const s = Math.min(5, DR.ok); S.daily = { d: dkey(), s }; S.dailyLog[S.daily.d] = s; save(); SFX.play('fanfare'); }
 /* the first thing a new (or returning) person sees on Focus: what Begin does and what each tab is for, until they close it */
 function guideCard() {
@@ -829,7 +834,7 @@ function dailyCard(inDrill) {
     h('p', { class: 'muted xs' }, 'A replay, so your score on the day stays as it was.'));
   if (inDrill || dailyDoneToday()) return card('Daily five', arc,
     h('p', { class: 'big-score' }, `${dailyDoneToday() ? S.daily.s : DR.ok} / 5`),
-    h('p', { class: 'muted xs' }, 'New questions tomorrow. Every past day is in the archive to replay.'));
+    h('p', { class: 'muted xs' }, `New questions tomorrow${dailyRunTxt()}. Every past day is in the archive to replay.`));
   return h('button', { type: 'button', class: 'card rescue-cta', 'data-act': 'daily' }, h('span', { class: 'wc-ic' }, icon('star')),
     h('span', { class: 'grow' }, h('b', null, 'Daily five'), h('small', null, `Five questions from ${dailyNames()}. About 3 minutes.`)), h('span', { class: 'btn primary sm' }, 'Start'));
 }
@@ -838,6 +843,8 @@ function vDailyArc() {
   const days = Array.from({ length: 60 }, (_, i) => addDays(-i));
   return h('div', { class: 'stack narrow' },
     subHero('Daily five', 'Archive', 'home', 'Every day from the last two months. Replays are for practice and never change a score.'),
+    card(null, null, h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: S.dailyStreak, 'data-act': 'dailyStreak', role: 'switch' }),
+      h('span', null, h('b', null, 'Show days in a row'), h('small', null, S.dailyStreak ? `${dailyRun()} right now. Miss a day and it simply starts again.` : 'Off. Your scores here are kept either way.')))),
     card(null, null, h('ul', { class: 'darc' }, days.map(k => h('li', null,
       h('b', null, k === dkey() ? 'Today' : fmtDate(k)),
       h('span', { class: 'muted' }, k in S.dailyLog ? `${S.dailyLog[k]} / 5` : '–'),
@@ -1899,6 +1906,7 @@ const CHG = {
   exTick(el) { const E = S.exam; if (E) { E.got[E.i][+el.dataset.j] = el.checked; E.marked[E.i] = true; save(); render(); } },
   fin(el) { const d = ensureDay(dkey()); if (el.checked) d.f[el.dataset.i] = true; else delete d.f[el.dataset.i]; xp(el.checked ? 5 : -5); render({ recheck: `label:has(> [data-act="fin"][data-i="${el.dataset.i}"])` }); },
   chk(el) { const k = LT + el.dataset.i; if (el.checked) S.conf[k] = 3; else delete S.conf[k]; save(); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
+  dailyStreak(el) { S.dailyStreak = el.checked; save(); render(); },
   deload(el) { S.deload = el.checked; save(); toast(el.checked ? 'Deload on: half volume this week' : 'Deload off: full programme'); render(); },
   hide(el) { const t = el.dataset.topic; if (el.checked) delete S.hidden[t]; else S.hidden[t] = true; save(); },
   pname(el) { S.profile.name = str(el.value, 30).trim(); save(); },
