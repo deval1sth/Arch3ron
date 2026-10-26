@@ -8,6 +8,32 @@
     const dd=String(dt.getDate()).padStart(2,"0");
     return `${y}-${m}-${dd}`;
   };
+  // escape HTML to avoid code injection
+  function esc(str){
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+  // grid of 80 cells, red‑pen marks up to total
+  function createGrid(total){
+    const grid=document.createElement('div');
+    grid.className='rp-grid';
+    const cells=Math.min(total,80);
+    for(let i=0;i<cells;i++){
+      const cell=document.createElement('div');
+      cell.className='rp-cell rp-marked';
+      grid.appendChild(cell);
+    }
+    for(let i=cells;i<80;i++){
+      const cell=document.createElement('div');
+      cell.className='rp-cell';
+      grid.appendChild(cell);
+    }
+    return grid;
+  }
   function mount(container, info){
     // info: {subject, paper, mark, outOf, grade, date}
     const root=document.createElement("div");
@@ -19,10 +45,10 @@
     header.textContent="Archeron Examinations";
     header.className="rp-header";
     sheet.appendChild(header);
-    // Candidate box
+    // Candidate box – Onur's details in handwriting style
     const cand=document.createElement("div");
-    cand.className="rp-candidate";
-    cand.textContent="Candidate: __________________________";
+    cand.className="rp-candidate rp-hand";
+    cand.textContent="Onur Runo – Centre 123456 – No. 7890";
     sheet.appendChild(cand);
     // Instructions area (placeholder)
     const instr=document.createElement("div");
@@ -32,19 +58,23 @@
     // Paper info
     const paper=document.createElement("div");
     paper.className="rp-paperinfo";
-    paper.innerHTML=`<strong>${info.subject}</strong> – ${info.paper}`;
+    paper.innerHTML=`<strong>${esc(info.subject)}</strong> – ${esc(info.paper)}`;
     sheet.appendChild(paper);
-    // Score badge (red‑pen circle)
+    // Score badge (hand‑drawn red‑pen circle)
     const badge=document.createElement("div");
     badge.className="rp-badge";
-    const perc=Math.round(info.mark/info.outOf*100);
-    badge.innerHTML=`<span class="rp-mark">${info.mark}/${info.outOf}</span><br/><span class="rp-grade">Grade ${info.grade}</span>`;
+    badge.innerHTML=`<span class="rp-mark">${info.mark}/${info.outOf}</span><br/><span class="rp-grade">Grade ${esc(info.grade)}</span>`;
     sheet.appendChild(badge);
-    // Date line
+    // Date line – formatted like 11 Jan 2027
     const dateEl=document.createElement("div");
     dateEl.className="rp-date";
-    dateEl.textContent="Date: "+toDate(info.date);
+    const dObj=new Date(info.date);
+    const options={day:'numeric', month:'short', year:'numeric'};
+    dateEl.textContent=`Date: ${dObj.toLocaleDateString(undefined, options)}`;
     sheet.appendChild(dateEl);
+    // Examiner's grid – red‑pen marks adding to total
+    const grid=createGrid(info.mark);
+    sheet.appendChild(grid);
     root.appendChild(sheet);
     // Clear container and attach
     while(container.firstChild) container.removeChild(container.firstChild);
