@@ -118,19 +118,19 @@
     const dayIx = dateSerial(t0) - dateSerial(mirror().born), before = dayIx > 0 ? plan(midnight(t0, -1)).end : null;
     const R = P.r, school = R.days.includes(new Date(t0).getDay()) && !P.off.includes(k);
     const wake = mins(school ? R.wake : R.wwake), dinner = mins(school ? R.dinner : R.wdinner), leave = mins(R.leave), home = mins(R.home);
-    let bed = mins(school ? R.bed : R.wbed); if (bed <= wake) bed = 1439;
+    const bed = mins(school ? R.bed : R.wbed), lateBed = bed <= wake;
     const A = new Array(1440).fill('sleep'), fill = (a, b, kind) => { for (let m = clamp(a, 0, 1440); m < clamp(b, 0, 1440); m++) A[m] = kind; };
-    fill(wake, bed, 'free');
+    if (lateBed) { fill(0, bed, 'free'); fill(wake, 1440, 'free'); } else fill(wake, bed, 'free');
     if (school) { fill(wake, leave, 'ready'); fill(leave, home, 'school'); } else fill(wake, wake + 60, 'ready');
-    fill(dinner, Math.min(dinner + 40, bed), 'dinner');
+    fill(dinner, Math.min(dinner + 40, lateBed ? 1440 : bed), 'dinner');
 
     const M = mirror(), pr = progAt(t0), goal = dayIx < 0 ? 0 : clamp(Math.round(M.base * (1 + GROW * pr)), 40, 400), acc = clamp(M.acc + SHARP * pr, .4, .96);
 
     let need = Math.ceil(goal * PACE / MIN), m = school ? home + 30 : wake + 90, n = 0;
     const free = x => x < 1440 && A[x] === 'free';
-    while (need > 0 && m < bed - 15) {
+    while (need > 0 && m < (lateBed ? 1440 : bed) - 15) {
       if (!free(m)) { m++; continue; }
-      let len = 0; while (len < Math.min(25, need) && free(m + len) && m + len < bed - 15) len++;
+      let len = 0; while (len < Math.min(25, need) && free(m + len) && m + len < (lateBed ? 1440 : bed) - 15) len++;
       if (len < 8 && len < need) { m += len || 1; continue; }
       fill(m, m + len, 'study'); need -= len; m += len; n++;
       if (need > 0) for (let j = 0, br = n % 3 ? 5 : 20; j < br && free(m); j++, m++) A[m] = 'break';
@@ -207,7 +207,7 @@
       case 'school': chip = `At school until ${hm(wallTime(p.t0, p.home))}`; note = ['At school', `back ${hm(wallTime(p.t0, p.home))}`]; break;
       case 'dinner': chip = `Having dinner · back at ${hm(end)}`; note = ['Dinner', `back ${hm(end)}`]; break;
       default: { pose = 'sleep';
-        const up = run.a === 0 ? wallTime(p.t0, p.wake) : (q => wallTime(q.t0, q.wake))(plan(midnight(now, 1)));
+        const up = run.b === p.wake ? wallTime(p.t0, p.wake) : (q => wallTime(q.t0, q.wake))(plan(midnight(now, 1)));
         chip = `Asleep · up at ${hm(up)}`; note = ['Asleep', `up at ${hm(up)}`]; }
     }
     if (TALK.length && Math.floor(now / 1e4) % 2) note = taunt(now).s;
