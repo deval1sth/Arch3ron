@@ -295,6 +295,7 @@
   <section class="card"><h2>Predicted grades <small>Onur's path to your mocks</small></h2><div id="grades"></div></section>
   <section class="card"><h2>Mistake revenge <small>topics you got wrong</small></h2><div id="rev"></div></section>
 </div>
+<section class="card" id="paperc"><h2>Onur's exam paper <small>how he would do in your mock today</small></h2><div id="paper"></div></section>
 <div class="grid">
   <section class="card"><h2>Onur's weak spots <small>his own, they come and go</small></h2><div id="weak"></div></section>
   <section class="card"><h2>Onur's diary <small>written after his last session</small></h2><div id="diary"></div></section>
@@ -413,6 +414,16 @@
     ].join('');
   }
 
+  /* Onur's exam paper (rival-paper.js): one of your subjects a day at his current predicted grade, with a mark that fits it */
+  let PAPER_K = '';
+  function drawPaper(now) {
+    const rows = typeof RIVALPAPER === 'object' ? subjects().filter(s => s.cur != null) : [];
+    $('paperc').hidden = !rows.length; if (!rows.length) return;
+    const day = dateSerial(now), s = rows[day % rows.length], tg = Math.min(9, s.tgt ?? s.cur + 1), g = s.cur + (tg - s.cur) * progAt(now);
+    const outOf = 80, mark = clamp(Math.round(outOf * (.05 + .09 * g) + (hash(s.name + day) % 5) - 2), 0, outOf), grade = fmtG(g), M = mirror();
+    const k = [s.name, mark, grade].join('|'); if (k === PAPER_K) return; PAPER_K = k;
+    RIVALPAPER.mount($('paper'), { subject: s.name, paper: 'Paper ' + (1 + day % 2), mark, outOf, grade, date: dkey(new Date(M.mock)) });
+  }
   function drawGrades(now) {
     const pr = progAt(now), rows = subjects().filter(s => s.cur != null);
     if (!rows.length) { $('grades').innerHTML = '<p class="sub">Add your grades in Archeron (Settings → My subjects) and Onur\'s predicted grades appear here.</p>'; return; }
@@ -604,7 +615,7 @@
     const mm = Math.floor(now / MIN);
     if (mm !== lastMin || dirty) {
       lastMin = mm; dirty = false;
-      talk(p, now); drawStrip(p); drawWeek(now); draw30(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawRevenge(); drawHours(now); drawBrains(now);
+      talk(p, now); drawStrip(p); drawWeek(now); draw30(now); drawSubs(p, now); drawHomework(p, now); drawChallenge(p, now); drawWeak(p, now); drawDiary(now); drawRoom(now); drawTiles(p, now); drawGrades(now); drawPaper(now); drawRevenge(); drawHours(now); drawBrains(now);
       $('tdate').textContent = new Date(now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       $('off').checked = P.off.includes(p.k);
       $('rsum').textContent = `${P.r.wake}–${P.r.bed} on school days`;
