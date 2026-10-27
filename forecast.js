@@ -149,7 +149,7 @@ VIEWS.numbers = function () {
 
 /* ---------- the review log: every answer the app marked itself, so the memory model can be fitted to this student ----------
    One entry per answer: "key,day,right,type,hints,secs" (day = days since 1970, right = 1 or 0, type = question kind,
-   hints = hints used, secs = time from the question appearing to the answer, capped at 900; entries before 11.9.51 stop
+   hints = hints used, plus "n" if the topic notes were opened first (11.9.54+), secs = time from the question appearing to the answer, capped at 900; entries before 11.9.51 stop
    after "right"). Calculation topics have no per-fact key, so they log as "T:topic". Two more kinds of line record study
    before testing, to measure how much reading helps: "c:key,day" (a new-fact card shown) and "l:lesson,day" (a lesson
    started). Written definitions are left out, because you tick your own key points there, and a calibration is only as
@@ -158,7 +158,7 @@ const RLOG_MAX = 30000;
 const rlogPush = line => { const L = tcArr('rlog'); L.push(line); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); };
 const rlogMeta = (id, key) => {
   const q = DR && DR.q && (DR.q.id === id || (key && DR.q.key === key)) ? DR.q : null;
-  return q ? `${q.kind || ''},${DR.hint || 0},${DR.tq === q && DR.t0 ? Math.min(900, Math.round((Date.now() - DR.t0) / 1000)) : ''}` : ',,';
+  return q ? `${q.kind || ''},${DR.hint || 0}${DR.notesQ === q ? 'n' : ''},${DR.tq === q && DR.t0 ? Math.min(900, Math.round((Date.now() - DR.t0) / 1000)) : ''}` : ',,'; /* "1n" = 1 hint, topic notes read first */
 };
 const _recordF = record;
 record = function (id, ok, key) {
@@ -214,7 +214,7 @@ function rlogCard() {
 }
 ACT.rlogExport = () => {
   const L = tcArr('rlog'); if (!L.length) return;
-  const data = { app: 'archeron', kind: 'review-log', v: 2, exported: dkey(), mock: S.mock, fields: 'key,day,right,type,hints,secs (older entries: key,day,right); c:key,day = fact card shown; l:lesson,day = lesson started; T:topic = calculation topic', reviews: L };
+  const data = { app: 'archeron', kind: 'review-log', v: 2, exported: dkey(), mock: S.mock, fields: 'key,day,right,type,hints (n = topic notes read first),secs (older entries: key,day,right); c:key,day = fact card shown; l:lesson,day = lesson started; T:topic = calculation topic', reviews: L };
   const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: `archeron-reviews-${dkey()}.json` });
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast(`${L.length.toLocaleString('en-GB')} answers exported`);

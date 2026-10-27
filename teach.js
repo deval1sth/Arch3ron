@@ -321,7 +321,7 @@ record = function (id, ok, key) { return HINTED && ok ? recordHinted(id, key) : 
 const _finishAnswer = finishAnswer;
 finishAnswer = function (res) {
   if (DR && DR.q) DR.slip = res && res.valid !== false && !res.ok && !res.msg && typeof SLIPS !== 'undefined' ? SLIPS.find(DR.q, DRAFT.dr) : null;
-  const hinted = !!(DR && DR.hint > 0 && res && res.ok), run0 = DR ? DR.run : 0;
+  const hinted = !!(DR && (DR.hint > 0 || DR.notesQ === DR.q) && res && res.ok), run0 = DR ? DR.run : 0; /* topic notes read before answering count like a hint */
   if (DR && DR.ctx === 'lesson' && LS) { LS.asked++; if (res && res.ok) LS.ok++; }
   HINTED = hinted;
   try { _finishAnswer(res); } finally { HINTED = false; }
@@ -417,6 +417,25 @@ function qkCheck() {
   else { const p = (DR.mt || { p: {} }).p, right = q.ans.filter((r, i) => p[i] === r).length; finishAnswer({ valid: true, ok: right === q.L.length, msg: right === q.L.length ? '' : `${right} of ${q.L.length} pairs right.` }); }
 }
 
+/* ---------- topic notes: the study guide for a question's topic, over the question (like Seneca's notes button).
+   Opened before answering, the question counts like a hinted one (right, but no level up), because answering with the
+   notes open trains reading, not recall. Not offered in tests (gap finder, grade tests, Daily). ---------- */
+const notesFor = id => STUDY.filter(g => g.topics.includes(id)).sort((a, b) => a.topics.length - b.topics.length)[0] || null; /* the most specific guide */
+function notesOpen(el) {
+  const g = STUDY_BY[el && el.dataset.g]; if (!g) return;
+  const before = DR && DR.q && DR.state === 'ask'; if (before) DR.notesQ = DR.q;
+  document.getElementById('notes')?.remove();
+  const box = h('div', { id: 'notes', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Topic notes: ' + g.title },
+    h('div', { class: 'nt-bg', 'data-act': 'notesClose' }),
+    h('div', { class: 'card' },
+      h('div', { class: 'nt-top' }, h('div', null, h('p', { class: 'eyebrow' }, SUBJ_BY[g.subj].name + ' · topic notes'), h('h2', null, g.title)), B('Close', 'notesClose', 'ghost sm', { id: 'nt-x' })),
+      before && h('p', { class: 'muted xs nt-note' }, 'Read before answering, so this question counts like a hint. Next time, try it first and open the notes if you get it wrong.'),
+      h('p', { class: 'lede' }, g.lead), h('article', { class: 'guide-body' }, guideBody(g.body))));
+  document.body.append(box); box.querySelector('#nt-x').focus({ preventScroll: true });
+}
+const notesClose = () => { document.getElementById('notes')?.remove(); const a = $('#ans'); if (a && DR && DR.state === 'ask') a.focus({ preventScroll: true }); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('notes')) { e.preventDefault(); e.stopImmediatePropagation(); notesClose(); } }, true);
+
 /* ---------- the question card, with the extras added in ---------- */
 const _drillPanel = drillPanel;
 drillPanel = function () {
@@ -436,7 +455,9 @@ drillPanel = function () {
         const row = el.querySelector('[data-act="reveal"]')?.closest('.row'); if (row) row.prepend(nb);
       }
     }
-    if (DR.state === 'right' && DR.hint) { const f = el.querySelector('.fb.ok .fb-h'); if (f) f.after(h('p', { class: 'muted xs' }, 'Right, with a hint. Your level only goes up on answers without hints, so try the next one on your own.')); }
+    const ng = !TEST_CTX.has(DR.ctx) && notesFor(q.id);
+    if (ng) { const row = (DR.state === 'ask' ? el.querySelector('[data-act="reveal"]') : el.querySelector('#nextq'))?.closest('.row'); if (row) row.prepend(B([icon('book'), 'Topic notes'], 'notesOpen', 'ghost hint-btn' + (q.kind === 'mcq' ? ' sm' : ''), { 'data-g': ng.id })); }
+    if (DR.state === 'right' && (DR.hint || DR.notesQ === q)) { const f = el.querySelector('.fb.ok .fb-h'); if (f) f.after(h('p', { class: 'muted xs' }, `Right, with ${DR.hint ? 'a hint' : 'the notes open'}. Your level only goes up on answers without help, so try the next one on your own.`)); }
     if (DR.state === 'wrong' && DR.slip) { const f = el.querySelector('.fb.no .fb-h'); if (f) f.after(h('div', { class: 'slip' }, icon('target'), h('div', null, h('b', null, 'Mistake detective'), h('p', null, DR.slip)))); }
     if (DR.ctx === 'lesson') for (const b of el.querySelectorAll('[data-act="next"]')) b.textContent = 'Continue';
   } catch (e) { console.error(e); }
@@ -463,6 +484,8 @@ Object.assign(ACT, {
   lsSkip() { if (S.tc && S.tc.fl) { S.tc.fl.st = 'skip'; ldayAdd(S.tc.fl.tr, LESSONS_A_DAY); } LS = null; DR = null; save(); render(); toast('Skipped. The lesson will be offered again another day.'); },
   ltGo,
   nudge,
+  notesOpen,
+  notesClose,
   ordPick(el) { if (!DR || DR.state !== 'ask') return; (DR.ord = DR.ord || []).push(+el.dataset.i); SFX.play('click'); render(); },
   ordBack(el) { if (!DR || DR.state !== 'ask') return; DR.ord.splice(+el.dataset.i, 1); render(); },
   mtL(el) { if (!DR || DR.state !== 'ask') return; const i = +el.dataset.i, mt = DR.mt = DR.mt || { sel: null, p: {} }; mt.sel = mt.sel === i ? null : i; render(); },
