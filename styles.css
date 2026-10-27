@@ -1385,3 +1385,49 @@ button.dq-orb:hover .dq-ball{transform:scale(1.15)}
 .bgb svg{display:block;width:150px;height:auto;margin-bottom:10px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:700;stroke-dashoffset:700;animation:bgDraw 1.3s ease forwards}
 @keyframes bgWrite{to{clip-path:inset(0 0 0 0)}}
 @keyframes bgDraw{to{stroke-dashoffset:0}}
+/* animated subject icons (ICON_ANIM in data.js): loops (.m) wait paused, one-shots (.h) play when the button is hovered or focused */
+.ai .am{animation-play-state:paused}
+:is(button,a):is(:hover,:focus-visible) .ai .am{animation-play-state:running}
+.ai-dna .am{animation:aiFade 1.6s ease-in-out infinite}
+.ai-dna .am:nth-of-type(4){animation-delay:.2s}.ai-dna .am:nth-of-type(5){animation-delay:.4s}.ai-dna .am:nth-of-type(6){animation-delay:.6s}.ai-dna .am:nth-of-type(7){animation-delay:.8s}
+.ai-flask .aliq{transform-origin:12px 19px;animation:aiSlosh 2.6s ease-in-out infinite}
+.ai-flask .abub{animation:aiRise 2.4s ease-in infinite}
+.ai-flask .abub:nth-of-type(2){animation-delay:-.8s}.ai-flask .abub:nth-of-type(3){animation-delay:-1.6s}
+.ai-atom .aorb{transform-origin:12px 12px;animation:aiSpin 3s linear infinite}
+.ai-atom .aorb:nth-of-type(2){animation-duration:4.2s;animation-direction:reverse}.ai-atom .aorb:nth-of-type(3){animation-duration:5.4s}
+.ai-globe .amer{transform-origin:12px 12px;animation:aiMer 3.2s linear infinite}
+.ai-globe .amer:nth-of-type(2){animation-delay:-1.6s}
+.ai-scale .abeam{transform-origin:12px 7px;animation:aiTilt 3s ease-in-out infinite}
+.ai-cpu .acore{animation:aiPulse 1.4s ease-in-out infinite}
+.ai-languages .adot{animation:aiBob 1.2s ease-in-out infinite}
+.ai-languages .adot:nth-of-type(2){animation-delay:.15s}.ai-languages .adot:nth-of-type(3){animation-delay:.3s}
+.ai-pi .ah,.ai-pen .aline{stroke-dasharray:26}
+.ai-booktext .apage{transform-origin:12px 12px}
+.ai-pen .anib{transform-box:view-box}
+.ai :is(.abar,.acol){transform-box:fill-box;transform-origin:50% 100%}
+.ai-chat .apop{transform-box:fill-box;transform-origin:30% 100%}
+:is(button,a):is(:hover,:focus-visible) .ai-pi .ah{animation:aiDraw .8s cubic-bezier(.45,0,.2,1) both}
+:is(button,a):is(:hover,:focus-visible) .ai-pi .ah:nth-of-type(2){animation-delay:.15s}
+:is(button,a):is(:hover,:focus-visible) .ai-pi .ah:nth-of-type(3){animation-delay:.3s}
+:is(button,a):is(:hover,:focus-visible) .ai-booktext .apage{animation:aiTurn .9s cubic-bezier(.45,0,.2,1) both}
+:is(button,a):is(:hover,:focus-visible) .ai-pen .aline{animation:aiDraw 1s ease-out both}
+:is(button,a):is(:hover,:focus-visible) .ai-pen .anib{animation:aiWrite 1s ease-out both}
+:is(button,a):is(:hover,:focus-visible) .ai :is(.abar,.acol){animation:aiGrow .6s cubic-bezier(.34,1.45,.64,1) both}
+:is(button,a):is(:hover,:focus-visible) .ai :is(.abar,.acol):nth-of-type(4){animation-delay:.1s}
+:is(button,a):is(:hover,:focus-visible) .ai :is(.abar,.acol):nth-of-type(5){animation-delay:.2s}
+:is(button,a):is(:hover,:focus-visible) .ai .acol:nth-of-type(6){animation-delay:.3s}
+:is(button,a):is(:hover,:focus-visible) .ai-chat .apop{animation:aiPop .55s cubic-bezier(.34,1.45,.64,1) both}
+@keyframes aiFade{50%{opacity:.2}}
+@keyframes aiSlosh{50%{transform:skewY(-5deg)}}
+@keyframes aiRise{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-9px);opacity:0}}
+@keyframes aiSpin{to{transform:rotate(360deg)}}
+@keyframes aiMer{0%,100%{transform:scaleX(1)}50%{transform:scaleX(0)}}
+@keyframes aiTilt{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes aiPulse{50%{opacity:.35}}
+@keyframes aiBob{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-1.6px)}}
+@keyframes aiDraw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
+@keyframes aiTurn{from{scale:1 1}to{scale:-1 1}} /* the scale property blends through 0; transform: scaleX(-1) would snap */
+@keyframes aiWrite{from{transform:translate(-7px,1px)}to{transform:none}}
+@keyframes aiGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes aiPop{from{transform:scale(0)}to{transform:scale(1)}}
+html.rm .ai *{animation:none !important}

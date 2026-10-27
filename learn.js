@@ -932,7 +932,7 @@ const LEARN = (() => {
   for (const [id, c] of Object.entries(CH)) TOPIC[id] = { name: c[0], subject: 'chemistry', type: 'eq' };
   for (const [id, v] of Object.entries(VB)) TOPIC[id] = { name: v.name, subject: 'englang', type: 'vocab', size: v.items.length };
   const SUBJECTS = [
-    ['maths', 'Maths', 'pi', 'Maths'], ['biology', 'Biology', 'dna', 'Science'], ['chemistry', 'Chemistry', 'testtube', 'Science'], ['physics', 'Physics', 'atom', 'Science'],
+    ['maths', 'Maths', 'pi', 'Maths'], ['biology', 'Biology', 'dna', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'atom', 'Science'],
     ['englit', 'English Literature', 'booktext', 'English Literature'], ['englang', 'English Language', 'pen', 'English Language'],
     ['geography', 'Geography', 'globe', 'Geography'], ['business', 'Business', 'briefcase', 'Business'], ['re', 'RE', 'scale', 'RE'],
     ['history', 'History', 'landmark', 'History'], ['compsci', 'Computer Science', 'cpu', 'Computer Science'], ['french', 'French', 'languages', 'French'], ['spanish', 'Spanish', 'chat', 'Spanish']

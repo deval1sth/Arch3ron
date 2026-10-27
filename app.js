@@ -68,7 +68,12 @@ function svg(view, d, cls) {
   for (const p of [].concat(d)) { const e = document.createElementNS(NS, 'path'); e.setAttribute('d', p); s.append(e); }
   return s;
 }
-const icon = (n, cls) => svg('0 0 24 24', ICONS[n] || ICONS.sparkle, cls);
+const icon = (n, cls) => {
+  if (!ICON_ANIM[n]) return svg('0 0 24 24', ICONS[n] || ICONS.sparkle, cls);
+  const s = document.createElementNS(NS, 'svg'); /* animated subject icon: its own groups and classes, so markup rather than paths */
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', `${cls || 'i'} ai ai-${n}`); s.setAttribute('aria-hidden', 'true'); s.innerHTML = ICON_ANIM[n];
+  return s;
+};
 const B = (label, act, cls = '', extra = {}) => h('button', Object.assign({ type: 'button', class: 'btn ' + cls, 'data-act': act }, extra), label);
 const card = (title, right, ...kids) => h('section', { class: 'card' }, (title || right) && h('div', { class: 'card-h' }, title && h('h2', null, title), right), kids);
 const chip = (label, on, act, extra = {}) => h('button', Object.assign({ type: 'button', class: 'chip' + (on ? ' on' : ''), 'data-act': act, 'aria-pressed': String(!!on) }, extra), label);
