@@ -369,8 +369,8 @@ Object.assign(PLUSACT, {
   searchDeck(el) { CD.deck = el.dataset.deck; CD.i = 0; CD.flip = false; go('cards'); },
   exp() { backupNow().then(ok => { if (ok) { S.lastBackup = dkey(); save(); toast('Backup saved'); render(); } }); }
 });
-ICONS.search = ['M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z', 'M20 20l-4.2-4.2'];
-ICONS.share = ['M12 3v12', 'M7 8l5-5 5 5', 'M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6'];
+ICONS.search = ['M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0', 'm21 21-4.3-4.3']; /* Lucide, see data.js */
+ICONS.share = ['M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8', 'M16 6L12 2L8 6', 'M12 2L12 15'];
 const searchBtn = () => h('button', { type: 'button', class: 'srch-b', 'data-act': 'searchOpen', 'aria-label': 'Search everything' }, icon('search'));
 
 /* ---------- Pick up where you left off ---------- */

@@ -1982,6 +1982,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   timerTick(); if (dkey() !== renderedDay) render();
 });
+/* another window (the installed app, a second tab) saved: take its progress, or this window's next save would wipe it */
+addEventListener('storage', e => { if (e.key === K && e.newValue) { try { S = normalize(JSON.parse(e.newValue)); render(); } catch (err) {} } });
 /* Transitions.dev "Card hover tilt" (mouse only, so touch scrolling is never blocked) */
 let tiltEl = null;
 const untilt = el => { if (!el) return; el.classList.remove('is-hover'); const c = el.firstElementChild; if (c) { c.classList.remove('is-tilting'); } el.style.setProperty('--tilt-rx', '0deg'); el.style.setProperty('--tilt-ry', '0deg'); };
