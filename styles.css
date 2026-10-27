@@ -29,22 +29,28 @@
   --nav-h:72px;
   color-scheme:light;
 }
-/* Night: a modern neutral dark (near-black page, grey surfaces that get lighter as they rise, soft accents) */
+/* Night: pitch black (OLED-style), surfaces only a shade lighter and separated by thin borders, no notebook lines */
 :root[data-mode="night"]{
-  --bg:#0f1014;--card:#17181d;--card2:#22242b;--solid:#1b1c22;--field:#121317;--sunk:rgba(0,0,0,.28);
+  --bg:#000;--card:#0c0c0e;--card2:#18181b;--solid:#111113;--field:#09090b;--sunk:rgba(255,255,255,.03);
   --fg-rgb:255,255,255;--line:rgba(var(--fg-rgb),.1);--line2:rgba(var(--fg-rgb),.06);
   --t:#ececf1;--m:#9a9eac;--hi:#fff;
-  --y:#7f9cff;--y2:#cdd7ff;--y3:#5f7ff0;--on-y:#0b0d14;--y-rgb:127,156,255;--y-soft:rgba(127,156,255,.12);
+  --y:#c4c4ca;--y2:#e4e4e7;--y3:#a1a1aa;--on-y:#000;--y-rgb:196,196,202;--y-soft:rgba(255,255,255,.06);
   --ember:#ff9c57;--em-rgb:255,156,87;
   --g:#5bd69b;--g-rgb:91,214,155;--g-soft:rgba(91,214,155,.12);--on-g:#0b0d14;
   --rest:#b6a8ff;--rest-rgb:182,168,255;--rest-soft:rgba(182,168,255,.12);
   --danger:#ff8d93;--no-rgb:255,141,147;
   --inv:#ececf1;--on-inv:#17181d;
-  --glass:rgba(15,16,20,.86);--veil:rgba(15,16,20,.95);--scrim:rgba(0,0,0,.62);
-  --shadow:0 1px 2px rgba(0,0,0,.35),0 16px 36px -24px rgba(0,0,0,.85);--shadow-up:0 2px 4px rgba(0,0,0,.4),0 22px 44px -22px rgba(0,0,0,.9);
-  --rule:rgba(255,255,255,.022);
+  --glass:rgba(0,0,0,.82);--veil:rgba(0,0,0,.95);--scrim:rgba(0,0,0,.7);
+  --shadow:none;--shadow-up:0 0 0 1px rgba(255,255,255,.06);
+  --rule:transparent;
   color-scheme:dark;
 }
+/* the default lime highlighter reads as green on black, so Night uses white unless another colour was picked */
+:root[data-mode="night"]:not([data-skin]):not([data-hl]){--hl:#c4c4ca;--hl-ink:#000}
+/* Night is strictly black and white: subject orbs and their glows go grey-white too (inline --c colours are overridden) */
+:root[data-mode="night"]:not([data-skin]) :is(.orb,.dq-orb,.bgb){--c:#b4b4bb !important;--bc:#d4d4d8 !important}
+:root[data-mode="night"]:not([data-skin]) .dq-hub .orb-core h1{background:none;color:#e4e4e7;-webkit-text-fill-color:#e4e4e7}
+:root[data-mode="night"]:not([data-skin]) .dq-drill .hero h1{color:#e4e4e7}
 /* Black and red (Settings → Look): the Night page re-inked, near-black with crimson accents */
 :root[data-mode="night"][data-skin="crimson"]{
   --bg:#0b0a0c;--card:#161215;--card2:#241b1f;--solid:#1a1418;--field:#110d10;--sunk:rgba(0,0,0,.32);
@@ -1369,3 +1375,13 @@ button.dq-orb:hover .dq-ball{transform:scale(1.15)}
 .dq-drill .qcard .row{justify-content:center}
 .orb.done .orb-ball{background:var(--c);color:#fff;box-shadow:0 0 30px color-mix(in srgb,var(--c) 50%,transparent)}
 .orb.tried .orb-ball{opacity:.6;box-shadow:none}
+/* subject backgrounds (bgfx.js): faint working-out that writes itself behind subject screens in Night */
+:root[data-mode="night"] body{background:none} /* the page colour comes from html, so the layer below can show */
+#bgfx{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.bgb{position:absolute;color:var(--bc);opacity:.26;font:400 20px/1.65 Georgia,"Times New Roman",serif;transition:opacity 1.5s ease}
+.bgb.out{opacity:0}
+.bgb p{margin:0;white-space:nowrap;opacity:.7;clip-path:inset(0 100% 0 0);animation:bgWrite 1.1s cubic-bezier(.45,0,.2,1) calc(var(--i) * 1.3s) forwards}
+.bgb p:last-child{opacity:1}
+.bgb svg{display:block;width:150px;height:auto;margin-bottom:10px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:700;stroke-dashoffset:700;animation:bgDraw 1.3s ease forwards}
+@keyframes bgWrite{to{clip-path:inset(0 0 0 0)}}
+@keyframes bgDraw{to{stroke-dashoffset:0}}

@@ -113,7 +113,7 @@ function makePlan() {
 }
 const STAT_KEYS = ['sessions', 'night', 'early', 'weekend', 'bestRun', 'plans', 'voyages', 'gates', 'improve', 'rightTowardsVoyage'];
 function freshState() {
-  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, dailyLog: {}, dailyStreak: false, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
+  return { v: 3, xp: 0, notes: {}, tnotes: {}, lvl: {}, daily: null, dailyLog: {}, dailyStreak: false, bgfx: true, readyLog: {}, pused: [], why: {}, lastBackup: '', backupSnooze: '', resume: null, text: 'normal', seb: true, fbk: [], days: {}, cards: {}, custom: {}, conf: {}, mistakes: [], scores: [], grades: {},
     mock: '2027-01-08', plan: makePlan(), deload: false, timer: { focus: 25, brk: 5 }, focusSets: 0, focusMin: 0, fixedCount: 0,
     skill: {}, learnOk: 0, quoteOk: 0, ach: {}, hidden: {}, plans: [], exam: null, items: {}, queue: [], mp: null, read: {}, sess: null, profile: { name: '', emblem: 'bat' }, motion: 'auto', sound: 'quiet', motionHint: false, theme: 'lime', mode: 'paper', achV: 2, wrapSeen: '',
     stat: Object.fromEntries(STAT_KEYS.map(k => [k, 0])) };
@@ -134,6 +134,7 @@ function normalize(raw) {
   for (const [k, v] of Object.entries(obj(r.dailyLog))) if (isKey(k)) { if ([0, 1, 2, 3, 4, 5].includes(v)) s.dailyLog[k] = v + '/5'; else if (/^[0-5]\/[1-5]$|^([mcp][01]){1,3}$/.test(v)) s.dailyLog[k] = v; } /* 'm1c0p1' = right/wrong per subject; 'score/out of' and bare numbers are old Daily fives */
   if (s.daily) s.dailyLog[s.daily.d] = s.dailyLog[s.daily.d] || s.daily.s + '/5'; /* scores from before the archive existed */
   s.dailyStreak = !!r.dailyStreak;
+  s.bgfx = r.bgfx !== false;
   s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
   for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
   const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
@@ -1613,7 +1614,9 @@ function vMe() {
             field('Rest minutes', h('input', { type: 'number', min: 1, max: 60, value: S.timer.brk, 'data-act': 'tlen', 'data-k': 'brk' })))),
         card('Look', null, h('h3', null, 'Page'), h('div', { class: 'chips' }, MODES.map(([v, l]) => chip(l, S.mode === v, 'mode', { 'data-v': v }))),
           h('h3', null, 'Highlighter'), h('div', { class: 'themes' }, THEMES.map(t => t[0] === 'lime' && S.mode === 'crimson' ? ['lime', 'Red', '#de2c39'] : t).map(([id, name, a]) => h('button', { type: 'button', class: 'theme' + (S.theme === id ? ' on' : ''), 'data-act': 'theme', 'data-v': id, 'aria-pressed': String(S.theme === id), style: `--ta:${a}` },
-          h('span', { class: 'th-sw' }), h('b', null, name))))),
+          h('span', { class: 'th-sw' }), h('b', null, name)))),
+          h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: S.bgfx, 'data-act': 'bgfx', role: 'switch' }),
+            h('span', null, h('b', null, 'Subject animations'), h('small', null, 'In Night, faint working-out writes itself behind Maths, Physics and Chemistry.')))),
         card('Motion', null, h('p', { class: 'muted xs' }, 'Auto follows your device setting. Full turns on every animation and effect.'),
           h('div', { class: 'chips' }, [['auto', 'Auto'], ['full', 'Full'], ['reduced', 'Reduced']].map(([v, l]) => chip(l, S.motion === v, 'motion', { 'data-v': v }))),
           MQ_REDUCED.matches && h('p', { class: 'muted xs' }, 'Your device currently asks for reduced motion.')),
@@ -1694,6 +1697,7 @@ function render(o = {}) {
     if (!REDUCED && !HAS_VT) for (const el of view.querySelectorAll('.hero, .focus')) { el.classList.add('t-stagger'); void el.offsetWidth; const show = () => el.classList.add('is-shown'); requestAnimationFrame(show); setTimeout(show, 120); }
   }
   if (typeof paintSide === 'function') paintSide();
+  if (typeof BGFX !== 'undefined') BGFX.sync();
   const panels = view.querySelectorAll('.t-panel-slide[data-open="false"]');
   if (panels.length) { const open = () => panels.forEach(p => p.setAttribute('data-open', 'true')); requestAnimationFrame(() => requestAnimationFrame(open)); setTimeout(open, 150); }
 }
@@ -1931,6 +1935,7 @@ const CHG = {
   fin(el) { const d = ensureDay(dkey()); if (el.checked) d.f[el.dataset.i] = true; else delete d.f[el.dataset.i]; xp(el.checked ? 5 : -5); render({ recheck: `label:has(> [data-act="fin"][data-i="${el.dataset.i}"])` }); },
   chk(el) { const k = LT + el.dataset.i; if (el.checked) S.conf[k] = 3; else delete S.conf[k]; save(); if (el.checked && listPct(LT) === 100) toast('List complete', 'big'); render({ recheck: `label:has(> [data-act="chk"][data-i="${el.dataset.i}"])` }); },
   dailyStreak(el) { S.dailyStreak = el.checked; save(); render(); },
+  bgfx(el) { S.bgfx = el.checked; save(); render(); },
   deload(el) { S.deload = el.checked; save(); toast(el.checked ? 'Deload on: half volume this week' : 'Deload off: full programme'); render(); },
   hide(el) { const t = el.dataset.topic; if (el.checked) delete S.hidden[t]; else S.hidden[t] = true; save(); },
   pname(el) { S.profile.name = str(el.value, 30).trim(); save(); },
