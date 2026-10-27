@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Safety net: Archeron loads nothing from outside, so the page may only talk to itself. Even injected code could not send
+     progress anywhere (connect/img/frame/form), or pull in outside scripts. Inline scripts and eval stay allowed for the
+     pre-paint script and the simulators run in the local preview. Links to other sites still open normally. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' data: blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#f4f6fb">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
