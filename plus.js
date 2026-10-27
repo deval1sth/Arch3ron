@@ -360,7 +360,7 @@ function vSearch() {
     searchResults(DRAFT.q || ''));
 }
 document.addEventListener('input', e => { if (e.target.id === 'q') { DRAFT.q = e.target.value; const r = $('#sres'); if (r) r.replaceWith(searchResults(DRAFT.q)); } });
-document.addEventListener('keydown', e => { if (e.key === '/' && !e.target.matches('input, textarea, select')) { e.preventDefault(); go('search', '#q'); } });
+document.addEventListener('keydown', e => { if ((e.key === '/' && !e.target.matches('input, textarea, select')) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) { e.preventDefault(); go('search', '#q'); } });
 Object.assign(PLUSACT, {
   searchOpen() { go('search', '#q'); setTimeout(() => { const q = $('#q'); if (q && document.activeElement !== q) q.focus({ preventScroll: true }); }, 350); }, /* view transitions can finish after go() tries to focus */
   searchTry(el) { DRAFT.q = el.dataset.q; render({ focus: '#q' }); },

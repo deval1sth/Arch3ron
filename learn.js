@@ -757,6 +757,54 @@ const LEARN = (() => {
     return { q: `A reaction produced ${v} cm³ of gas in ${t} seconds. Calculate the mean rate of reaction to 2 d.p.`, pic: pic('gas', v + ' cm³', t + ' s'), kind: 'num', sl: { v, t }, v: r, tol: .006, suf: 'cm³/s', show: n(r) + ' cm³/s',
       steps: ['Mean rate = quantity of product ÷ time', `= ${v} ÷ ${t} = ${n(r)} cm³/s`] };
   });
+  /* ---------- Physics: units. Convert first, or the right method gives the wrong answer (grams in W = m × g is the classic) ---------- */
+  /* [from, to, × or ÷, by, why, values] */
+  const UNITS = [
+    ['g', 'kg', '÷', 1000, '1 kg = 1000 g', [5, 25, 60, 250, 450, 800, 1500]], ['cm', 'm', '÷', 100, '1 m = 100 cm', [5, 12, 30, 45, 80, 150, 250]],
+    ['mm', 'm', '÷', 1000, '1 m = 1000 mm', [2, 5, 15, 40, 250, 600]], ['km', 'm', '×', 1000, '1 km = 1000 m', [0.5, 1.2, 2, 3.5, 8, 15]],
+    ['minutes', 's', '×', 60, '1 minute = 60 s', [2, 3, 5, 8, 10, 15, 20, 45]], ['hours', 's', '×', 3600, '1 hour = 3600 s', [0.5, 1.5, 2, 3]],
+    ['kJ', 'J', '×', 1000, 'kilo means a thousand', [0.5, 2, 4.5, 12, 36, 150]], ['MJ', 'J', '×', 1e6, 'mega means a million', [0.2, 1.5, 3, 12]],
+    ['kW', 'W', '×', 1000, 'kilo means a thousand', [0.75, 1.5, 2, 3, 9]], ['mA', 'A', '÷', 1000, 'milli means a thousandth', [20, 50, 150, 250, 400, 800]],
+    ['µA', 'A', '÷', 1e6, 'micro means a millionth', [200, 500, 800]], ['kΩ', 'Ω', '×', 1000, 'kilo means a thousand', [1.2, 2, 4.7, 10, 22]],
+    ['mV', 'V', '÷', 1000, 'milli means a thousandth', [50, 200, 500, 750]], ['cm³', 'm³', '÷', 1e6, '1 m³ = 100 cm × 100 cm × 100 cm = 1 000 000 cm³', [500, 2000, 25000, 400000]],
+    ['g/cm³', 'kg/m³', '×', 1000, '1 g/cm³ = 1000 kg/m³', [0.8, 1.2, 2.7, 7.9, 11.3]], ['km/h', 'm/s', '÷', 3.6, '1 km/h = 1000 m ÷ 3600 s', [18, 36, 54, 72, 90, 108]]
+  ];
+  /* the same slip inside a real calculation: [question, answer, unit, steps] */
+  const UCALC = [
+    () => { const g = pick([250, 500, 750, 1500]), m = clean(g / 1000), W = clean(m * 9.8);
+      return [`A bag has a mass of ${g} g. Gravitational field strength is 9.8 N/kg. Find its weight.`, W, 'N', [`Convert first: ${g} g ÷ 1000 = ${n(m)} kg`, 'W = m × g', `= ${n(m)} × 9.8 = ${n(W)} N`]]; },
+    () => { const [km, min] = pick([[1.2, 5], [1.5, 5], [2.4, 10], [3, 10], [6, 25], [9, 30]]), s = clean(km * 1000), t = min * 60, v = clean(s / t);
+      return [`A runner covers ${n(km)} km in ${min} minutes. Find their average speed in m/s.`, v, 'm/s', [`Convert first: ${n(km)} km × 1000 = ${n(s)} m, and ${min} minutes × 60 = ${t} s`, 'v = s ÷ t', `= ${n(s)} ÷ ${t} = ${n(v)} m/s`]]; },
+    () => { const mA = pick([200, 250, 500, 800]), min = pick([2, 5, 10]), I = clean(mA / 1000), t = min * 60, Q = clean(I * t);
+      return [`A current of ${mA} mA flows for ${min} minutes. How much charge flows?`, Q, 'C', [`Convert first: ${mA} mA ÷ 1000 = ${n(I)} A, and ${min} minutes × 60 = ${t} s`, 'Q = I × t', `= ${n(I)} × ${t} = ${n(Q)} C`]]; },
+    () => { const kW = pick([1.5, 2, 3]), min = pick([2, 5, 10]), P = clean(kW * 1000), t = min * 60, E = clean(P * t);
+      return [`A ${n(kW)} kW heater is switched on for ${min} minutes. How much energy does it transfer, in joules?`, E, 'J', [`Convert first: ${n(kW)} kW × 1000 = ${n(P)} W, and ${min} minutes × 60 = ${t} s`, 'E = P × t', `= ${n(P)} × ${t} = ${n(E)} J`]]; },
+    () => { const [g, cm3] = pick([[270, 100], [540, 200], [79, 10], [113, 10], [160, 200], [600, 500]]), m = clean(g / 1000), V = clean(cm3 / 1e6), r = clean(m / V);
+      return [`A block has a mass of ${g} g and a volume of ${cm3} cm³. Find its density in kg/m³.`, r, 'kg/m³', [`Convert first: ${g} g ÷ 1000 = ${n(m)} kg, and ${cm3} cm³ ÷ 1 000 000 = ${n(V)} m³`, 'ρ = m ÷ V', `= ${n(m)} ÷ ${n(V)} = ${n(r)} kg/m³`]]; },
+    () => { const g = pick([100, 200, 400, 500]), v = pick([2, 4, 5, 10]), m = clean(g / 1000), E = clean(.5 * m * v * v);
+      return [`A ${g} g ball moves at ${v} m/s. Find its kinetic energy.`, E, 'J', [`Convert first: ${g} g ÷ 1000 = ${n(m)} kg`, 'Eₖ = ½ × m × v²', `= ½ × ${n(m)} × ${v}² = ${n(E)} J`]]; }
+  ];
+  CT('ph-units', 'physics', 'Unit conversions', () => {
+    if (Math.random() < .5) { const [q, v, suf, steps] = pick(UCALC)(); return { q, sub: 'Convert, then calculate', kind: 'num', v, rel: .001, suf, show: `${n(v)} ${suf}`, steps }; }
+    const [from, to, op, k, why, vals] = pick(UNITS), x = pick(vals), v = clean(op === '×' ? x * k : x / k);
+    return { q: `Convert ${n(x)} ${from} into ${to === 's' ? 'seconds' : to}.`, kind: 'num', v, rel: .001, suf: to, show: `${n(v)} ${to}`, steps: [`${why}, so ${op} ${n(k)}`, `${n(x)} ${op} ${n(k)} = ${n(v)} ${to}`] };
+  });
+  /* ---------- Physics: change one or two quantities, what happens? Worked out from the checked equations above ---------- */
+  const PART = { 3: 'a third', 4: 'a quarter', 8: 'an eighth', 9: 'a ninth' };
+  const fx = f => f >= 1 ? `× ${n(f)}` : `÷ ${Math.round(1 / f)}`; /* every factor here is a whole number or one over one */
+  const said = f => f === 1 ? 'It stays the same' : f === 2 ? 'It doubles' : f === .5 ? 'It halves' : f === 3 ? 'It triples' : f > 1 ? `It goes up ${n(f)} times (× ${n(f)})` : `It falls to ${PART[Math.round(1 / f)]} (÷ ${Math.round(1 / f)})`;
+  CT('ph-change', 'physics', 'Doubling and halving', () => {
+    const e = pick(Object.values(P)), can = e.ins.filter(i => i[4].length > 1), base = Object.fromEntries(e.ins.map(i => [i[0], i[4][1] || i[4][0]])); /* g stays 9.8 */
+    const ch = can.length > 1 && Math.random() < .5 ? shuffle(can).slice(0, 2).map(i => [i, pick([[2, 'doubles'], [.5, 'halves']])]) : [[pick(can), pick([[2, 'doubles'], [3, 'triples'], [.5, 'halves']])]];
+    const f = clean(e.f({ ...base, ...Object.fromEntries(ch.map(([i, [m]]) => [i[0], base[i[0]] * m])) }) / e.f(base));
+    const pow = i => Math.round(Math.log2(e.f({ ...base, [i[0]]: base[i[0]] * 2 }) / e.f(base))), each = ch.map(([i, [m]]) => clean(m ** pow(i)));
+    if (Math.abs(each.reduce((a, b) => a * b, 1) - f) > 1e-9) return null; /* the steps must agree with the equation itself */
+    const naive = clean(ch.reduce((a, [i, [m]]) => a * m ** Math.sign(pow(i)), 1)); /* forgetting the square or the divide */
+    const o = shuffle([...new Set([f, naive, clean(1 / f), 1, 2, .5, 4, .25, 3, clean(1 / 3), 9, clean(1 / 9), 8, .125])].slice(0, 4)), sym = e.out[1];
+    return { q: `${e.eq}\nIf the ${ch.map(([i, [, w]]) => `${i[2]} ${w}`).join(' and the ')}, what happens to the ${e.out[2]}?`, sub: e.name, kind: 'mcq', options: o.map(said), a: o.indexOf(f), show: said(f),
+      steps: [e.eq, ...ch.map(([i, [, w]], k) => `The ${i[2]} ${w}${pow(i) === 2 ? ' and is squared' : pow(i) < 0 ? ' and the equation divides by it' : ''}, so ${sym} ${fx(each[k])}`),
+        ch.length > 1 ? `Together: ${each.map(fx).join(', then ')} → ${f === 1 ? 'no change' : fx(f)}` : null, `${said(f)}.`].filter(Boolean) };
+  });
 
   CT('bz-profit', 'business', 'Revenue, costs and profit', () => {
     const p = ri(4, 20), vc = ri(1, p - 2), q = ri(5, 60) * 10, fc = ri(5, 40) * 100, rev = p * q, tc = fc + vc * q, pr = rev - tc, f = ri(0, 2);

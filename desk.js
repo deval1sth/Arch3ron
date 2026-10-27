@@ -159,25 +159,38 @@ function paintSide() {
     list.length ? h('ul', { class: 'sd-sets' }, list.map(x => h('li', { class: (x.left ? '' : 'done') + (x.s.id === cur && x.left ? ' now' : '') }, h('span', null, x.s.id === cur && act ? setTitle(x.s.label) : x.s.label), h('small', null, `${x.c}/${x.n}`))))
       : h('p', { class: 'muted xs' }, 'No sets planned today.'),
     h('p', { class: 'muted xs' }, `${done} ${done === 1 ? 'set' : 'sets'} done today · mocks in ${daysToMocks()} days`),
-    h('div', { class: 'sd-links' }, B("Today's plan", 'go', 'link', { 'data-tab': 'today' }), !act && B('Rescue set', 'rescue', 'link'), B('Shortcuts (?)', 'keysHelp', 'link')));
+    h('div', { class: 'sd-links' }, B("Today's plan", 'go', 'link', { 'data-tab': 'today' }), !act && B('Rescue set', 'rescue', 'link'), B('Equations (E)', 'eqs', 'link'), B('Shortcuts (?)', 'keysHelp', 'link')));
 }
 addEventListener('resize', () => { clearTimeout(paintSide.t); paintSide.t = setTimeout(() => typeof S !== 'undefined' && paintSide(), 150); });
 
 /* ---------- keyboard ---------- */
 const KEYS = [['Enter', 'Check your answer, then go to the next question'], ['N', 'Next question'], ['1 to 4', 'Pick a multiple-choice answer'], ['Space', 'Start or pause the timer on Focus; flip a flashcard'],
-  ['← and →', 'Flashcards: again, or got it'], ['F', 'Exam hall mode on a paper'], ['Esc', 'Leave the exam hall, close this'], ['?', 'Show these shortcuts']];
+  ['← and →', 'Flashcards: again, or got it'], ['F', 'Exam hall mode on a paper'], ['E', 'Equation sheet'], ['Ctrl+K or /', 'Search everything'], ['Esc', 'Leave the exam hall, close this'], ['?', 'Show these shortcuts']];
 function keysSheet() {
   let el = document.getElementById('keys'); if (el) { el.remove(); return; }
   el = h('div', { id: 'keys', role: 'dialog', 'aria-label': 'Keyboard shortcuts', 'data-act': 'keysHelp' }, h('div', { class: 'card' }, h('h2', null, 'Keyboard shortcuts'),
     h('ul', null, KEYS.map(([k, d]) => h('li', null, h('kbd', null, k), h('span', null, d)))), h('p', { class: 'muted xs' }, 'Esc or click anywhere to close.')));
   document.body.append(el);
 }
+/* the app's own checked lists (DECKS in data.js), for the subject on screen, else the ones you take. Shut while a
+   question waits for an answer: recall first, or the equation drills turn into copying. */
+function eqSheet() {
+  let el = document.getElementById('eqs'); if (el) { el.remove(); return; }
+  if (DR && DR.q && DR.state === 'ask' && ['drill', 'home', 'guide'].includes(TAB)) { toast('Try it from memory first. The sheet opens once you have checked.'); return; }
+  const t = TAB === 'subject' ? SUBJ_SEL : TAB === 'drill' && DR ? DR.dt || (DR.topic && LEARN.trackOf(DR.topic)) : null, mine = mySubjects().map(s => s.id), all = [['physics', 'phy'], ['maths', 'mat']];
+  const ds = [all.filter(([s]) => s === t), all.filter(([s]) => mine.includes(s)), all].find(x => x.length);
+  el = h('div', { id: 'eqs', role: 'dialog', 'aria-label': 'Equation sheet', 'data-act': 'eqs' }, h('div', { class: 'card' }, h('h2', null, 'Equation sheet'),
+    ds.map(([, k]) => [h('h3', null, DECKS[k].name), h('ul', null, DECKS[k].cards.map(([n, f]) => { const [eq, u] = f.split('  ('); return h('li', null, h('b', null, n), h('span', null, eq), u && h('small', null, '(' + u)); }))]),
+    h('p', { class: 'muted xs' }, 'Esc, E or click anywhere to close.')));
+  document.body.append(el);
+}
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === 'Escape') { if (document.getElementById('keys')) { keysSheet(); e.preventDefault(); return; } if (HALL) { hallExit(); e.preventDefault(); } return; }
+  if (e.key === 'Escape') { for (const [id, f] of [['keys', keysSheet], ['eqs', eqSheet]]) if (document.getElementById(id)) { f(); e.preventDefault(); return; } if (HALL) { hallExit(); e.preventDefault(); } return; }
   if (e.target.matches('input, textarea, select, [contenteditable]')) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, onBtn = e.target.closest && e.target.closest('button, a');
   if (k === '?') { keysSheet(); e.preventDefault(); return; }
+  if (k === 'e') { eqSheet(); e.preventDefault(); return; }
   if (k === 'f' && TAB === 'examq' && S.exam && isDesk()) { HALL ? hallExit() : hallEnter(); e.preventDefault(); return; }
   if (TAB === 'cards' && CD.flip && (k === 'ArrowLeft' || k === 'ArrowRight')) { $(`#rate [data-ok="${k === 'ArrowRight' ? 1 : 0}"]`)?.click(); e.preventDefault(); return; }
   if (k === ' ' && TAB === 'home' && !onBtn) { ACT.tgl(); e.preventDefault(); return; }
@@ -225,6 +238,7 @@ function guideSide(g) {
 Object.assign(PLUSACT, {
   hallGo() { hallEnter(); }, hallOut() { hallExit(); }, hallIn() { hallIn(); },
   keysHelp() { keysSheet(); },
+  eqs() { eqSheet(); },
   sideBegin() { if (TAB !== 'home') go('home'); ACT.tgl(); },
   gsideTopic(el) { GSIDE = el.dataset.topic; DR = null; render(); },
   printPaper(el) { const p = paperOf(el.dataset.id); if (p) printPaper(p); },
