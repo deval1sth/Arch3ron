@@ -1316,3 +1316,43 @@ html.rm .orb,html.rm .orb-core,html.rm .orb-lines{animation:none}
 .darc{list-style:none;margin:0;padding:0}
 .darc li{display:grid;grid-template-columns:5.5em 1fr auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .darc li:first-child{border-top:0}
+/* Daily questions: Mocks-ring orbs in a row, one per subject */
+.dq-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card.dq .dq-t{font:600 26px/1.1 Georgia,"Times New Roman",serif;margin:2px 0 0;color:var(--y2)}
+.dq-orbs{display:flex;justify-content:center;gap:clamp(18px,6vw,48px);margin:14px 0 6px;position:relative}
+.dq-orbs:not(.xs)::before{content:'';position:absolute;left:18%;right:18%;top:36px;border-top:1.4px dotted var(--line)}
+.dq-orb{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--t)}
+.dq-orb small{font-family:var(--head);font-weight:700;font-size:12.5px}
+.dq-ball{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;color:var(--c);
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 22%,var(--card)),color-mix(in srgb,var(--c) 9%,var(--card)) 70%);
+  border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--c) 26%,transparent);transition:transform .25s var(--spring),box-shadow .25s var(--ease)}
+.dq-ball .i{width:28px;height:28px}
+.dq-orb.ok .dq-ball{background:var(--c);color:#fff;box-shadow:0 0 28px color-mix(in srgb,var(--c) 50%,transparent)}
+.dq-orb.no .dq-ball{opacity:.55;box-shadow:none}
+.dq-orb.now .dq-ball{transform:scale(1.1);box-shadow:0 0 34px color-mix(in srgb,var(--c) 55%,transparent)}
+.dq-orbs.strip{margin:0 0 4px}
+.dq-orbs.strip .dq-ball{width:52px;height:52px}.dq-orbs.strip .dq-ball .i{width:22px;height:22px}
+.dq-orbs.strip::before{top:26px}
+.dq-orbs.xs{justify-content:flex-start;gap:8px;margin:0}
+.dq-orbs.xs .dq-ball{width:22px;height:22px;border-width:1px;box-shadow:none}.dq-orbs.xs .dq-ball .i{width:12px;height:12px}
+.dq-orbs.xs .ok .dq-ball{box-shadow:0 0 10px color-mix(in srgb,var(--c) 45%,transparent)}
+.dq-tick{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.dq-orbs.strip .dq-tick{width:22px;height:22px}.dq-orbs.xs .dq-tick{width:13px;height:13px;stroke-width:3.5}
+/* the Daily page: Mocks ring with a three-colour serif title, Daily Integral style */
+@media (min-width:641px){.dq-hub .orb-core{width:48%}}
+.dq-hub .orb-core h1{font-size:clamp(36px,5vw,58px);background:linear-gradient(90deg,#2f55e4,#0f9a94 50%,#f06418);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dq-go{justify-content:center}
+.dq-hub .orb-core h1 .dq-kick{display:block;font-size:19px;font-weight:400;color:var(--m);-webkit-text-fill-color:var(--m);margin-bottom:2px}
+.dq-hub .orb-core p{max-width:300px;margin:0 auto}
+.dq-hint{display:block;margin-top:10px;font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.28em;text-transform:uppercase;opacity:.7}
+/* the daily question screen, Daily Integral style: serif, centred, an underline for the answer */
+.dq-drill .hero h1{font-family:Georgia,"Times New Roman",serif;font-weight:600}
+.dq-drill .qcard{background:none;border:0;box-shadow:none;text-align:center}
+.dq-drill .qcard .drill-meta{justify-content:center}
+.dq-drill .qtext{font:500 clamp(20px,2.4vw,26px)/1.4 Georgia,"Times New Roman",serif}
+.dq-drill .answer{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:none}
+.dq-drill .answer input{background:none;border:0;text-align:center;font:italic 18px Georgia,"Times New Roman",serif}
+.dq-drill .mcq .opt{font-family:Georgia,"Times New Roman",serif}
+.dq-drill .hero{text-align:center}
+.dq-drill .hero h1,.dq-drill .hero h1 *{background:none;box-shadow:none;color:var(--y2);letter-spacing:-.01em}
+.dq-drill .hero .eyebrow{font:italic 400 17px Georgia,"Times New Roman",serif;text-transform:none;letter-spacing:0;color:var(--m)}

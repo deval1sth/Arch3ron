@@ -1157,7 +1157,7 @@ function mockOrbs(title, sub, list, cls = '') {
   poly.setAttribute('points', pos.map(p => p.join(',')).join(' ')); lines.append(poly);
   return h('div', { class: 'orbhub ' + cls + (n > 8 ? ' many' : '') }, lines,
     h('div', { class: 'orb-core' }, emblemEl('bat', 'orb-bat'), h('h1', null, title), h('p', null, sub)),
-    list.map((t, i) => h('button', { ...t.attrs, type: 'button', class: t.pct == null ? 'orb' : 'orb prog', 'data-act': t.act, 'data-tab': t.tab, style: `left:${pos[i][0].toFixed(2)}%;top:${pos[i][1].toFixed(2)}%;--c:${ORB_C[i % ORB_C.length]};--i:${i}${t.pct == null ? '' : ';--p:' + Math.round(t.pct)}` },
+    list.map((t, i) => h('button', { ...t.attrs, type: 'button', class: t.pct == null ? 'orb' : 'orb prog', 'data-act': t.act, 'data-tab': t.tab, style: `left:${pos[i][0].toFixed(2)}%;top:${pos[i][1].toFixed(2)}%;--c:${t.c || ORB_C[i % ORB_C.length]};--i:${i}${t.pct == null ? '' : ';--p:' + Math.round(t.pct)}` },
       h('span', { class: 'orb-ball' }, icon(t.ic)), h('b', null, t.name), h('small', null, t.sub))));
 }
 function vMocks() {
