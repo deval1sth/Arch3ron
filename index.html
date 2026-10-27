@@ -21,7 +21,7 @@
 <title>Archeron</title>
 <script>/* apply the saved page and highlighter before first paint (app.js applyTheme writes this) */
 try { var L = (localStorage.getItem('archeron-look') || '').split(' '), R = document.documentElement, N = L[0] === 'night' || L[0] === 'crimson' || (L[0] === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  if (N) { R.setAttribute('data-mode', 'night'); document.querySelector('meta[name=theme-color]').setAttribute('content', L[0] === 'crimson' ? '#0b0a0c' : '#121735'); }
+  if (N) { R.setAttribute('data-mode', 'night'); document.querySelector('meta[name=theme-color]').setAttribute('content', L[0] === 'crimson' ? '#0b0a0c' : '#0f1014'); }
   if (L[0] === 'crimson') R.setAttribute('data-skin', 'crimson');
   if (L[1] && L[1] !== 'lime') R.setAttribute('data-hl', L[1]); } catch (e) {}
 /* the bat intro plays on the first open of each day; later opens go straight in */

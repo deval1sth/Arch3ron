@@ -29,19 +29,20 @@
   --nav-h:72px;
   color-scheme:light;
 }
+/* Night: a modern neutral dark (near-black page, grey surfaces that get lighter as they rise, soft accents) */
 :root[data-mode="night"]{
-  --bg:#121735;--card:#1b2148;--card2:#283063;--solid:#1e2552;--field:#151a3d;--sunk:rgba(0,0,0,.2);
-  --fg-rgb:255,255,255;--line:rgba(var(--fg-rgb),.13);--line2:rgba(var(--fg-rgb),.075);
-  --t:#edf0fc;--m:#a7aed4;--hi:#fff;
-  --y:#8ea7ff;--y2:#d0d9ff;--y3:#6683f2;--on-y:#0e1433;--y-rgb:142,167,255;--y-soft:rgba(142,167,255,.13);
+  --bg:#0f1014;--card:#17181d;--card2:#22242b;--solid:#1b1c22;--field:#121317;--sunk:rgba(0,0,0,.28);
+  --fg-rgb:255,255,255;--line:rgba(var(--fg-rgb),.1);--line2:rgba(var(--fg-rgb),.06);
+  --t:#ececf1;--m:#9a9eac;--hi:#fff;
+  --y:#7f9cff;--y2:#cdd7ff;--y3:#5f7ff0;--on-y:#0b0d14;--y-rgb:127,156,255;--y-soft:rgba(127,156,255,.12);
   --ember:#ff9c57;--em-rgb:255,156,87;
-  --g:#5bd69b;--g-rgb:91,214,155;--g-soft:rgba(91,214,155,.13);--on-g:#0e1433;
-  --rest:#b6a8ff;--rest-rgb:182,168,255;--rest-soft:rgba(182,168,255,.13);
+  --g:#5bd69b;--g-rgb:91,214,155;--g-soft:rgba(91,214,155,.12);--on-g:#0b0d14;
+  --rest:#b6a8ff;--rest-rgb:182,168,255;--rest-soft:rgba(182,168,255,.12);
   --danger:#ff8d93;--no-rgb:255,141,147;
-  --inv:#edf0fc;--on-inv:#1c2033;
-  --glass:rgba(18,23,53,.88);--veil:rgba(18,23,53,.94);--scrim:rgba(5,8,26,.62);
-  --shadow:0 16px 36px -26px rgba(0,0,0,.75);--shadow-up:0 22px 44px -22px rgba(0,0,0,.8);
-  --rule:rgba(142,167,255,.05);
+  --inv:#ececf1;--on-inv:#17181d;
+  --glass:rgba(15,16,20,.86);--veil:rgba(15,16,20,.95);--scrim:rgba(0,0,0,.62);
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 16px 36px -24px rgba(0,0,0,.85);--shadow-up:0 2px 4px rgba(0,0,0,.4),0 22px 44px -22px rgba(0,0,0,.9);
+  --rule:rgba(255,255,255,.022);
   color-scheme:dark;
 }
 /* Black and red (Settings → Look): the Night page re-inked, near-black with crimson accents */
