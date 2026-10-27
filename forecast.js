@@ -148,13 +148,22 @@ VIEWS.numbers = function () {
 };
 
 /* ---------- the review log: every answer the app marked itself, so the memory model can be fitted to this student ----------
-   One entry per answer: "key,day,right" (day = days since 1970, right = 1 or 0). Written definitions are left out, because
-   you tick your own key points there, and a calibration is only as honest as its data. About 15 bytes an answer. */
+   One entry per answer: "key,day,right,type,hints,secs" (day = days since 1970, right = 1 or 0, type = question kind,
+   hints = hints used, secs = time from the question appearing to the answer, capped at 900; entries before 11.9.51 stop
+   after "right"). Calculation topics have no per-fact key, so they log as "T:topic". Two more kinds of line record study
+   before testing, to measure how much reading helps: "c:key,day" (a new-fact card shown) and "l:lesson,day" (a lesson
+   started). Written definitions are left out, because you tick your own key points there, and a calibration is only as
+   honest as its data. About 25 bytes an answer; save() drops the oldest half if storage ever fills. */
 const RLOG_MAX = 30000;
+const rlogPush = line => { const L = tcArr('rlog'); L.push(line); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); };
+const rlogMeta = (id, key) => {
+  const q = DR && DR.q && (DR.q.id === id || (key && DR.q.key === key)) ? DR.q : null;
+  return q ? `${q.kind || ''},${DR.hint || 0},${DR.tq === q && DR.t0 ? Math.min(900, Math.round((Date.now() - DR.t0) / 1000)) : ''}` : ',,';
+};
 const _recordF = record;
 record = function (id, ok, key) {
   const self = DR && DR.q && DR.q.key === key && DR.q.kind === 'def';
-  if (key && !self) { const L = tcArr('rlog'); L.push(`${key},${today()},${ok ? 1 : 0}`); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); }
+  if (!self && (key || (id && LEARN.TOPIC[id]))) rlogPush(`${key || 'T:' + id},${today()},${ok ? 1 : 0},${rlogMeta(id, key)}`);
   /* today's missed topics by name, for the Rival page (rival.js): { d: day, t: { id: [name, subject, misses, firstMissMs] } } */
   if (!ok && id && LEARN.TOPIC[id]) {
     const M = tcObj('miss'), d = dkey();
@@ -181,10 +190,19 @@ record = function (id, ok, key) {
   }
   return _recordF(id, ok, key);
 };
-/* reviews that can teach the model something: a fact seen again on a later day */
+/* the clock for "secs" starts when a question first appears */
+const _drillPanelF = drillPanel;
+drillPanel = function () { if (DR && DR.q && DR.state === 'ask' && DR.tq !== DR.q) { DR.tq = DR.q; DR.t0 = Date.now(); } return _drillPanelF(); };
+/* study before testing: a new-fact card, a lesson */
+const _ltGoF = ltGo; /* reached by the Got it button (ACT.ltGo) and by Enter (teach.js ACT.next calls ltGo()) */
+ltGo = function () { if (DR && DR.state === 'learn' && DR.q) rlogPush(`c:${DR.q.key || DR.q.id},${today()}`); return _ltGoF(); };
+ACT.ltGo = ltGo;
+const _lessonStartF = lessonStart;
+lessonStart = function (lid, ...a) { const ok = _lessonStartF(lid, ...a); if (ok) rlogPush(`l:${lid},${today()}`); return ok; };
+/* reviews that can teach the model something: a fact seen again on a later day (cards, lessons and calculation topics don't count) */
 function rlogUseful() {
   const last = {}; let n = 0;
-  for (const e of tcArr('rlog')) { const [k, d] = e.split(','); if (last[k] != null && +d > last[k]) n++; last[k] = +d; }
+  for (const e of tcArr('rlog')) { const [k, d] = e.split(','); if (k.includes(':')) continue; if (last[k] != null && +d > last[k]) n++; last[k] = +d; }
   return n;
 }
 function rlogCard() {
@@ -196,7 +214,7 @@ function rlogCard() {
 }
 ACT.rlogExport = () => {
   const L = tcArr('rlog'); if (!L.length) return;
-  const data = { app: 'archeron', kind: 'review-log', v: 1, exported: dkey(), mock: S.mock, fields: 'key,day,right', reviews: L };
+  const data = { app: 'archeron', kind: 'review-log', v: 2, exported: dkey(), mock: S.mock, fields: 'key,day,right,type,hints,secs (older entries: key,day,right); c:key,day = fact card shown; l:lesson,day = lesson started; T:topic = calculation topic', reviews: L };
   const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: `archeron-reviews-${dkey()}.json` });
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast(`${L.length.toLocaleString('en-GB')} answers exported`);

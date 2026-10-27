@@ -245,6 +245,9 @@ function freeSpace() { try { const old = Object.keys(localStorage).filter(k => k
 function save() {
   const json = JSON.stringify(S);
   if (store(K, json) || (storeErr === 'full' && freeSpace() && store(K, json))) { saveWarned = false; return; }
+  /* still full: the review log (forecast.js) is the one thing that can shrink without losing progress */
+  const L = S.tc && S.tc.rlog;
+  if (storeErr === 'full' && Array.isArray(L) && L.length > 100) { L.splice(0, Math.ceil(L.length / 2)); if (store(K, JSON.stringify(S))) { saveWarned = false; return; } }
   if (saveWarned) return;
   saveWarned = true;
   toast(storeErr === 'full' ? 'Browser storage is full, so progress is not saving right now' : 'Progress cannot be saved in this browser mode');
