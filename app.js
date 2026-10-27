@@ -788,28 +788,27 @@ function queueBack() {
   const q = DR.q; if (!q || !q.key || q.back || !lowTopic(q.id)) return;
   (DR.retry = DR.retry || []).push({ q: Object.assign({}, q, { back: true }), at: DR.count + 3 });
 }
-/* Daily questions: one each from your Maths, Chemistry and Physics (whichever you take), as a set. The date seeds the
-   random numbers while they are made, so a day always rebuilds the same set; that is what lets the archive replay any past
-   day without storing it. Only the first go on the day counts; replays never change the score. */
+/* Daily questions, Daily Integral style: each subject (your Maths, Chemistry, Physics) has its own question a day, opened
+   from its own orb and answered on its own. The date and the subject seed the random numbers, so a day always rebuilds the
+   same question (the archive replays it without storing it) and one subject never shifts another. Only calc topics: they
+   come from the seed alone, while recall and equation topics also follow your own history. */
 const DAILY_TRACKS = ['maths', 'chemistry', 'physics'];
-function dailyPools() {
-  const mine = new Set(mySubjects().map(s => s.id)), t = DAILY_TRACKS.filter(x => mine.has(x));
-  return (t.length ? t : ['maths']).map(x => LEARN.SUBJECTS.find(s => s.id === x).topics.filter(id => !LEARN.TOPIC[id].tier && LEARN.TOPIC[id].type === 'calc').sort() /* calc topics come from the seed alone; recall and equation topics also follow your own history, so a day would not rebuild */).filter(p => p.length);
-}
-const dailyNames = () => { const n = dailyPools().map(p => TRACK_NAME(LEARN.trackOf(p[0]))); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
-function dailyQs(day = dkey()) {
-  let seed = (dayNum(day) * 2654435761) >>> 0;
+const dailyTracks = () => { const mine = new Set(mySubjects().map(s => s.id)), t = DAILY_TRACKS.filter(x => mine.has(x)); return t.length ? t : ['maths']; };
+const dailyNames = () => { const n = dailyTracks().map(TRACK_NAME); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
+function dailyQ(track, day = dkey()) {
+  const pool = LEARN.SUBJECTS.find(s => s.id === track).topics.filter(id => !LEARN.TOPIC[id].tier && LEARN.TOPIC[id].type === 'calc').sort();
+  let seed = (dayNum(day) * 2654435761 + (DAILY_TRACKS.indexOf(track) + 1) * 40503) >>> 0;
   const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const pools = dailyPools(), keep = Math.random, out = [];
+  const keep = Math.random;
   Math.random = rnd;
-  try {
-    for (const pool of pools) for (let i = 0; i < 8; i++) { const q = LEARN.gen(pool[Math.floor(rnd() * pool.length)], 2); if (q) { out.push(q); break; } }
-    return out;
-  } finally { Math.random = keep; }
+  try { for (let i = 0; i < 8; i++) { const q = LEARN.gen(pool[Math.floor(rnd() * pool.length)], 2); if (q) return q; } return null; }
+  finally { Math.random = keep; }
 }
-const dailyDoneToday = () => !!(S.daily && S.daily.d === dkey());
-/* opt-in (Archive page): days in a row ending today, or yesterday while today is still open; a gap just starts it again */
-const dailyRun = () => { let n = 0, k = dailyDoneToday() ? dkey() : addDays(-1); while (k in S.dailyLog) { n++; k = addDays(-1, k); } return n; };
+/* true / false once answered that day, null before */
+const dailyMark = (track, day = dkey()) => { const x = (dailyMarks(S.dailyLog[day]) || []).find(m => m.t === track); return x ? x.s : null; };
+const dailyDoneToday = () => dailyTracks().every(t => dailyMark(t) !== null);
+/* opt-in (Archive page): days in a row with at least one answer, ending today, or yesterday while today is still open; a gap just starts it again */
+const dailyRun = () => { let n = 0, k = dkey() in S.dailyLog ? dkey() : addDays(-1); while (k in S.dailyLog) { n++; k = addDays(-1, k); } return n; };
 const dailyRunTxt = () => S.dailyStreak && dailyRun() > 1 ? ` · ${dailyRun()} days in a row` : '';
 /* the first thing a new (or returning) person sees on Focus: what Begin does and what each tab is for, until they close it */
 function guideCard() {
@@ -821,51 +820,56 @@ function guideCard() {
       h('li', null, h('b', null, 'No need to choose. '), "Begin always picks the set you need most. Today's plan shows the rest in order.")),
     h('p', { class: 'muted xs' }, 'Learn: lessons, practice and exam questions for every subject. Mocks: timed papers and grade tests. Stats: your progress. Toolkit: your set-up, plan and settings.'));
 }
-/* a day's result: 'm1c0p1' (right/wrong per subject), or 'score/out of' from before marks were kept */
+/* a day's result: 'm1c0p1' (right/wrong per subject answered), or 'score/out of' from before marks were kept */
 const DQ_L = { maths: 'm', chemistry: 'c', physics: 'p' }, DQ_C = { maths: '#2f55e4', chemistry: '#0f9a94', physics: '#f06418' };
 const dailyMarks = v => /^[mcp]/.test(v || '') ? v.match(/[mcp][01]/g).map(x => ({ t: Object.keys(DQ_L).find(k => DQ_L[k] === x[0]), s: x[1] === '1' })) : null;
 const dailyScore = v => { const m = dailyMarks(v); return m ? `${m.filter(x => x.s).length} / ${m.length}` : String(v).replace('/', ' / '); };
+/* one subject answered: only its first go on the day counts */
 function dailyDone() {
-  if (DR.replay || dailyDoneToday()) return;
-  const v = (DR.dq || []).map((q, i) => DQ_L[LEARN.trackOf(q.id)] + ((DR.res || [])[i] ? 1 : 0)).join('');
-  S.daily = { d: dkey(), s: Math.min(5, DR.ok) }; S.dailyLog[S.daily.d] = v; save(); SFX.play('fanfare');
+  const t = DR.dt, ok = !!(DR.res || [])[0];
+  if (DR.replay || dailyMark(t) !== null) return;
+  const m = (dailyMarks(S.dailyLog[dkey()]) || []).concat({ t, s: ok });
+  S.dailyLog[dkey()] = DAILY_TRACKS.map(k => m.find(x => x.t === k)).filter(Boolean).map(x => DQ_L[x.t] + (x.s ? 1 : 0)).join('');
+  save(); if (ok) SFX.play('fanfare');
 }
-/* one glowing orb per subject, Mocks-ring style: s true = right (tick), false = wrong (dot), 'now' = the question you are on */
-const dailyOrbs = (list, cls = '') => h('div', { class: 'dq-orbs ' + cls }, list.map(x => h('span', { class: 'dq-orb' + (x.s === true ? ' ok' : x.s === false ? ' no' : x.s === 'now' ? ' now' : ''), style: `--c:${DQ_C[x.t]}`, title: TRACK_NAME(x.t) },
+/* small glowing subject orbs; with a day they are buttons that replay that subject's question */
+const dailyOrbs = (list, cls = '', day = null) => h('div', { class: 'dq-orbs ' + cls }, list.map(x => h(day ? 'button' : 'span', Object.assign({ class: 'dq-orb' + (x.s === true ? ' ok' : x.s === false ? ' no' : ''), style: `--c:${DQ_C[x.t]}`, title: TRACK_NAME(x.t) },
+  day ? { type: 'button', 'data-act': 'dailyReplay', 'data-d': day, 'data-track': x.t, 'aria-label': `Replay ${TRACK_NAME(x.t)} from ${fmtDate(day)}` } : {}),
   h('span', { class: 'dq-ball' }, x.s === true ? svg('0 0 24 24', 'M5 13l4 4L19 7', 'dq-tick') : icon((SUBJ_BY[x.t] || {}).icon || 'star')), cls !== 'xs' && h('small', null, TRACK_NAME(x.t)))));
-const dailyToday = () => dailyMarks(S.dailyLog[dkey()]) || dailyPools().map(p => ({ t: LEARN.trackOf(p[0]), s: null }));
-/* the Daily questions page, laid out like the Mocks ring: the bat in the middle, a subject orb on each point. Any orb
-   starts today's set; once it is done they show how each went and open the archive. */
+/* the Daily tab, laid out like the Mocks ring: the bat in the middle, one orb per subject and the archive. A subject's orb
+   opens today's question for it; once answered it shows how it went and replays it for practice. */
 function vDailyHub() {
-  const done = dailyDoneToday(), marks = dailyToday();
+  const day = dkey(), ts = dailyTracks(), n = ts.filter(t => dailyMark(t) !== null).length;
   return h('div', { class: 'stack dash dqhub' },
     mockOrbs([h('em', { class: 'dq-kick' }, 'The Daily'), 'Questions'],
-      [done ? `Today ${dailyScore(S.dailyLog[dkey()])}${dailyRunTxt()}. New questions tomorrow.` : `One question a day from ${dailyNames()}, each with a worked answer.`,
-        h('span', { class: 'dq-hint' }, done ? 'Tap the archive to replay any day' : 'Tap any orb to continue')], [
-      ...marks.map(x => ({ act: done ? 'go' : 'daily', tab: done ? 'dailyarc' : null, ic: (SUBJ_BY[x.t] || {}).icon || 'star', name: TRACK_NAME(x.t),
-        sub: x.s === true ? 'Right ✓' : x.s === false ? 'Not this time' : 'Today', c: DQ_C[x.t] })),
+      [n === ts.length ? `All done today${dailyRunTxt()}. New questions tomorrow.` : `One question a day for each of ${dailyNames()}, with a worked answer.`,
+        h('span', { class: 'dq-hint' }, 'Click any orb to continue')], [
+      ...ts.map(t => { const s = dailyMark(t); return { act: s === null ? 'daily' : 'dailyReplay', ic: (SUBJ_BY[t] || {}).icon || 'star', name: TRACK_NAME(t),
+        sub: s === true ? 'Right today ✓' : s === false ? 'Done · try it again' : 'Today\'s question', c: DQ_C[t], cls: s === null ? '' : s ? 'done' : 'tried', attrs: { 'data-track': t, 'data-d': day } }; }),
       { act: 'go', tab: 'dailyarc', ic: 'calendar', name: 'Archive', sub: 'Every past day', c: '#8a4fe0' }], 'dq-hub'));
 }
-/* the question screen: the three orbs as a progress strip, the one you are on glowing */
-const dailyStrip = () => dailyOrbs((DR.dq || []).map((q, i) => ({ t: LEARN.trackOf(q.id), s: i < DR.count || (i === DR.count && DR.state !== 'ask') ? !!(DR.res || [])[i] : i === DR.count ? 'now' : null })), 'strip');
-function dailyCard(inDrill) {
-  const arc = B([icon('calendar'), 'Archive'], 'go', 'ghost sm', { 'data-tab': 'dailyarc' });
+/* after answering: how it went, then back to the ring or straight on to the next subject not yet done today */
+function dailyCard() {
+  const t = DR.dt, s = DR.replay ? !!(DR.res || [])[0] : dailyMark(t), next = !DR.replay && dailyTracks().find(x => dailyMark(x) === null);
   return h('section', { class: 'card dq' },
-    h('div', { class: 'dq-head' }, h('div', null, h('p', { class: 'eyebrow' }, DR.replay ? `Replay · ${fmtDate(DR.replay)}` : `Today${dailyRunTxt()}`), h('h2', { class: 'dq-t' }, `${DR.ok} / ${(DR.dq || []).length}`)), arc),
-    dailyStrip(),
-    h('p', { class: 'muted xs center' }, DR.replay ? 'A replay, so your score on the day stays as it was.' : 'New questions tomorrow. Every past day is in the archive to replay.'));
+    h('p', { class: 'eyebrow center' }, DR.replay ? `${TRACK_NAME(t)} · replay of ${fmtDate(DR.replay)}` : `${TRACK_NAME(t)} · today`),
+    dailyOrbs([{ t, s }]),
+    h('h2', { class: 'dq-t center' }, s ? 'Right' : 'Not this time'),
+    h('p', { class: 'muted xs center' }, DR.replay ? 'A replay, so the score on the day stays as it was.' : s ? 'Saved. A new one tomorrow.' : `The answer was ${(DR.dq[0] || {}).show}. Saved; a new one tomorrow.`),
+    h('div', { class: 'row dq-go' }, B([icon('back'), 'Daily questions'], 'go', next ? 'ghost' : 'primary', { 'data-tab': 'daily' }),
+      next && B([icon('play'), `Next: ${TRACK_NAME(next)}`], 'daily', 'primary', { 'data-track': next })));
 }
-/* the Daily questions archive: the last 60 days, newest first; any day can be replayed because its questions rebuild from the date */
+/* the archive: the last 60 days, newest first; each subject orb replays that day's question (rebuilt from the date) */
 function vDailyArc() {
-  const days = Array.from({ length: 60 }, (_, i) => addDays(-i));
+  const days = Array.from({ length: 60 }, (_, i) => addDays(-i)), ts = dailyTracks();
   return h('div', { class: 'stack narrow' },
-    subHero('Daily questions', 'Archive', 'daily', 'Every day from the last two months. Replays are for practice and never change a score.'),
+    subHero('Daily questions', 'Archive', 'daily', 'Every day from the last two months. Click a subject to replay it; replays never change a score.'),
     card(null, null, h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: S.dailyStreak, 'data-act': 'dailyStreak', role: 'switch' }),
       h('span', null, h('b', null, 'Show days in a row'), h('small', null, S.dailyStreak ? `${dailyRun()} right now. Miss a day and it simply starts again.` : 'Off. Your scores here are kept either way.')))),
-    card(null, null, h('ul', { class: 'darc' }, days.map(k => { const m = dailyMarks(S.dailyLog[k]); return h('li', null,
+    card(null, null, h('ul', { class: 'darc' }, days.map(k => h('li', null,
       h('b', null, k === dkey() ? 'Today' : fmtDate(k)),
-      m ? dailyOrbs(m, 'xs') : h('span', { class: 'muted' }, k in S.dailyLog ? dailyScore(S.dailyLog[k]) : '–'),
-      k === dkey() && !dailyDoneToday() ? B('Start', 'daily', 'primary sm') : B([icon('reset'), 'Replay'], 'dailyReplay', 'ghost sm', { 'data-d': k })); }))));
+      dailyOrbs(ts.map(t => ({ t, s: dailyMark(t, k) })), 'xs', k),
+      h('span', { class: 'muted xs' }, dailyMarks(S.dailyLog[k]) ? dailyScore(S.dailyLog[k]) : k in S.dailyLog ? `Daily five ${dailyScore(S.dailyLog[k])}` : ''))))));
 }
 function nextQ(sameTopic) {
   if (DR.ctx === 'daily') { DR.msg = ''; DR.picked = null; DRAFT.dr = ''; DR.ex = null; DR.q = (DR.dq || [])[DR.count] || null; DR.state = 'ask'; if (!DR.q && DR.dq) dailyDone(); return; }
@@ -889,12 +893,11 @@ function drillZone(track, five) {
 }
 function vDrill() {
   if (!DR) return vLearn();
-  const title = DR.ctx === 'daily' ? 'Daily questions' : DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
+  const title = DR.ctx === 'daily' ? TRACK_NAME(DR.dt) : DR.topic ? LEARN.name(DR.topic) : TRACK_NAME(DR.track);
   const back = DR.ctx === 'daily' ? 'daily' : DR.ctx === 'sess' ? 'session' : DR.ctx === 'guide' ? 'guide' : DR.topic || SUBJ_BY[DR.track] ? 'subject' : 'learn';
   if (DR.topic) SUBJ_SEL = LEARN.trackOf(DR.topic); else if (SUBJ_BY[DR.track]) SUBJ_SEL = DR.track;
-  return h('div', { class: 'stack narrow' + (DR.ctx === 'daily' ? ' dq-drill' : '') },
+  return h('div', { class: 'stack narrow' + (DR.ctx === 'daily' ? ' dq-drill' : ''), style: DR.ctx === 'daily' ? `--dqc:${DQ_C[DR.dt]}` : null },
     subHero(DR.ctx === 'daily' ? 'The Daily' : DR.topic ? TRACK_NAME(LEARN.trackOf(DR.topic)) : 'Practice', title, back, null, back === 'daily' ? 'Daily questions' : back === 'session' ? 'Back to your session' : back === 'guide' ? 'Back to the guide' : back === 'subject' ? TRACK_NAME(SUBJ_SEL) : 'Learn'),
-    DR.ctx === 'daily' && DR.q && dailyStrip(),
     DR.topic && guidePanel(DR.topic),
     drillPanel(),
     drillFact(),
@@ -902,7 +905,7 @@ function vDrill() {
 }
 function drillPanel() {
   const q = DR && DR.q;
-  if (!q && DR && DR.ctx === 'daily') return dailyCard(true);
+  if (!q && DR && DR.ctx === 'daily') return dailyCard();
   if (!q) return card(null, null, h('p', { class: 'muted' }, DR && DR.track === 'englit' ? 'Add quotes in Flashcards and they appear here.' : 'Nothing to practise here yet. Check Settings in case these topics are hidden.'));
   const st = DR.state, mcq = q.kind === 'mcq', def = q.kind === 'def';
   if (st === 'example' && DR.ex) return h('section', { class: 'card qcard example' },
@@ -1813,12 +1816,14 @@ const ACT = {
     if (d && d.ok && d.source === 'verified') playBoard(d, true);
   },
   board(el) { const d = BOARD_Q.get(el.dataset.k); if (d) playBoard(d, !!(el.dataset.sim && DR && DR.q)); },
-  daily() {
-    if (dailyDoneToday()) { toast('You have done today\'s questions. New ones tomorrow.'); return; }
-    startDrill('maths', null, 'daily'); DR.dq = dailyQs(); DR.count = 0; nextQ(); go('drill', '#ans');
+  daily(el) {
+    const t = el.dataset.track || dailyTracks().find(x => dailyMark(x) === null);
+    if (!t) { toast('You have done today\'s questions. New ones tomorrow.'); return; }
+    if (dailyMark(t) !== null) return ACT.dailyReplay({ dataset: { d: dkey(), track: t } });
+    startDrill(t, null, 'daily'); DR.dt = t; DR.dq = [dailyQ(t)].filter(Boolean); DR.count = 0; nextQ(); go('drill', '#ans');
   },
   dailyReplay(el) {
-    startDrill('maths', null, 'daily'); DR.replay = el.dataset.d; DR.dq = dailyQs(DR.replay); DR.count = 0; nextQ(); go('drill', '#ans');
+    const t = el.dataset.track || 'maths'; startDrill(t, null, 'daily'); DR.dt = t; DR.replay = el.dataset.d; DR.dq = [dailyQ(t, DR.replay)].filter(Boolean); DR.count = 0; nextQ(); go('drill', '#ans');
   },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
