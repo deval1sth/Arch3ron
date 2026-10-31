@@ -60,7 +60,7 @@ How many staves (chapters) does the novella have|Five|Three;Four;Seven
 What is Scrooge's business partner called|Jacob Marley|Bob Cratchit;Fezziwig;Fred
 How long has Marley been dead when the story begins|Seven years|One year;Three years;Twenty years
 What is Marley's ghost wrapped in|A chain made of cash-boxes, keys and padlocks|Bandages;A burial sheet;Gold coins
-Which ghost appears first|The Ghost of Christmas Past|The Ghost of Christmas Present;The Ghost of Christmas Yet to Come;Marley's ghost appears last
+Which of the three Spirits appears first|The Ghost of Christmas Past|The Ghost of Christmas Present;The Ghost of Christmas Yet to Come;All three appear together
 What does the Ghost of Christmas Past look like|Both a child and an old man, with light shining from its head|A giant in a green robe;A hooded figure;A small dog
 Whose Christmas party does the Ghost of Christmas Past show Scrooge|Fezziwig's|Fred's;the Cratchits';Marley's
 Why does Belle end her engagement to Scrooge|He loves money more than her|He moves abroad;She marries Fred;He is too poor
@@ -187,7 +187,7 @@ Which spelling of separate is correct|Separate|Seperate;Separete;Seprate
 Which sentence uses "their" correctly|They left their bags at home.|Their going home now.;Put it over their.;Their is a problem.`],
 
   /* ================= RE ================= */
-  'q2-r-chr-beliefs': ['re', 'Christianity: beliefs (spec 1.1)', `
+  'q2-r-chr-beliefs': ['re', 'Christianity: beliefs (spec 3.1.2.1)', `
 What is the Trinity|One God in three persons: Father, Son and Holy Spirit|Three separate gods;God, Mary and Jesus;Heaven, Earth and Hell
 Which creed sets out core Christian beliefs including the Trinity|The Nicene Creed|The Shahadah;The Ten Commandments;The Lord's Prayer
 What does omnipotent mean|All-powerful|All-knowing;All-loving;Present everywhere
@@ -206,7 +206,7 @@ What is the problem of evil|How a loving, all-powerful God can allow suffering|W
 What is the difference between moral and natural evil|Moral evil is caused by humans, natural evil by nature|They are the same;Natural evil is caused by humans;Moral evil is caused by nature
 What is purgatory (Catholic belief)|A state of cleansing before heaven|Another name for hell;A type of prayer;A church building
 What is the Last Judgement|God judging everyone at the end of time|Jesus' trial before Pilate;The Last Supper;A church court`],
-  'q2-r-chr-practice': ['re', 'Christianity: practices (spec 1.2)', `
+  'q2-r-chr-practice': ['re', 'Christianity: practices (spec 3.1.2.2)', `
 What is liturgical worship|Formal worship with set prayers and a fixed order|Silent worship;Spontaneous charismatic worship;Private prayer only
 What is the Eucharist (Holy Communion)|Sharing bread and wine to remember Jesus' Last Supper|A baptism;A pilgrimage;A festival of light
 What do Catholics believe happens in the Mass (transubstantiation)|The bread and wine become the body and blood of Jesus|They remain only symbols;They are blessed but unchanged;They turn to water
@@ -223,7 +223,7 @@ What is the Street Pastors scheme|Christians helping vulnerable people on the st
 Which Christian charity works to tackle poverty worldwide|Christian Aid|Islamic Relief;Oxfam only;Red Crescent
 What is reconciliation|Restoring friendly relationships after conflict|A type of baptism;Saying the creed;A pilgrimage
 What is the worldwide church called|The Church as the Body of Christ (the universal church)|The Vatican only;The Ummah;The Sangha`],
-  'q2-r-isl-beliefs': ['re', 'Islam: beliefs (spec 2.1)', `
+  'q2-r-isl-beliefs': ['re', 'Islam: beliefs (spec 3.1.5.1)', `
 What is Tawhid|The oneness of God|The holy book;Prayer five times a day;The pilgrimage
 What are the Six Articles of Faith in Sunni Islam about|Core beliefs: God, angels, holy books, prophets, the Day of Judgement and predestination|The Five Pillars;Rules for fasting;The Ten Commandments
 What is the Shahadah|The declaration of faith|Prayer;Charity;Fasting
@@ -240,7 +240,7 @@ What is the Imamate|Shi'a belief in the leadership of Imams after Muhammad|The S
 What divides Sunni and Shi'a Muslims historically|Who should lead after Muhammad's death|Which holy book to follow;Whether to pray;The direction of prayer
 Which holy books are recognised in Islam besides the Qur'an|The Torah, Psalms and Gospel (in their original forms)|The Vedas;The Guru Granth Sahib;The Tripitaka
 What is Risalah|Prophethood: God's messages sent through prophets|The Day of Judgement;Angels;Charity`],
-  'q2-r-isl-practice': ['re', 'Islam: practices (spec 2.2)', `
+  'q2-r-isl-practice': ['re', 'Islam: practices (spec 3.1.5.2)', `
 How many times a day do Muslims pray (salah)|Five|Three;Seven;Once
 What is wudu|Ritual washing before prayer|The call to prayer;A festival meal;A prayer mat
 In which direction do Muslims pray|Towards the Ka'aba in Makkah|Towards Jerusalem;East;Towards the nearest mosque
@@ -380,7 +380,7 @@ Which stakeholder wants high wages and job security|Employees|Shareholders;Suppl
 Which stakeholder wants high dividends|Shareholders|Customers;Local community;Employees
 What is opportunity cost|The next best alternative given up|The price of a product;A cost of borrowing;A tax on profit
 What is a business's location most influenced by|Costs, markets, labour and raw materials|The owner's birthday;Random choice;Weather only`],
-  'q2-bs-marketing': ['business', 'Marketing (spec 3.2 and 3.4)', `
+  'q2-bs-marketing': ['business', 'Marketing (spec 3.5)', `
 What is market research|Gathering information about customers and competitors|Selling products;Making products;Paying staff
 What is primary research|New data collected first-hand, such as surveys|Data from the internet;Government statistics;Old reports
 What is secondary research|Existing data collected by others|Questionnaires;Interviews;Focus groups
@@ -426,7 +426,7 @@ What is a salary|A fixed annual amount paid monthly|Pay per hour;Pay per item ma
 What is commission|Payment based on the number of sales made|A fixed salary;Overtime;A pension
 What is a non-financial motivator|Praise, responsibility or training|A pay rise;A bonus;Commission
 What is the National Minimum Wage|The lowest hourly pay employers can legally pay|The average wage;The highest wage;A bonus scheme`],
-  'q2-bs-finance': ['business', 'Finance (spec 3.5)', `
+  'q2-bs-finance': ['business', 'Finance (spec 3.6)', `
 What is revenue|Money from sales: price times quantity sold|Profit;Costs;Loans
 What are fixed costs|Costs that do not change with output, such as rent|Costs that change with output;Raw materials;Packaging
 What are variable costs|Costs that change with output, such as raw materials|Rent;Salaries;Insurance
@@ -445,7 +445,7 @@ What is a short-term source of finance|An overdraft or trade credit|A mortgage;S
 What is a long-term source of finance|A loan, mortgage or selling shares|Trade credit;An overdraft;Petty cash
 What is venture capital|Money invested in a new business by investors in return for a share|A bank overdraft;A government tax;Retained profit
 What is retained profit|Profit kept in the business to reinvest|Profit paid to shareholders;A loan;Revenue`],
-  'q2-bs-external': ['business', 'External influences (spec 3.1)', `
+  'q2-bs-external': ['business', 'External influences (spec 3.2)', `
 What is an interest rate|The cost of borrowing money|The price of a product;The exchange rate;A tax on profit
 How does a rise in interest rates affect businesses|Borrowing costs more and customers may spend less|Borrowing becomes cheaper;Sales always rise;Nothing changes
 What is an exchange rate|The value of one currency in terms of another|The interest rate;Inflation;A tax
@@ -505,7 +505,7 @@ What does phloem transport|Dissolved sugars (translocation)|Water only;Minerals 
   'q2-b-infection': ['biology', 'Infection and response (spec 4.3)', `
 What is a pathogen|A microorganism that causes disease|A white blood cell;A vaccine;An antibiotic
 Which type of pathogen causes measles|Virus|Bacterium;Fungus;Protist
-Which disease is caused by a bacterium and treated with antibiotics|Salmonella food poisoning|Measles;HIV;Malaria
+Which disease is caused by a bacterium and treated with antibiotics|Gonorrhoea|Measles;HIV;Malaria
 Which disease is caused by a protist spread by mosquitoes|Malaria|Measles;Gonorrhoea;Rose black spot
 What is rose black spot caused by|A fungus|A virus;A bacterium;A protist
 How is tobacco mosaic virus harmful to plants|It stops leaves making chlorophyll so photosynthesis falls|It kills roots;It removes water;It eats flowers

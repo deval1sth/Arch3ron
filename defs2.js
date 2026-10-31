@@ -262,7 +262,7 @@ Hypotenuse|The longest side of a right-angled triangle, opposite the right angle
 Radius|The distance from the centre of a circle to its edge.|centre to edge
 Diameter|A straight line across a circle through its centre; twice the radius.|through the centre;twice the radius
 Circumference|The distance around the edge of a circle.|distance around a circle
-Chord|A straight line joining two points on a circle that does not pass through the centre.|joins two points on the circle
+Chord|A straight line joining two points on the circumference of a circle. A diameter is the longest chord.|joins two points on the circle
 Tangent|A straight line that touches a circle at one point.|touches at one point
 Sector|A region of a circle between two radii and an arc, like a slice of pizza.|between two radii and an arc
 Proportion|A relationship where two quantities increase or decrease at the same rate.|change at the same rate`],
