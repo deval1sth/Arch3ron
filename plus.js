@@ -945,14 +945,15 @@ function pppBankQ(q, track, left) {
 }
 /* non-calculator papers: no topic that needs a calculator, and no generated answer that only works out to a rounded decimal */
 const NEEDS_CALC = /Compound|Circles: area|Trigonometry|sine rule|cosine rule|sin C|Iteration|quadratic formula/i;
+let PPP_SEEN = new Set(); /* question wordings already on the paper being built: the used list alone can fall back to a repeat */
 function pppBank(ids, used, track, left, noCalc) {
   const W = ids.map(id => { const k = skill(id), acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : .5; return { id, w: (S.queue.some(x => x.id === id) ? 3 : 1) * (1.5 - acc) * (MUST4.has(id) ? 1.5 : 1) }; });
   for (let tries = 0; tries < 12 && W.length; tries++) {
     let r = Math.random() * W.reduce((a, b) => a + b.w, 0); const o = W.find(x => (r -= x.w) <= 0) || W[W.length - 1];
     let q = null;
-    for (let t = 0; t < 30; t++) { const c = LEARN.gen(o.id); if (!c || !PPP_KINDS.includes(c.kind) || (track === 'maths' && c.kind === 'mcq') || (noCalc && /â€¦|d\.p\.|s\.f\./.test(arr(c.steps).join(' ')))) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
+    for (let t = 0; t < 30; t++) { const c = LEARN.gen(o.id); if (!c || !PPP_KINDS.includes(c.kind) || (track === 'maths' && c.kind === 'mcq') || (noCalc && /â€¦|d\.p\.|s\.f\./.test(c.q + arr(c.steps).join(' '))) || PPP_SEEN.has(c.q)) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
     o.w *= .35; /* spread a paper across topics, like a real one */
-    const bq = q && pppBankQ(q, track, left); if (bq) { used.add(qSig(q)); return bq; }
+    const bq = q && pppBankQ(q, track, left); if (bq) { used.add(qSig(q)); PPP_SEEN.add(q.q); return bq; }
   }
   return null;
 }
@@ -965,6 +966,7 @@ function pppPool(pid) {
   return hp.qs.map((q, j) => ({ q, pid: hp.id, sig: `w|${hp.id}|${j}` })).filter(o => !keep || keep.has(o.q[0]));
 }
 function pppBuild(track, k) {
+  PPP_SEEN = new Set();
   const sp = PPP_SPEC[track][k], used = new Set(S.pused || []), g = PPP_G(track), srcFrom = new Set(), out = [];
   let spag = (sp.spag || []).slice();
   const spagQ = n => ['Spelling, punctuation and grammar', `Mark your answer to the question before for spelling, punctuation and grammar (${n} marks).`, { lv: n === 3 ? PPP_SPAG3 : LV.spag4, look: LOOK.spag }, { same: true }];

@@ -1260,12 +1260,14 @@ function makePaper(track = 'maths', n = 20) {
   chosen.sort((a, b) => ids.indexOf(a) - ids.indexOf(b)); /* generator order runs roughly easy to hard */
   /* no repeats across papers: each question is regenerated until it is one this device has never had on a paper
      (numbers change in calculation questions; fact questions use one you have not been asked yet until the bank runs out) */
-  const ok = q => q && (track === 'maths' ? q.kind !== 'mcq' : q.kind !== 'def'), used = new Set(S.pused), out = [];
-  for (const id of chosen) {
+  const seen = new Set(), ok = q => q && !seen.has(q.q) && (track === 'maths' ? q.kind !== 'mcq' : q.kind !== 'def'), used = new Set(S.pused), out = [];
+  const take = id => {
     let q = null;
     for (let t = 0; t < 40; t++) { const c = LEARN.gen(id); if (!ok(c)) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
-    if (q) { used.add(qSig(q)); out.push(q); }
-  }
+    if (q) { used.add(qSig(q)); seen.add(q.q); out.push(q); }
+  };
+  chosen.forEach(take);
+  for (let t = 0; out.length < n && ids.length && t < n * 5; t++) take(pick(ids)); /* a slot lost to a repeat goes to another topic */
   S.pused = [...used].slice(-4000);
   return out;
 }
