@@ -943,12 +943,14 @@ function pppBankQ(q, track, left) {
   const m = eq ? 1 : Math.min(left, clamp(steps.length - 1, 1, track === 'maths' ? 4 : 3));
   return [LEARN.name(q.id), q.q, m > 1 ? [...steps.slice(0, m - 1).map(s => 'Method: ' + s), 'Answer: ' + q.show] : [q.show], { tid: q.id, auto: q }];
 }
-function pppBank(ids, used, track, left) {
+/* non-calculator papers: no topic that needs a calculator, and no generated answer that only works out to a rounded decimal */
+const NEEDS_CALC = /Compound|Circles: area|Trigonometry|sine rule|cosine rule|sin C|Iteration|quadratic formula/i;
+function pppBank(ids, used, track, left, noCalc) {
   const W = ids.map(id => { const k = skill(id), acc = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : .5; return { id, w: (S.queue.some(x => x.id === id) ? 3 : 1) * (1.5 - acc) * (MUST4.has(id) ? 1.5 : 1) }; });
   for (let tries = 0; tries < 12 && W.length; tries++) {
     let r = Math.random() * W.reduce((a, b) => a + b.w, 0); const o = W.find(x => (r -= x.w) <= 0) || W[W.length - 1];
     let q = null;
-    for (let t = 0; t < 30; t++) { const c = LEARN.gen(o.id); if (!c || !PPP_KINDS.includes(c.kind) || (track === 'maths' && c.kind === 'mcq')) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
+    for (let t = 0; t < 30; t++) { const c = LEARN.gen(o.id); if (!c || !PPP_KINDS.includes(c.kind) || (track === 'maths' && c.kind === 'mcq') || (noCalc && /â€¦|d\.p\.|s\.f\./.test(arr(c.steps).join(' ')))) continue; q = q || c; if (!used.has(qSig(c))) { q = c; break; } }
     o.w *= .35; /* spread a paper across topics, like a real one */
     const bq = q && pppBankQ(q, track, left); if (bq) { used.add(qSig(q)); return bq; }
   }
@@ -989,8 +991,8 @@ function pppBuild(track, k) {
     /* bank parts are labelled with the paper topic they belong to (e.g. "Cell biology"), like a real paper, and results group the same way */
     const wTopics = [...new Set(pool.map(o => o.q[0]))], link = Object.entries(EXAM_LINK).filter(([key]) => key.startsWith(g + '|'));
     const clus = id => { const hit = link.filter(([, v]) => v.includes(id)).map(([key]) => key.split('|')[1]); return hit.find(t => wTopics.includes(t)) || PPP_CLUSTER[id] || (sp.sec.length > 1 && wTopics[0]) || hit[0] || LEARN.name(id).replace(/ \(spec.*\)$/, '').replace(/: key terms$/, ''); };
-    const ids = (bank || topicsFor(track).filter(id => LEARN.TOPIC[id].type === 'calc')).filter(id => LEARN.TOPIC[id] && usable(id));
-    for (let guard = 0; left > 0 && ids.length && guard < 200; guard++) { const bq = pppBank(ids, used, track, left); if (!bq) break; bq[0] = clus(bq[3].tid); items.push({ q: bq, m: qMax(bq) }); left -= qMax(bq); }
+    const noCalc = /^Non-calculator/.test(sp.t), ids = (bank || topicsFor(track).filter(id => LEARN.TOPIC[id].type === 'calc')).filter(id => LEARN.TOPIC[id] && usable(id) && !(noCalc && NEEDS_CALC.test(LEARN.name(id))));
+    for (let guard = 0; left > 0 && ids.length && guard < 200; guard++) { const bq = pppBank(ids, used, track, left, noCalc); if (!bq) break; bq[0] = clus(bq[3].tid); items.push({ q: bq, m: qMax(bq) }); left -= qMax(bq); }
     if (sp.sec.length > 1) { items.sort((a, b) => !!a.q[2].lv - !!b.q[2].lv || a.m - b.m); items.forEach(it => push(it.q, 's' + si, title)); return; }
     /* one section: group parts into numbered questions by topic, like a real paper */
     const byC = new Map(); for (const it of items) { const c = it.q[0]; if (!byC.has(c)) byC.set(c, []); byC.get(c).push(it); }
