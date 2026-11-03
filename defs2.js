@@ -38,15 +38,15 @@ Guard cells|Cells around each stoma that open and close it, controlling gas exch
   'd-b-disease': ['biology', '', `
 Bacteria|Single-celled microorganisms. Some are pathogens that reproduce quickly and release toxins that damage tissues.|microorganisms;can release toxins
 Virus|A tiny pathogen that lives and reproduces inside cells, causing cell damage.|reproduces inside cells;damages cells
-Fungus|An organism such as a mould or yeast; some are pathogens, for example the cause of rose black spot.|organism like moulds or yeast;some cause disease
+Fungus|An organism such as a mould or yeast; some are pathogens, for example the cause of Chalara ash dieback.|organism like moulds or yeast;some cause disease
 Protist|A single-celled eukaryotic organism; some are pathogens, such as the one that causes malaria.|single-celled;eukaryotic
 Malaria|A disease caused by a protist and spread by mosquitoes, causing recurring fevers.|caused by a protist;spread by mosquitoes
-Salmonella|Bacteria spread in undercooked food or food prepared in unhygienic conditions, causing food poisoning.|bacteria;food poisoning
-Gonorrhoea|A sexually transmitted disease caused by bacteria; treated with antibiotics, prevented by using condoms.|sexually transmitted;caused by bacteria
-Measles|A disease caused by a virus, spread by droplets from sneezes and coughs, causing fever and a red rash.|virus;spread by droplets
+Cholera|A disease caused by bacteria that spreads through dirty water and causes diarrhoea.|bacteria;spread in water;diarrhoea
+Chlamydia|A sexually transmitted infection caused by bacteria; using condoms reduces its spread.|sexually transmitted;caused by bacteria
+Tuberculosis|A disease caused by bacteria that damages the lungs and spreads through the air.|bacteria;lung damage;airborne
 HIV|A virus spread by sexual contact or exchange of body fluids that attacks the body's immune cells.|virus;attacks immune cells
-Tobacco mosaic virus|A plant virus that causes a mosaic pattern on leaves, reducing photosynthesis and growth.|plant virus;less photosynthesis
-Rose black spot|A fungal disease that causes black spots on rose leaves, so leaves fall off and photosynthesis is reduced.|fungus;less photosynthesis
+Chalara ash dieback|A disease of ash trees caused by a fungus that spreads through the air, causing leaf loss and bark lesions.|fungus;spread through the air;leaf loss and bark lesions
+Lysozyme|An enzyme in tears and other body fluids that breaks down bacteria: one of the body's chemical defences.|enzyme in tears;breaks down bacteria
 Immune system|The body's defence system against pathogens, including white blood cells.|defends the body;against pathogens
 Painkiller|A drug that relieves the symptoms of a disease but does not kill the pathogen.|relieves symptoms;does not kill pathogens
 Preclinical testing|Testing a new drug on cells, tissues and animals before it is tried on humans.|tested on cells, tissues and animals;before humans
@@ -205,7 +205,7 @@ Force|A push or pull on an object caused by its interaction with something else.
 Contact force|A force between objects that are touching, such as friction, air resistance, tension or normal contact force.|objects touching
 Friction|A force that opposes motion between two surfaces in contact.|opposes motion;surfaces in contact
 Air resistance|A frictional force on an object moving through air.|friction from air
-Gravitational field strength|The force of gravity on each kilogram of mass; 9.8 N/kg on Earth.|force per kilogram;9.8 N/kg
+Gravitational field strength|The force of gravity on each kilogram of mass; about 10 N/kg on Earth.|force per kilogram;10 N/kg
 Newton|The unit of force (N).|unit of force
 Free body diagram|A diagram showing all the forces acting on an object as arrows.|shows forces as arrows
 Speed|How far an object travels per second: distance ÷ time.|distance ÷ time

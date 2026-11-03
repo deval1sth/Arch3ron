@@ -171,7 +171,8 @@ function xqMakers(ids, label) {
       return [label, q0.q, [...method.map(s => `Method: ${s}`), `Answer: ${q0.show}`], { gen: true, key: 'c:' + id, calc: q0 }];
     });
     for (const s of SEQS.filter(x => x.topic === id)) out.push(() => {
-      const ask = /^Required practical: /i.test(s.title) ? `Describe how you would carry out the required practical: ${s.title.replace(/^Required practical: /i, '')}.`
+      const pr = s.title.match(/^(Required|Core) practical: /i);
+      const ask = pr ? `Describe how you would carry out the ${pr[1].toLowerCase()} practical: ${s.title.slice(pr[0].length)}.`
         : /^How /.test(s.title) ? `Explain ${s.title.charAt(0).toLowerCase() + s.title.slice(1)}.` : `Describe the stages, in order: ${s.title}.`, m = Math.min(6, s.steps.length);
       return [label, ask, m >= s.steps.length ? s.steps : { any: s.steps, max: m }, { gen: true, key: 's:' + s.id, model: s.steps.join(' → ') }];
     });

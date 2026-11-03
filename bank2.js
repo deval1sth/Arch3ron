@@ -462,7 +462,7 @@ What is sustainability|Meeting needs without harming the future, for example red
 What is a pressure group|An organisation that tries to influence decisions, such as Greenpeace|A government department;A business;A bank`],
 
   /* ================= BIOLOGY ================= */
-  'q2-b-cells': ['biology', 'Cell biology (spec 4.1)', `
+  'q2-b-cells': ['biology', 'Cells, transport and cell division', `
 Which organelle controls the cell's activities|Nucleus|Mitochondria;Ribosome;Cell membrane
 Where does aerobic respiration take place|Mitochondria|Nucleus;Ribosomes;Chloroplasts
 Where are proteins made|Ribosomes|Mitochondria;Nucleus;Vacuole
@@ -481,7 +481,7 @@ What is mitosis used for|Growth and repair|Making gametes;Digestion;Respiration
 How many cells are made by mitosis|Two identical cells|Four different cells;One cell;Eight cells
 What is diffusion|Net movement of particles from high to low concentration|Movement of water only;Movement against a gradient using energy;Movement of solids
 What is active transport|Movement from low to high concentration using energy from respiration|Movement down a gradient;Osmosis;Diffusion of gases`],
-  'q2-b-organisation': ['biology', 'Organisation (spec 4.2)', `
+  'q2-b-organisation': ['biology', 'Enzymes, digestion, blood and the heart', `
 What is the order of organisation in organisms|Cells, tissues, organs, organ systems|Organs, cells, tissues, systems;Tissues, cells, organs, systems;Systems, organs, tissues, cells
 What does amylase break down|Starch into sugars|Protein into amino acids;Fat into fatty acids;Glucose into starch
 What does protease break down|Proteins into amino acids|Starch into sugar;Fats into glycerol;Sugar into starch
@@ -502,13 +502,13 @@ What is a stent|A tube that keeps a coronary artery open|A heart valve;A type of
 What is transpiration|Loss of water vapour from the leaves|Water entering the roots;Movement of sugar;Photosynthesis
 What does xylem transport|Water and mineral ions|Sugars;Oxygen;Proteins
 What does phloem transport|Dissolved sugars (translocation)|Water only;Minerals only;Oxygen`],
-  'q2-b-infection': ['biology', 'Infection and response (spec 4.3)', `
+  'q2-b-infection': ['biology', 'Pathogens, immunity and medicines', `
 What is a pathogen|A microorganism that causes disease|A white blood cell;A vaccine;An antibiotic
-Which type of pathogen causes measles|Virus|Bacterium;Fungus;Protist
-Which disease is caused by a bacterium and treated with antibiotics|Gonorrhoea|Measles;HIV;Malaria
-Which disease is caused by a protist spread by mosquitoes|Malaria|Measles;Gonorrhoea;Rose black spot
-What is rose black spot caused by|A fungus|A virus;A bacterium;A protist
-How is tobacco mosaic virus harmful to plants|It stops leaves making chlorophyll so photosynthesis falls|It kills roots;It removes water;It eats flowers
+Which type of pathogen causes HIV|Virus|Bacterium;Fungus;Protist
+Which disease is caused by a bacterium and spread in dirty water|Cholera|HIV;Malaria;Chalara ash dieback
+Which disease is caused by a protist spread by mosquitoes|Malaria|Cholera;Tuberculosis;Chalara ash dieback
+What causes Chalara ash dieback|A fungus|A virus;A bacterium;A protist
+How is tuberculosis spread|Through the air|In dirty water;By mosquitoes;By eating undercooked food
 How does the skin protect against pathogens|Acts as a barrier and produces antimicrobial secretions|Makes antibodies;Engulfs pathogens;Makes antibiotics
 What do white blood cells do|Engulf pathogens, make antibodies and antitoxins|Carry oxygen;Clot blood;Digest food
 What is a vaccine|A dead or weakened pathogen that triggers immunity|An antibiotic;A painkiller;A type of white blood cell
@@ -518,7 +518,7 @@ Which drug came from the heart plant foxglove|Digitalis|Aspirin;Penicillin;Insul
 Which drug comes from willow|Aspirin|Digitalis;Penicillin;Paracetamol
 What is a double-blind trial|Neither patients nor doctors know who gets the drug or placebo|Only patients know;Two drugs at once;Testing on animals
 What is a placebo|A dummy treatment with no drug|A strong painkiller;A vaccine;An antibiotic`],
-  'q2-b-bioenergetics': ['biology', 'Bioenergetics (spec 4.4)', `
+  'q2-b-bioenergetics': ['biology', 'Photosynthesis and respiration in depth', `
 What is the word equation for photosynthesis|Carbon dioxide + water → glucose + oxygen|Glucose + oxygen → carbon dioxide + water;Oxygen + water → glucose;Glucose → lactic acid
 Where does photosynthesis happen|Chloroplasts|Mitochondria;Nucleus;Ribosomes
 What are limiting factors of photosynthesis|Light intensity, carbon dioxide concentration and temperature|Oxygen and glucose;Water only;Soil type only
@@ -527,11 +527,11 @@ What is the word equation for aerobic respiration|Glucose + oxygen → carbon di
 What is the product of anaerobic respiration in muscles|Lactic acid|Ethanol;Carbon dioxide;Oxygen
 What is anaerobic respiration in yeast called|Fermentation|Photosynthesis;Digestion;Oxidation
 What are the products of fermentation|Ethanol and carbon dioxide|Lactic acid;Glucose;Oxygen and water
-What is oxygen debt|The extra oxygen needed after exercise to break down lactic acid|Oxygen stored in muscles;Too much oxygen;Holding your breath
+Which type of respiration releases more energy from each glucose molecule|Aerobic respiration|Anaerobic respiration;They release the same;Fermentation
 What happens to heart rate during exercise|It increases|It decreases;It stops;It stays the same
 What is metabolism|The sum of all the reactions in a cell or body|Digestion only;Breathing only;Muscle growth
 How do plants use the glucose they make|For respiration, starch storage, cellulose, proteins and fats|Only for respiration;Only stored;Released into the air`],
-  'q2-b-homeostasis': ['biology', 'Homeostasis and response (spec 4.5)', `
+  'q2-b-homeostasis': ['biology', 'Nerves, hormones and homeostasis', `
 What is homeostasis|Keeping the internal conditions of the body constant|Growing;Digesting food;Reproducing
 What is the order of a reflex arc|Stimulus, receptor, sensory neurone, relay neurone, motor neurone, effector|Receptor, effector, stimulus;Motor, sensory, relay;Brain, nerve, muscle
 What is a synapse|The gap between two neurones|A muscle;A gland;A receptor
@@ -546,7 +546,7 @@ What does adrenaline do|Prepares the body for "fight or flight"|Lowers blood glu
 What does thyroxine control|Metabolic rate|Blood glucose;Water balance;Heart valves
 Which is a hormonal method of contraception|The pill|Condom;Diaphragm;Spermicide
 What is a negative feedback system|A change triggers a response that reverses it|A change that grows bigger;A one-way reaction;A reflex only`],
-  'q2-b-genetics': ['biology', 'Inheritance, variation and evolution (spec 4.6)', `
+  'q2-b-genetics': ['biology', 'Inheritance, variation and evolution', `
 What is DNA made of|Two strands in a double helix|A single strand;Proteins only;Fat
 What is a gene|A small section of DNA that codes for a protein|A whole chromosome;A cell;An organism
 How many chromosomes are in a human body cell|46 (23 pairs)|23;48;92
@@ -566,7 +566,7 @@ What is selective breeding|Humans breeding plants and animals for desired charac
 What is genetic engineering|Changing an organism's genome by adding a gene from another organism|Breeding two animals;Natural evolution;Cloning
 What evidence supports evolution|Fossils and antibiotic resistance in bacteria|Weather records;Rock types only;Population maps
 What is extinction|When no individuals of a species remain|When a species migrates;When a species evolves;When a species is endangered`],
-  'q2-b-ecology': ['biology', 'Ecology (spec 4.7)', `
+  'q2-b-ecology': ['biology', 'Ecosystems and cycles', `
 What is a community|All the populations of different species in a habitat|One species;The non-living factors;The whole planet
 What is an abiotic factor|A non-living factor such as temperature or light|A predator;A disease;A competitor
 What is a biotic factor|A living factor such as predators or disease|Temperature;Soil pH;Rainfall
@@ -583,7 +583,7 @@ What is a predator–prey cycle|Predator numbers rise and fall after prey number
 What is a food chain's first organism|A producer|A consumer;A predator;A decomposer`],
 
   /* ================= CHEMISTRY ================= */
-  'q2-c-atoms': ['chemistry', 'Atomic structure and the periodic table (spec 4.1)', `
+  'q2-c-atoms': ['chemistry', 'Atomic structure and the periodic table', `
 What are the three particles in an atom|Protons, neutrons and electrons|Protons, ions and atoms;Electrons, molecules and ions;Nuclei, shells and bonds
 What is the relative charge of a proton|+1|0;−1;+2
 What is the relative charge of an electron|−1|+1;0;−2
@@ -602,7 +602,7 @@ What are group 1 elements called|Alkali metals|Halogens;Noble gases;Transition m
 What happens to reactivity down group 1|It increases|It decreases;It stays the same;It stops
 What happens to reactivity down group 7|It decreases|It increases;It stays the same;It doubles
 What is the electron arrangement of sodium (atomic number 11)|2,8,1|2,8;2,8,2;2,9`],
-  'q2-c-bonding': ['chemistry', 'Bonding, structure and properties (spec 4.2)', `
+  'q2-c-bonding': ['chemistry', 'Bonding, structure and properties', `
 What is an ionic bond|Electrostatic attraction between oppositely charged ions|A shared pair of electrons;A sea of electrons;A weak force between molecules
 Which elements form ionic bonds|Metals with non-metals|Non-metals with non-metals;Metals with metals;Noble gases
 What is a covalent bond|A shared pair of electrons between non-metal atoms|Transfer of electrons;Attraction between ions;A metallic bond
@@ -617,7 +617,7 @@ What is an alloy|A mixture of a metal with other elements, harder than the pure 
 Why are alloys harder than pure metals|Different-sized atoms distort the layers so they cannot slide|They have more electrons;They are ionic;They are colder
 What are the three states of matter|Solid, liquid and gas|Ice, water and steam only;Metal, non-metal and gas;Ionic, covalent and metallic
 What does (aq) mean in an equation|Dissolved in water|Solid;Gas;Liquid`],
-  'q2-c-quantitative': ['chemistry', 'Quantitative chemistry (spec 4.3)', `
+  'q2-c-quantitative': ['chemistry', 'Chemical calculations', `
 What is the law of conservation of mass|No atoms are lost or made in a reaction, so mass stays the same|Mass always increases;Mass always decreases;Atoms are destroyed
 Why might mass seem to decrease in a reaction|A gas is produced and escapes|Atoms are destroyed;The balance is broken;Energy is lost
 Why might mass seem to increase in a reaction|A gas from the air, such as oxygen, is added|Atoms are created;The container grows;Heat adds mass
@@ -630,7 +630,7 @@ How many cm³ are in 1 dm³|1000|100;10;1
 What is the percentage by mass of an element in a compound|(Ar × number of atoms ÷ Mr) × 100|Mr ÷ Ar;Ar × Mr;Number of atoms × 100
 What is uncertainty in a measurement|The range within which the true value lies|The mean;An anomaly;A mistake
 What is the mean of 4, 6 and 8|6|18;4;8`],
-  'q2-c-changes': ['chemistry', 'Chemical changes (spec 4.4)', `
+  'q2-c-changes': ['chemistry', 'Acids, metals and electrolysis', `
 What is oxidation (in terms of oxygen)|Gaining oxygen|Losing oxygen;Gaining protons;Losing electrons to a metal
 What is reduction (in terms of oxygen)|Losing oxygen|Gaining oxygen;Gaining heat;Dissolving
 What is the reactivity series|A list of metals in order of reactivity|A list of acids;A list of gases;A table of elements by mass
@@ -649,7 +649,7 @@ Which salt does sulfuric acid make|Sulfates|Chlorides;Nitrates;Oxides
 What is electrolysis|Breaking down a compound using electricity|Mixing two metals;Burning a fuel;Dissolving a salt
 Where do positive ions go in electrolysis|The cathode (negative electrode)|The anode;The beaker wall;They stay still
 What is produced at the cathode when electrolysing a solution of a reactive metal salt|Hydrogen|The metal;Oxygen;Chlorine`],
-  'q2-c-energy-rates': ['chemistry', 'Energy changes and rates (spec 4.5 and 4.6)', `
+  'q2-c-energy-rates': ['chemistry', 'Energy changes and rates', `
 What is an exothermic reaction|One that transfers energy to the surroundings, getting hotter|One that takes in energy;One with no energy change;One that freezes
 What is an endothermic reaction|One that takes in energy from the surroundings, getting colder|One that releases heat;One that explodes;One that makes light
 Which is an example of an exothermic reaction|Combustion|Thermal decomposition;Photosynthesis;Dissolving ammonium nitrate
@@ -663,15 +663,15 @@ How does a catalyst work|Provides a route with lower activation energy|Raises te
 How do you calculate mean rate of reaction|Quantity of product formed ÷ time taken|Time ÷ product;Product × time;Reactant − product
 What is a reversible reaction|A reaction where products can react to form the reactants again|A reaction that never stops;A reaction with one product;An explosion
 What is equilibrium|When forward and backward reactions happen at the same rate|When the reaction stops;When all reactants are used;When a gas escapes`],
-  'q2-c-organic-atmos': ['chemistry', 'Organic chemistry, analysis, atmosphere and resources (spec 4.7–4.10)', `
+  'q2-c-organic-atmos': ['chemistry', 'Fuels, gas tests and the atmosphere', `
 What is crude oil|A mixture of hydrocarbons formed from ancient plankton|A pure substance;A metal ore;A type of plastic
 What are hydrocarbons|Compounds of hydrogen and carbon only|Compounds of hydrogen and oxygen;Metals;Salts
 What is the general formula of alkanes|CnH2n+2|CnH2n;CnH2n−2;CnHn
 How is crude oil separated|Fractional distillation|Filtration;Chromatography;Evaporation
 What is cracking|Breaking long hydrocarbons into shorter, more useful ones|Joining small molecules;Burning fuel;Separating crude oil
-What test shows an alkene|Bromine water turns from orange to colourless|Limewater turns cloudy;Litmus turns red;A squeaky pop
+Why is carbon monoxide toxic|It combines with haemoglobin, so the blood carries less oxygen|It is acidic;It is radioactive;It makes the blood clot
 What is a pure substance in chemistry|A single element or compound|Anything natural;A mixture;Tap water
-What is a formulation|A mixture designed as a useful product, such as paint|A pure element;A single compound;Crude oil
+How can sea water be made into drinking water|Distillation|Filtration only;Chromatography;Adding chlorine only
 How is the Rf value calculated|Distance moved by substance ÷ distance moved by solvent|Solvent ÷ substance;Substance × solvent;Solvent − substance
 What is the test for hydrogen|A lit splint gives a squeaky pop|A glowing splint relights;Limewater turns cloudy;Litmus is bleached
 What is the test for oxygen|A glowing splint relights|A squeaky pop;Limewater turns cloudy;Damp litmus bleaches
@@ -686,7 +686,7 @@ How is sea water made potable|Desalination (distillation or reverse osmosis)|Fil
 What is a life cycle assessment|An assessment of a product's environmental impact from start to finish|A product's price history;A recycling bin;A safety label`],
 
   /* ================= PHYSICS ================= */
-  'q2-p-energy': ['physics', 'Energy (spec 4.1)', `
+  'q2-p-energy': ['physics', 'Energy stores and resources', `
 Name the main energy stores|Kinetic, gravitational potential, elastic, thermal, chemical, magnetic, electrostatic, nuclear|Heat, light and sound;Electric, solar and wind;Fast, slow and still
 What is the principle of conservation of energy|Energy cannot be created or destroyed, only transferred|Energy is always lost;Energy can be made;Energy only exists as heat
 What is the unit of energy|Joule (J)|Watt (W);Newton (N);Volt (V)
@@ -701,7 +701,7 @@ Which renewable resource is unreliable because it depends on weather|Wind|Geothe
 What is one disadvantage of nuclear power|Radioactive waste is produced|It releases lots of CO2;It is always unreliable;It needs wind
 Which renewable resource uses heat from underground|Geothermal|Hydroelectric;Tidal;Biofuel
 Which equation gives kinetic energy|Ek = ½ m v²|Ek = m g h;Ek = F d;Ek = I V`],
-  'q2-p-electricity': ['physics', 'Electricity (spec 4.2)', `
+  'q2-p-electricity': ['physics', 'Circuits and mains electricity', `
 What is electric current|The rate of flow of charge|The push of charge;Resistance to flow;Energy stored
 What is the unit of current|Ampere (A)|Volt (V);Ohm (Ω);Coulomb (C)
 What is potential difference|The energy transferred per unit charge|The flow of charge;The resistance;The power
@@ -721,7 +721,7 @@ What colour is the neutral wire|Blue|Brown;Green and yellow;Red
 What colour is the earth wire|Green and yellow stripes|Blue;Brown;White
 What is the National Grid|A network of cables and transformers linking power stations to consumers|A map of the UK;A type of battery;A fuse
 Why does the National Grid use very high voltages|Lower current means less energy lost as heat in cables|It is cheaper to make;It is safer;Homes need it`],
-  'q2-p-particles': ['physics', 'Particle model and atomic structure (spec 4.3 and 4.4)', `
+  'q2-p-particles': ['physics', 'Particles, atoms and radioactivity', `
 What is the density equation|ρ = m ÷ V|ρ = V ÷ m;ρ = m × V;ρ = m − V
 Why are solids usually denser than gases|Particles are packed closely together|Particles are bigger;Particles move faster;Solids are hotter
 What is internal energy|Total kinetic and potential energy of the particles|Only kinetic energy;Only heat;Energy from the Sun
@@ -737,12 +737,12 @@ What stops alpha particles|A sheet of paper or a few cm of air|Thick lead;Alumin
 What is half-life|The time for half the radioactive nuclei in a sample to decay|Half the time an atom exists;The time to double;The age of a sample
 What is irradiation|Exposing an object to radiation (it does not become radioactive)|Radioactive material getting onto an object;Heating with radiation;Making something radioactive
 What is radioactive contamination|Unwanted radioactive atoms on or in an object|Exposure to radiation from a distance;Using X-rays;Cooking with microwaves`],
-  'q2-p-forces': ['physics', 'Forces and motion (spec 4.5)', `
+  'q2-p-forces': ['physics', 'Forces and motion', `
 What is a scalar quantity|A quantity with size only, such as speed|A quantity with size and direction;A force;Velocity
 What is a vector quantity|A quantity with size and direction, such as velocity|A quantity with size only;Mass;Temperature
 What is weight|The force of gravity on an object's mass|The amount of matter;The volume;Density
 Which equation gives weight|W = m g|W = m a;W = F d;W = ½ m v²
-What is the gravitational field strength on Earth|About 9.8 N/kg|1 N/kg;100 N/kg;0.98 N/kg
+What is the gravitational field strength on Earth|About 10 N/kg|1 N/kg;100 N/kg;0.1 N/kg
 What is a resultant force|The single force with the same effect as all the forces acting|The biggest force;The weight;Friction
 What does Newton's first law say|An object stays at rest or at constant velocity unless a resultant force acts|Force equals mass times acceleration;Every action has an equal and opposite reaction;Objects always slow down
 What does Newton's second law say|Resultant force = mass × acceleration|Objects stay still;Forces come in pairs;Energy is conserved
@@ -756,7 +756,7 @@ What is stopping distance|Thinking distance + braking distance|Thinking distance
 Which affects thinking distance|Tiredness, alcohol, drugs and distractions|Icy roads;Worn tyres;Wet brakes
 Which affects braking distance|Wet or icy roads and worn tyres or brakes|Tiredness;Alcohol;Distractions
 What is momentum|Mass × velocity|Mass × acceleration;Force × time only;Speed × distance`],
-  'q2-p-waves-magnets': ['physics', 'Waves and magnetism (spec 4.6 and 4.7)', `
+  'q2-p-waves-magnets': ['physics', 'Waves and magnetism', `
 What is a transverse wave|Vibrations are at right angles to the direction of travel|Vibrations are parallel to travel;A sound wave;A wave with no energy
 What is a longitudinal wave|Vibrations are parallel to the direction of travel|Vibrations are at right angles;A light wave;A water wave
 Which is an example of a longitudinal wave|Sound|Light;Radio waves;Ripples on water

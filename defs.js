@@ -1,6 +1,6 @@
 /* Archeron · definitions. Each line is "Term|Model definition|key point;key point".
    Key points are what a mark scheme looks for; you tick the ones your answer had.
-   Written for AQA GCSE (Combined Science Trilogy, Foundation) and common GCSE Business, Geography and RE terms. */
+   Written for Edexcel GCSE Combined Science 1SC0 (Foundation) and common GCSE Business, Geography and RE terms. */
 'use strict';
 const DEFS = {
   /* ---------------- Biology ---------------- */
@@ -52,7 +52,7 @@ Respiration|An exothermic reaction, happening all the time in living cells, that
 Aerobic respiration|Respiration using oxygen: glucose + oxygen → carbon dioxide + water. It transfers the most energy.|using oxygen;glucose and oxygen give carbon dioxide and water
 Anaerobic respiration|Respiration without oxygen. In muscles, glucose → lactic acid. It transfers much less energy than aerobic respiration.|without oxygen;glucose to lactic acid in muscles;less energy transferred
 Fermentation|Anaerobic respiration in yeast cells: glucose → ethanol + carbon dioxide.|anaerobic respiration in yeast;makes ethanol and carbon dioxide
-Oxygen debt|The extra oxygen the body needs after exercise to react with the lactic acid and remove it from cells.|extra oxygen after exercise;to react with the lactic acid
+Cardiac output|The volume of blood the heart pumps each minute: stroke volume × heart rate.|volume of blood pumped each minute;stroke volume × heart rate
 Metabolism|The sum of all the reactions in a cell or the body.|all the reactions;in a cell or the body
 Limiting factor|The factor in shortest supply that stops the rate of photosynthesis going faster: light intensity, carbon dioxide concentration or temperature.|in shortest supply;stops the rate going faster`],
   'd-b-homeostasis': ['biology', 'Homeostasis: key terms', `
@@ -157,13 +157,13 @@ Dynamic equilibrium|When a reversible reaction in a closed system goes forwards 
   'd-c-organic': ['chemistry', 'Organic, analysis and the atmosphere: key terms', `
 Hydrocarbon|A compound made of hydrogen and carbon atoms only.|hydrogen and carbon only
 Alkane|A saturated hydrocarbon with only single carbon–carbon bonds. General formula CₙH₂ₙ₊₂.|hydrocarbon;single bonds only
-Alkene|A hydrocarbon with a carbon–carbon double bond. Alkenes turn bromine water from orange to colourless.|hydrocarbon;carbon–carbon double bond
+Alkene|A hydrocarbon with a carbon–carbon double bond; cracking makes some alkenes.|hydrocarbon;carbon–carbon double bond
 Crude oil|A finite resource formed from the remains of ancient plankton; a mixture of many hydrocarbons.|mixture of hydrocarbons;from ancient plankton
 Fractional distillation|Separating a mixture of liquids, such as crude oil, into fractions with different boiling points.|separates by boiling point;into fractions
 Cracking|Breaking large hydrocarbon molecules into smaller, more useful ones, such as shorter alkanes and alkenes.|breaking large hydrocarbons;into smaller, more useful molecules
 Complete combustion|Burning a fuel in plenty of oxygen to produce carbon dioxide and water.|plenty of oxygen;carbon dioxide and water
 Pure substance|A single element or compound not mixed with any other substance. It melts and boils at a fixed temperature.|single element or compound;fixed melting and boiling point
-Formulation|A mixture designed as a useful product, with each part in a measured amount.|mixture;designed for a use;measured amounts
+Homologous series|A family of compounds with the same general formula, each differing from the next by CH₂, with similar chemical properties.|same general formula;differ by CH₂;similar chemical properties
 Chromatography|A method of separating mixtures using a stationary phase and a mobile phase.|separates mixtures;stationary and mobile phase
 Potable water|Water that is safe to drink.|safe to drink
 Greenhouse gas|A gas, such as carbon dioxide, methane or water vapour, that absorbs heat radiated from the Earth and keeps it warm.|absorbs heat from the Earth;examples carbon dioxide or methane
@@ -217,7 +217,8 @@ Beta particle|A high-speed electron given out from the nucleus as a neutron turn
 Gamma ray|Electromagnetic radiation given out from the nucleus. Very penetrating, weakly ionising.|electromagnetic radiation;from the nucleus
 Irradiation|Exposing an object to nuclear radiation. The object does not become radioactive.|exposed to radiation;does not become radioactive
 Contamination|The unwanted presence of radioactive atoms on or in other materials.|radioactive atoms get on or into a material
-Background radiation|Radiation around us all the time from natural sources (rocks, cosmic rays) and man-made sources.|around us all the time;natural and man-made sources`],
+Background radiation|Radiation around us all the time from natural sources (rocks, cosmic rays) and man-made sources.|around us all the time;natural and man-made sources
+Absolute zero|The lowest possible temperature, −273 °C (0 K), where particles stop moving.|−273 °C or 0 K;particles stop moving`],
   'd-p-forces': ['physics', 'Forces: key terms', `
 Scalar|A quantity with magnitude (size) only, such as speed, distance or mass.|size only
 Vector|A quantity with magnitude and direction, such as velocity, force or displacement.|magnitude and direction
@@ -230,7 +231,7 @@ Non-contact force|A force between objects that are not touching, such as gravity
 Newton's first law|If the resultant force on an object is zero, it stays still or keeps moving at the same speed in the same direction.|resultant force is zero;stays still or keeps moving at the same speed and direction
 Newton's second law|The acceleration of an object is proportional to the resultant force on it and inversely proportional to its mass: F = m × a.|acceleration proportional to resultant force;F = ma
 Newton's third law|When two objects interact, they exert equal and opposite forces on each other.|two objects interact;equal and opposite forces
-Terminal velocity|The constant top speed of a falling object, reached when air resistance equals weight so the resultant force is zero.|constant maximum speed;air resistance equals weight
+Light gate|A sensor that records when an object passes through its beam, used with a data logger to measure time and speed accurately.|sensor with a beam;measures time or speed accurately
 Stopping distance|Thinking distance plus braking distance.|thinking distance;plus braking distance
 Thinking distance|The distance a vehicle travels during the driver's reaction time.|during the reaction time
 Braking distance|The distance a vehicle travels under the braking force.|distance travelled under the braking force

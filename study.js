@@ -1,5 +1,5 @@
-/* Archeron · Study: in-depth guides to the hard topics. Written for AQA GCSE (Maths 8300 and Combined Science
-   Trilogy 8464 at Foundation; English Language 8700, Literature 8702; Geography, Business, RE Spec A).
+/* Archeron · Study: in-depth guides to the hard topics. Written for AQA GCSE (Maths 8300 Foundation; English Language 8700,
+   Literature 8702; Geography, Business, RE Spec A) and Edexcel Combined Science 1SC0 at Foundation (core practicals, g = 10 N/kg).
    Markup: "## Heading", "- bullet", "> worked example line", "! common mistake", "* exam tip",
    "? question | answer" (quick check), anything else is a paragraph.
    G(id, subject, title, practice topic ids, lead, body) */
@@ -415,7 +415,7 @@ Examples: root hair cells take in mineral ions from dilute soil water; glucose i
 ## Surface area to volume ratio
 Small organisms have a large surface area compared with their volume, so diffusion across the surface is enough. Large organisms need exchange surfaces (alveoli, villi, gills, root hairs) and transport systems.
 Good exchange surfaces have a large surface area, thin walls (short diffusion distance), a good blood supply and (in lungs) ventilation.
-## Required practical: osmosis in potato
+## Core practical: osmosis in potatoes
 - Cut equal cylinders of potato, weigh them, place in sugar solutions of different concentrations.
 - After a set time, blot dry and reweigh.
 - Calculate % change in mass = change ÷ starting mass × 100.
@@ -449,7 +449,7 @@ Each enzyme has an optimum pH. Pepsin (stomach protease) works best at about pH 
 - Sugars: Benedict's solution, heat in a water bath → brick red.
 - Protein: Biuret reagent turns blue → purple.
 - Lipids: Sudan III stains a red layer.
-## Required practical: pH and amylase
+## Core practical: pH and amylase
 Mix amylase and starch at different pHs. Every 30 seconds take a drop and test with iodine on a spotting tile. Record the time until iodine stops turning blue-black: the shortest time is the optimum pH. Keep temperature constant with a water bath.
 ! Saying the enzyme is "killed". Enzymes are not alive: they are DENATURED.
 ! Calling bile an enzyme.
@@ -469,8 +469,8 @@ On a graph, the rate rises then levels off: where it levels off, a different fac
 Farmers use greenhouses with heaters, lamps and extra CO₂ to increase growth, but only while the cost is less than the extra profit.
 ## Uses of glucose in plants
 Respiration; converted to insoluble starch for storage; cellulose for cell walls; fats and oils for storage; combined with nitrate ions to make amino acids for proteins.
-## Required practical: light intensity
-Count oxygen bubbles from pondweed (or measure gas volume) with a lamp at different distances. Rate increases as the lamp gets closer. Light intensity follows an inverse square law: halve the distance, four times the light.
+## Core practical: light intensity and photosynthesis
+Count oxygen bubbles from pondweed (or time the colour change of hydrogencarbonate indicator around algal balls) with a lamp at different distances. Rate increases as the lamp gets closer. Light intensity follows an inverse square law: halve the distance, four times the light.
 ## Aerobic respiration
 glucose + oxygen → carbon dioxide + water. Happens continuously in mitochondria. Exothermic: transfers energy for movement, keeping warm and building molecules.
 ## Anaerobic respiration
@@ -478,6 +478,8 @@ glucose + oxygen → carbon dioxide + water. Happens continuously in mitochondri
 - In plants and yeast: glucose → ethanol + carbon dioxide. In yeast this is fermentation, used to make bread and alcohol.
 ## During exercise
 Heart rate, breathing rate and breath volume increase to supply more oxygen and glucose and remove more carbon dioxide. After exercise, the oxygen debt is repaid: extra oxygen reacts with lactic acid in the liver.
+## Core practical: rate of respiration
+Use a simple respirometer: small organisms (e.g. woodlice or germinating peas) sit above soda lime, which absorbs the carbon dioxide they give out. As they use oxygen, a drop of coloured liquid moves along a capillary tube towards them. Measure how far it moves in a set time, at different temperatures in a water bath.
 ! Saying plants photosynthesise instead of respiring. Plants respire ALL the time; they photosynthesise only in the light.
 ! Saying respiration "makes" energy. Energy is TRANSFERRED, never made.
 * Graph questions: name the limiting factor at each part of the curve.
@@ -527,7 +529,7 @@ Signals pass across synapses as chemicals that diffuse across the gap.
 ## Reflex actions
 Automatic, fast responses that do not involve the conscious brain, protecting the body (pulling your hand from a hot object).
 stimulus → receptor → sensory neurone → relay neurone (spinal cord) → motor neurone → effector (muscle) → response
-## Required practical: reaction time
+## Measuring reaction time
 Use the ruler-drop test or a computer. Repeat, take a mean, and investigate a factor such as caffeine. Keep other variables (same hand, same person) the same.
 ## The endocrine system
 Glands secrete hormones into the blood, which carry them to target organs. Hormonal responses are slower than nervous ones but last longer.
@@ -616,11 +618,11 @@ Species depend on each other for food, shelter, pollination and seed dispersal. 
 - Decomposers break down dead material, releasing CO₂ and returning mineral ions to the soil.
 ## The water cycle
 Evaporation and transpiration → condensation into clouds → precipitation → run-off and drainage.
-## Required practical: sampling with quadrats
+## Core practical: quadrats and belt transects
 - Place quadrats at random (random number coordinates) to avoid bias.
 - Count organisms in each and find the mean.
 - Population estimate = mean per quadrat × number of quadrats that would fit in the whole area.
-- Use a transect (quadrats along a line) to see how distribution changes, e.g. away from a hedge.
+- Use a belt transect (quadrats placed along a line) to see how distribution changes, e.g. away from a hedge.
 ## Biodiversity and human impact
 Biodiversity is the variety of species. Human impacts: pollution, deforestation, peat bog destruction, global warming. Protection: breeding programmes, protecting habitats, field margins and hedgerows, reducing deforestation and recycling.
 ! Food chain arrows pointing the wrong way: they point TO the organism that eats.
@@ -742,8 +744,8 @@ Oxidation = gain of oxygen (or loss of electrons). Reduction = loss of oxygen (o
 - Acids produce H⁺ ions in water (pH below 7). Alkalis produce OH⁻ ions (pH above 7). pH 7 is neutral.
 - Neutralisation: H⁺ + OH⁻ → H₂O.
 - Universal indicator and pH probes measure pH.
-## Making a soluble salt (required practical)
-- Warm the acid and add an insoluble base (e.g. copper oxide) until no more dissolves, so the acid is used up (base in excess).
+## Making a soluble salt (core practical: copper sulfate)
+- Warm the acid in a water bath and add an insoluble base (copper oxide) until no more dissolves, so the acid is used up (base in excess).
 - Filter to remove the excess solid.
 - Heat the solution in an evaporating basin to reduce it, then leave to crystallise.
 - Pat the crystals dry.
@@ -774,8 +776,8 @@ Water also provides H⁺ and OH⁻ ions.
 > Copper sulfate solution: copper at the cathode, oxygen at the anode
 ## Extracting aluminium
 Aluminium oxide is dissolved in molten cryolite to lower the melting point and save energy. Aluminium forms at the cathode. Oxygen forms at the carbon anodes, which react to make carbon dioxide, so the anodes must be replaced regularly.
-## Required practical
-Electrolyse solutions with inert (graphite) electrodes. Test gases: hydrogen (squeaky pop with a lit splint), oxygen (relights a glowing splint), chlorine (bleaches damp litmus paper).
+## Core practical: electrolysis of copper sulfate
+With inert (graphite) electrodes, copper forms at the cathode and oxygen at the anode. With copper electrodes, the anode loses mass as copper dissolves and the cathode gains copper; a bigger current moves more copper in the same time. Gas tests: hydrogen (squeaky pop with a lit splint), oxygen (relights a glowing splint), chlorine (bleaches damp litmus paper).
 ! Mixing up cathode and anode charges.
 ! Predicting sodium at the cathode for sodium chloride SOLUTION. Sodium is more reactive than hydrogen, so hydrogen forms.
 * Write "metal at cathode, non-metal at anode" for molten questions; apply the two rules for solutions.
@@ -795,8 +797,8 @@ Reactions happen when particles collide with at least the activation energy. The
 Mean rate = quantity of product formed ÷ time (or reactant used ÷ time). Measure gas volume with a gas syringe, mass lost on a balance, or time for a cross to disappear.
 On a graph the gradient is the rate. Steeper = faster. The line levels off when a reactant is used up.
 > 45 cm³ of gas in 30 s → mean rate = 1.5 cm³/s
-## Required practical: concentration and rate
-Sodium thiosulfate + hydrochloric acid goes cloudy. Time how long until a cross under the flask disappears at different concentrations. Higher concentration → shorter time → faster rate.
+## Core practical: rates of reaction
+Marble chips + hydrochloric acid: measure the volume of carbon dioxide given off over time (gas syringe), e.g. with different concentrations or chip sizes. Sodium thiosulfate + hydrochloric acid goes cloudy: time how long until a cross under the flask disappears, with the thiosulfate warmed to different temperatures. Shorter time → faster rate.
 ## Energy changes
 - Exothermic: transfers energy TO the surroundings, temperature rises (combustion, neutralisation, respiration, hand warmers).
 - Endothermic: takes in energy FROM the surroundings, temperature falls (thermal decomposition, sports injury packs, photosynthesis).
@@ -845,18 +847,18 @@ Stores: kinetic, gravitational potential, elastic potential, thermal, chemical, 
 > A ball falling: gravitational potential store → kinetic store
 ## Equations you must use
 - Kinetic energy: Eₖ = ½ m v²
-- Gravitational potential energy: Eₚ = m g h (g = 9.8 N/kg)
+- Gravitational potential energy: Eₚ = m g h (g = 10 N/kg)
 - Elastic potential energy: Eₑ = ½ k e²
 - Work done: W = F s
 - Power: P = E ÷ t (or P = W ÷ t)
 - Efficiency = useful output ÷ total input
 - Change in thermal energy: ΔE = m c Δθ
 > A 1200 kg car at 15 m/s: Eₖ = ½ × 1200 × 225 = 135 000 J
-> Lifting 50 kg through 2 m: Eₚ = 50 × 9.8 × 2 = 980 J
+> Lifting 50 kg through 2 m: Eₚ = 50 × 10 × 2 = 1000 J
 ## Energy conservation and wasted energy
 Total energy stays the same. Energy that is not useful is "wasted", usually dissipated to the surroundings as thermal energy. Reduce it with lubrication (less friction) and thermal insulation.
-## Specific heat capacity (required practical)
-The energy needed to raise 1 kg by 1 °C. Heat a block with an immersion heater, measure the energy (joulemeter, or P × t) and the temperature rise, then c = ΔE ÷ (m Δθ). Insulate the block to reduce losses.
+## Specific heat capacity (core practical)
+The energy needed to raise 1 kg by 1 °C. Heat a known mass of water with an immersion heater connected to a joulemeter, measure the energy supplied and the temperature rise, then c = ΔQ ÷ (m Δθ). Insulate the beaker to reduce losses. In the same core practical you heat crushed ice: its temperature stays at 0 °C while it melts.
 ## Energy resources
 - Non-renewable: coal, oil, gas (release CO₂), nuclear (no CO₂ but radioactive waste). Reliable.
 - Renewable: wind, solar, hydroelectric, tidal, waves, geothermal, biofuel. Will not run out, but some are unreliable (wind, solar) or limited by location.
@@ -903,7 +905,7 @@ Alternating current, 230 V, 50 Hz. Three-core cable: live (brown, 230 V), neutra
 G('p-particles', 'physics', 'Particle model and radioactivity', ['pr-particles', 'p-density', 'd-p-particles'], 'Density and states of matter, then what happens inside unstable nuclei.', `
 ## Density
 ρ = m ÷ V. Solids are usually densest (particles close and ordered), gases least dense.
-Required practical: regular objects, measure sides and calculate volume; irregular objects, use a eureka (displacement) can; mass on a balance.
+Core practical: for a solid, measure the mass on a balance and the volume (regular: measure the sides; irregular: the water it displaces in a eureka can or measuring cylinder). For a liquid, measure the mass of a known volume.
 ## States and internal energy
 Internal energy = total kinetic + potential energy of the particles. Heating raises temperature OR changes state. During a change of state the temperature stays the same while energy breaks bonds.
 Specific latent heat: E = m L (energy to change the state of 1 kg without changing temperature).
@@ -952,8 +954,8 @@ A falling object speeds up, so air resistance increases until it equals weight. 
 Stopping distance = thinking distance + braking distance.
 - Thinking distance increases with speed, tiredness, alcohol, drugs, distractions.
 - Braking distance increases with speed, wet or icy roads, worn tyres or brakes, and greater mass.
-## Springs (required practical)
-F = k e (up to the limit of proportionality). Hang masses, measure extension (new length − original length). The graph is a straight line through the origin until the limit.
+## Springs (core practical)
+F = k e (up to the limit of proportionality). Hang masses, measure extension (new length − original length). The graph is a straight line through the origin until the limit. The work done in stretching the spring (energy stored) = ½ × k × e².
 ## Momentum
 p = m v. In a collision, total momentum before = total momentum after.
 ! Using total length instead of extension for springs.
@@ -973,7 +975,7 @@ Amplitude: maximum displacement from rest. Wavelength (λ): distance from one po
 ## The wave equation
 v = f λ
 > f = 50 Hz, λ = 4 m → v = 200 m/s
-## Required practical: ripple tank
+## Core practical: waves in a ripple tank and a solid
 Measure wavelength (several waves against a ruler, then divide), count waves past a point in 10 s for frequency, and calculate v = f λ. A strobe or camera helps freeze the pattern.
 ## The electromagnetic spectrum (long wavelength → short)
 Radio, microwaves, infrared, visible, ultraviolet, X-rays, gamma. All travel at the same speed in a vacuum. Frequency and energy increase towards gamma.

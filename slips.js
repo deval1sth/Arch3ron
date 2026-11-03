@@ -153,7 +153,7 @@ const SLIPS = (() => {
       if (D.find === 'I') L.push([v.P / v.R, 'Nearly: now square root it.']);
       if (D.find === 'R') L.push([v.P / v.I, 'Divide by I², not I.']);
     }
-    if ((D.pid === 'weight' || D.pid === 'gpe') && D.find === out) L.push([v[out] / 9.8 * 10, 'Use g = 9.8 N/kg, the value the question gives.']);
+    if ((D.pid === 'weight' || D.pid === 'gpe') && D.find === out) L.push([v[out] / 10 * 9.8, 'Use g = 10 N/kg, the value the question gives.']);
     const ins = e.ins.map(i => i[0]).filter(k => !(k === 'g' && e.ins.length > 2));
     if (D.find === out && ins.length === 2) {
       const [a, b] = ins, mult = /×/.test(e.eq.split('=')[1]);

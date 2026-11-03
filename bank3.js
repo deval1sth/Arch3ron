@@ -290,44 +290,61 @@ What is a zero-hours contract|A contract with no guaranteed minimum hours|A full
 What is a trade union|An organisation that represents workers' interests|A group of businesses;A government body;A bank
 What is an income statement|A financial document showing revenue, costs and profit over a period|A list of assets;A cash flow forecast;A tax form`],
 
-  /* ================= SCIENCE TOP-UPS: required practicals and key ideas ================= */
-  'q3-b-practicals': ['biology', 'Biology required practicals', `
-In the microscopy practical, why do you start with the lowest power objective|It is easier to find and focus on the specimen|It gives the highest magnification;It is cheaper;It stains the cells
-In the osmosis practical, what do you measure for each potato piece|Change in mass|Change in colour;Change in temperature;Number of cells
-In the osmosis practical, why do you calculate percentage change in mass|Pieces start with different masses|It is easier to read;It removes all error;It is required by law
-In the food tests practical, which reagent tests for lipids|Ethanol (cloudy white emulsion)|Iodine;Biuret;Benedict's
-In the enzyme practical, how is amylase activity measured|Time taken for starch to disappear, tested with iodine|Change in mass;Gas bubbles;Colour of Benedict's
-In the photosynthesis practical, how is the rate measured|Counting bubbles of oxygen from pondweed|Measuring leaf colour;Weighing the plant;Counting leaves
-In the photosynthesis practical, which variable is changed|Distance of the lamp from the pondweed|Type of plant;Amount of water;Number of leaves
-In the reaction time practical, what is dropped|A ruler|A ball;A coin;A stopwatch
-In the field investigation, what equipment estimates population size|A quadrat|A thermometer;A beaker;A Bunsen burner
+  /* ================= SCIENCE TOP-UPS: Edexcel Combined Science core practicals (1SC0: 6 biology, 5 chemistry, 7 physics) ================= */
+  'q3-b-practicals': ['biology', 'Biology core practicals', `
+In the microscopy core practical, why do you start with the lowest power objective|It is easier to find and focus on the specimen|It gives the highest magnification;It is cheaper;It stains the cells
+In the microscopy core practical, how do you work out the real size of a cell|Real size = image size ÷ magnification|Real size = image size × magnification;Real size = magnification ÷ image size;Measure it with a ruler on the slide
+In the osmosis core practical, what solution are the potato pieces put in|Sucrose (sugar) solutions of different concentrations|Iodine solution;Salt water only;Pure ethanol
+In the osmosis core practical, why do you calculate percentage change in mass|Pieces start with different masses|It is easier to read;It removes all error;It is required by law
+In the pH and enzyme core practical, how is amylase activity measured|Sampling the mixture onto iodine until it no longer turns blue-black|Change in mass;Counting gas bubbles;Measuring the temperature
+In the pH and enzyme core practical, why is the mixture kept in a water bath|To keep the temperature the same, so only pH changes|To speed up the iodine;To kill bacteria;To change the pH
+In the photosynthesis core practical, which variable is changed|Light intensity, by moving the light source to different distances|Type of plant;Amount of water;Number of leaves
+In the photosynthesis core practical with algal balls, what shows the rate of photosynthesis|How quickly the hydrogencarbonate indicator around them changes colour|How quickly the balls sink;The mass of the algal balls;The temperature of the water
+In the respiration core practical, what does the soda lime in the respirometer do|Absorbs the carbon dioxide the organisms give out|Gives out oxygen;Feeds the organisms;Keeps them warm
+In the respiration core practical, what shows the rate of respiration|How far the coloured liquid moves along the capillary tube in a set time|The colour of the soda lime;The mass of the organisms;How fast the organisms move
+In the respiration core practical, which variable is usually changed|Temperature, using a water bath|The type of soda lime;The length of the tube;The colour of the liquid
+In the fieldwork core practical, what is used to sample organisms along a line from one habitat into another|A belt transect|A single random quadrat;A pooter;A light microscope
+In the fieldwork core practical, why are quadrats placed at random in an area|To avoid bias, so the sample is representative|To save time;To find the most organisms;Because the teacher says so
 What is a control variable|A variable kept the same to make the test fair|The variable you change;The variable you measure;The result
 What is the independent variable|The variable you change|The variable you measure;A variable you keep the same;An error
 What is the dependent variable|The variable you measure|The variable you change;A control variable;A mistake`],
-  'q3-c-practicals': ['chemistry', 'Chemistry required practicals', `
-In the soluble salts practical, why is excess insoluble base added to the acid|To make sure all the acid reacts|To speed up evaporation;To change the colour;To make it alkaline
-How is the excess base removed when making a salt|Filtration|Evaporation;Distillation;Chromatography
-How are crystals of the salt obtained|Evaporate some water then leave to crystallise|Filter the solution;Freeze it;Add more acid
-In the temperature change practical, why is a polystyrene cup used|It insulates, reducing energy loss|It is cheap only;It reacts with acid;It is transparent
-In the rates practical with sodium thiosulfate, what is measured|Time for a cross to disappear under the cloudy solution|Mass loss;Gas volume only;Colour change to blue
-In the rates practical with marble chips and acid, what can be measured|Volume of gas produced or mass lost|Temperature only;Colour;Light
-In the chromatography practical, why is the start line drawn in pencil|Pencil does not dissolve in the solvent|It is darker;Pens are banned;It looks neater
+  'q3-c-practicals': ['chemistry', 'Chemistry core practicals', `
+In the copper sulfate core practical, what is reacted with dilute sulfuric acid|Copper oxide|Copper metal;Copper chloride;Sodium hydroxide
+In the copper sulfate core practical, how is the acid warmed|In a water bath|With a Bunsen flame directly under the beaker;In a freezer;It is not warmed
+Why is excess copper oxide added to the acid when making copper sulfate|To make sure all the acid reacts|To speed up evaporation;To change the colour;To make it alkaline
+How is the excess copper oxide removed|Filtration|Evaporation;Distillation;Chromatography
+How are crystals of copper sulfate obtained from the solution|Heat to evaporate some water, then leave to cool and crystallise|Filter the solution again;Freeze it;Add more acid
+In the pH core practical, what is added a little at a time to dilute hydrochloric acid|Powdered calcium hydroxide or calcium oxide|Copper sulfate;Sodium chloride;Marble chips
+In the pH core practical, how does the pH change as calcium hydroxide is added to the acid|It rises from below 7 towards 7 and then above it|It falls from 14 to 7;It stays at 7;It drops below 1
+In the ink core practical, how is pure water separated from ink|Simple distillation|Filtration;Chromatography;Crystallisation
+In the ink core practical, how are the dyes in the ink separated|Paper chromatography|Distillation;Filtration;Electrolysis
+In chromatography, why is the start line drawn in pencil|Pencil does not dissolve in the solvent|It is darker;Pens are banned;It looks neater
 Why must the start line be above the solvent level|So the spots do not dissolve into the solvent|To speed it up;To keep it dry;To make it look better
-In the water purification practical, how is the sample purified|Distillation|Filtration only;Chromatography;Electrolysis
-How can you test water purity after distillation|Its boiling point should be exactly 100°C|It should be blue;It should smell;It should be cloudy
-In electrolysis of copper chloride, what forms at the anode|Chlorine gas|Copper;Hydrogen;Oxygen
-In electrolysis of copper chloride, what forms at the cathode|Copper|Chlorine;Hydrogen;Oxygen`],
-  'q3-p-practicals': ['physics', 'Physics required practicals', `
-In the specific heat capacity practical, what is measured|Temperature rise and energy supplied to a block|Mass loss;Current only;Wave speed
-Why is the block insulated in the specific heat capacity practical|To reduce energy lost to the surroundings|To make it heavier;To speed it up;To measure current
-In the resistance of a wire practical, which variable is changed|Length of the wire|Thickness only;Type of metal;Voltage of mains
-What happens to resistance as a wire gets longer|It increases|It decreases;It stays the same;It becomes zero
-In the I–V characteristics practical, what shape is the graph for a resistor at constant temperature|A straight line through the origin|A curve;A horizontal line;A vertical line
-What shape is the I–V graph for a filament lamp|A curve, because resistance increases as it heats up|A straight line;A flat line;A vertical line
-In the density practical, how is the volume of an irregular object found|Displacement of water in a measuring cylinder or eureka can|Using a ruler;Weighing it;Counting its sides
-In the force and extension practical, what is plotted|Force against extension|Mass against time;Length against colour;Speed against distance
-In the acceleration practical, what is changed|The force pulling the trolley (or its mass)|The colour of the trolley;The table height;The room temperature
-In the waves practical with a ripple tank, why is a stroboscope or photo used|To freeze the waves so wavelength can be measured|To heat the water;To make waves faster;To count the students
-In the infrared radiation practical, which surface emits the most infrared|Matt black|Shiny silver;White gloss;Shiny gold
+In the electrolysis of copper sulfate solution with inert electrodes, what forms at the cathode|Copper|Oxygen;Hydrogen;Sulfur
+In the electrolysis of copper sulfate solution with inert electrodes, what forms at the anode|Oxygen|Copper;Hydrogen;Chlorine
+In the electrolysis of copper sulfate solution with copper electrodes, what happens to the anode|It loses mass as copper dissolves into the solution|It gains mass;It gives off oxygen;Nothing happens
+In the electrolysis of copper sulfate solution with copper electrodes, what happens to the cathode|It gains mass as copper is deposited on it|It loses mass;It gives off chlorine;It dissolves
+In the rates core practical with marble chips and acid, what is measured|The volume of gas produced over time|The colour change;The pH only;The light given off
+In the rates core practical with sodium thiosulfate, what is timed|How long a cross under the flask takes to disappear as the mixture goes cloudy|How long the gas takes to fill a syringe;How long the mixture takes to turn blue;How long the flask takes to cool
+In the sodium thiosulfate core practical, which condition is changed|The temperature of the sodium thiosulfate solution|The colour of the cross;The size of the marble chips;The type of flask`],
+  'q3-p-practicals': ['physics', 'Physics core practicals', `
+In the force, mass and acceleration core practical, what is changed|The masses added to the trolley (or the force pulling it)|The colour of the trolley;The table height;The room temperature
+In the force, mass and acceleration core practical, what can measure the trolley's speed|Light gates|A thermometer;A balance;A voltmeter
+In the waves core practical, what is used to look at waves on water|A ripple tank|A slinky;A metal rod;A cathode ray tube
+In the waves core practical, why is a photo or a strobe light useful|It freezes the waves so the wavelength can be measured|It heats the water;It makes the waves faster;It counts the waves for you
+In the waves core practical, how is wave speed worked out from the measurements|Wave speed = frequency × wavelength|Wave speed = frequency ÷ wavelength;Wave speed = wavelength ÷ amplitude;Wave speed = amplitude × frequency
+In the refraction core practical, what happens to a light ray entering a glass block at an angle|It bends towards the normal|It bends away from the normal;It goes straight on;It is all reflected
+In the refraction core practical, what happens to a light ray leaving the glass block into air at an angle|It bends away from the normal|It bends towards the normal;It stops;It speeds up and goes straight on
+In the circuits core practical, what shape is the current–potential difference graph for a resistor at constant temperature|A straight line through the origin|A curve;A horizontal line;A vertical line
+What shape is the current–potential difference graph for a filament lamp|A curve, because resistance increases as it heats up|A straight line;A flat line;A vertical line
+In the circuits core practical, how is the ammeter connected|In series with the component|In parallel with the component;Across the power supply only;It is not needed
+In the circuits core practical, how is the voltmeter connected|In parallel across the component|In series with the component;Next to the switch;It is not needed
+In the density core practical, how is the volume of an irregular solid found|By the volume of water it displaces|Using a ruler;Weighing it;Counting its sides
+In the density core practical, how is the density of a liquid found|Measure its mass on a balance and its volume in a measuring cylinder, then density = mass ÷ volume|Measure its temperature;Measure how fast it flows;Weigh the empty cylinder only
+In the specific heat capacity core practical, which substance is heated|Water|A copper block;Ice cream;Air
+In the specific heat capacity core practical, why is the beaker insulated|To reduce energy lost to the surroundings|To make it heavier;To speed it up;To measure current
+In the melting ice core practical, what happens to the temperature while the ice is melting|It stays the same|It rises steadily;It falls;It goes up and down
+In the spring core practical, what is plotted|Force against extension|Mass against time;Length against colour;Speed against distance
+In the spring core practical, how is the work done in stretching the spring calculated|0.5 × spring constant × extension²|Force × time;Mass × extension;Spring constant ÷ extension
 What is a repeatable result|One you get again when you repeat the experiment yourself|One someone else gets;One that is always wrong;A single reading`]
 });

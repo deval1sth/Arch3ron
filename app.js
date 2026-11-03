@@ -1148,7 +1148,7 @@ function vExamQ() {
     mockBar(),
     !E.end && hallBtn() && h('div', { class: 'row end' }, hallBtn()),
     i === 0 && sit ? h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Real exam format'),
-        h('p', null, `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real AQA ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
+        h('p', null, `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real ${pppBoard(p.ppp.track)} ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
         E.printed ? h('p', { class: 'muted xs' }, 'Sitting it on paper? Write your answers there. When you finish, press Pens down and mark each part here.')
           : p.g === 'Maths' && h('p', { class: 'muted xs' }, 'Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.'),
         isDesk() && B([icon('scroll'), 'Print this paper'], 'printRun', 'link')))

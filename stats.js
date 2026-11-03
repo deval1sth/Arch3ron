@@ -110,7 +110,7 @@ function gradesTable(st) {
         h('td', null, h('span', { class: 'st-sn' }, h('i', { class: 'sw', style: `background:${SUBJ_COLOR[r.s]}` }), r.s)),
         h('td', null, r.rep), h('td', null, r.p ? h('b', null, String(r.p.g)) : '–'), h('td', null, String(r.aim)),
         h('td', { class: 'num' }, r.avg == null ? '–' : `${r.avg}%`, r.mine.length > 1 && h('small', null, ` (${r.mine.length})`))))))),
-    h('p', { class: 'muted xs' }, '"Papers say" uses your last 3 papers in each subject. "Marks here" is your average on papers in this period. Grades are a rough guide from recent AQA boundaries.'));
+    h('p', { class: 'muted xs' }, '"Papers say" uses your last 3 papers in each subject. "Marks here" is your average on papers in this period. Grades are a rough guide from recent boundaries (Edexcel for Science, AQA for the rest).'));
 }
 function marksCard(st, R) {
   if (!st.papers.length) return card('Marks', null, h('p', { class: 'muted' }, R.prev ? 'No papers in this period. A timed paper is the best way to see where you really stand.' : 'No papers yet. Log or sit one and your marks appear here.'),

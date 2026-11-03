@@ -3,10 +3,10 @@
 'use strict';
 
 /* ---------- Grade boundaries ---------- */
-/* Rough AQA boundaries as % of total marks, best grade first. shortcut: one table per tier from recent years; boundaries move every year. */
+/* Rough boundaries as % of total marks, best grade first: AQA, except Science, which is Edexcel. shortcut: one table per tier from recent years; boundaries move every year. */
 const BOUNDS = {
   maths: [[5, 73], [4, 55], [3, 38], [2, 24], [1, 11]], /* Foundation Maths, capped at 5 */
-  sci: [[5, 62], [4, 48], [3, 33], [2, 20], [1, 9]], /* Combined Science Foundation, per grade */
+  sci: [[5, 61], [4, 51], [3, 37], [2, 24], [1, 11]], /* Edexcel Combined Science 1SC0 Foundation, per grade (5-5, 4-4 ...): mean of June 2024, 2025 and 2026, out of 360 */
   open: [[9, 80], [8, 72], [7, 63], [6, 55], [5, 47], [4, 38], [3, 28], [2, 18], [1, 9]] };
 const boundsOf = subj => subj === 'Maths' ? BOUNDS.maths : subj === 'Science' ? BOUNDS.sci : BOUNDS.open;
 const gradeFor = (subj, pc) => (boundsOf(subj).find(([, p]) => pc >= p) || ['U'])[0];
@@ -49,7 +49,7 @@ function predictCard() {
         p.n < 3 ? ` Based on ${p.n} paper${p.n > 1 ? 's' : ''}; ${3 - p.n} more makes it reliable.` : ''))),
     none.length > 0 && h('div', { class: 'pr-none' }, h('p', { class: 'muted xs' }, have.length ? 'Not tested yet. Tap one to sit a timed mock:' : 'Tap a subject to sit your first timed mock:'),
       h('div', { class: 'chips' }, none.map(r => EXAMS.some(e => e.subj === r.s) && chip([icon('flame'), r.s], false, 'mockGo', { 'data-subj': r.s })))),
-    h('p', { class: 'muted xs' }, 'A rough guide: it uses recent AQA grade boundaries, which change every year. Maths and Science are Foundation tier, so 5 is the top grade.'));
+    h('p', { class: 'muted xs' }, 'A rough guide: it uses recent grade boundaries (Edexcel for Science, AQA for the rest), which change every year. Maths and Science are Foundation tier, so 5 is the top grade.'));
 }
 
 /* ---------- Mock hall: timed papers under exam conditions ---------- */
@@ -884,18 +884,32 @@ document.addEventListener('submit', e => {
 });
 PLUSACT.labLock = () => { try { localStorage.removeItem('archeron-lab'); } catch (e) {} go('tools'); };
 
-/* ---------- PPP mode: the paper → mark → correct loop. Papers follow the real AQA format: the same marks, time and number of questions.
+/* ---------- PPP mode: the paper → mark → correct loop. Papers follow the real format: the same marks, time and number of questions
+   (AQA, except Combined Science, which is Edexcel 1SC0 Foundation: six papers of 60 marks in 1 hour 10 minutes, each on a fixed set of spec topics).
    Short parts are fresh every paper (generated, or unused bank questions); longer written parts come from the practice papers, unused ones first. ---------- */
 const PPP_IDS = s => s.split(' ');
-const PPP_SCI = (n, t, w, ids) => ({ n, t, mins: 75, marks: 70, qn: 'about 7 questions in parts', ws: .45, parts: 8, maxQ: 12, minQ: 6, long: 2, sec: [[null, 70, [w, w + 'x'], null, PPP_IDS(ids)]] }); /* real papers have one or two 6-mark questions */
+const PPP_SCIENCE = new Set(['biology', 'chemistry', 'physics']);
+const pppBoard = track => PPP_SCIENCE.has(track) ? 'Edexcel' : 'AQA';
+/* Edexcel topic names, as the written questions are labelled. Topic 1 (key concepts) is on both papers of each science. */
+const EDX = {
+  b: ['Key concepts in biology', 'Cells and control', 'Genetics', 'Natural selection and genetic modification', 'Health, disease and medicines',
+    'Plant structures and their functions', 'Animal coordination, control and homeostasis', 'Exchange and transport in animals', 'Ecosystems and material cycles'],
+  c: ['Key concepts in chemistry', 'States of matter and mixtures', 'Chemical changes', 'Extracting metals and equilibria', null,
+    'Groups in the periodic table', 'Rates of reaction and energy changes', 'Fuels and Earth science'],
+  p: ['Key concepts of physics', 'Motion and forces', 'Conservation of energy', 'Waves', 'Light and the electromagnetic spectrum', 'Radioactivity', null,
+    'Energy: forces doing work', 'Forces and their effects', 'Electricity and circuits', null, 'Magnetism and the motor effect', 'Electromagnetic induction', 'Particle model', 'Forces and matter'] };
+const edxTopics = (s, nums) => nums.map(n => EDX[s][n - 1]);
+const PPP_SCI = (n, t, s, nums, ids, clus) => ({ n, t, mins: 70, marks: 60, qn: 'about 10 questions in parts', ws: .45, parts: 5, maxQ: 8, minQ: 4, long: 2, clus,
+  sec: [[null, 60, [s + '1', s + '2', s + '1x', s + '2x'], edxTopics(s, nums), PPP_IDS(ids)]] }); /* real papers have one or two 6-mark questions; clus: headings for bank topics that span both papers */
 const PPP_SPEC = {
   maths: [['Paper 1', 'Non-calculator', 'm1'], ['Paper 2', 'Calculator', 'm2'], ['Paper 3', 'Calculator', 'm2']].map(([n, t, w]) => ({ n, t, mins: 90, marks: 80, qn: 'about 25 to 30 questions', ws: .3, parts: 2, maxQ: 6, easy: true, sec: [[null, 80, [w], null, null]] })),
-  biology: [PPP_SCI('Paper 1', 'Cells, organisation, infection, bioenergetics', 'b1', 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-heart b-plants b-disease b-immune b-energy q2-b-cells q2-b-organisation q2-b-infection q2-b-bioenergetics q3-b-practicals d-b-cells d-b-organisation d-b-disease d-b-energy'),
-    PPP_SCI('Paper 2', 'Homeostasis, inheritance, ecology', 'b2', 'bc-mean b-hormones b-nerves b-genes b-ecology q2-b-homeostasis q2-b-genetics q2-b-ecology q3-b-practicals d-b-homeostasis d-b-genetics d-b-ecology')],
-  chemistry: [PPP_SCI('Paper 1', 'Atoms, bonding, quantities, chemical and energy changes', 'c1', 'cc-mr cc-pct cc-conc c-atoms c-electrons c-separation c-groups c-bonding c-reactions c-rates q2-c-atoms q2-c-bonding q2-c-quantitative q2-c-changes q2-c-energy-rates q3-c-practicals d-c-atoms d-c-bonding d-c-changes d-c-energy ce-formula ce-name ce-word ce-balance'),
-    PPP_SCI('Paper 2', 'Rates, organic, analysis, atmosphere, resources', 'c2', 'cc-rf cc-rate c-rates c-organic c-tests c-atmos q2-c-energy-rates q2-c-organic-atmos q3-c-practicals d-c-energy d-c-organic ce-formula ce-word ce-balance')],
-  physics: [PPP_SCI('Paper 1', 'Energy, electricity, particles, atomic structure', 'p1', 'p-ke p-gpe p-power-e p-energy-pt p-charge p-ohm p-power-vi p-power-ir p-energy-qv p-density pr-energy pr-electric pr-particles q2-p-energy q2-p-electricity q2-p-particles q3-p-practicals d-p-energy d-p-electric d-p-particles'),
-    PPP_SCI('Paper 2', 'Forces, waves, magnetism', 'p2', 'p-weight p-work p-spring p-speed p-accel p-newton2 p-momentum p-wave pr-forces-waves q2-p-forces q2-p-waves-magnets q3-p-practicals d-p-forces d-p-waves')],
+  biology: [PPP_SCI('Paper 1', '1BF: cells, genetics, evolution, health and disease', 'b', [1, 2, 3, 4, 5], 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-nerves b-genes b-disease b-immune q2-b-cells q2-b-infection q2-b-genetics q3-b-practicals q6-b-cells q6-b-evolution q6-b-health d-b-cells d-b-disease d-b-genetics'),
+    PPP_SCI('Paper 2', '2BF: plants, hormones, exchange and transport, ecosystems', 'b', [1, 6, 7, 8, 9], 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-heart b-plants b-energy b-hormones b-ecology q2-b-organisation q2-b-bioenergetics q2-b-homeostasis q2-b-ecology q3-b-practicals q6-b-body q6-b-eco d-b-organisation d-b-energy d-b-homeostasis d-b-ecology')],
+  chemistry: [PPP_SCI('Paper 3', '1CF: atoms and bonding, mixtures, acids and electrolysis, metals', 'c', [1, 2, 3, 4], 'cc-mr cc-pct cc-conc cc-rf c-atoms c-electrons c-separation c-bonding c-reactions q2-c-atoms q2-c-bonding q2-c-quantitative q2-c-changes q3-c-practicals q6-c-p3 d-c-atoms d-c-bonding d-c-changes ce-formula ce-name ce-word ce-balance'),
+    PPP_SCI('Paper 4', '2CF: groups, rates and energy changes, fuels and Earth science', 'c', [1, 6, 7, 8], 'cc-mr cc-rate c-atoms c-groups c-rates c-organic c-tests c-atmos q2-c-energy-rates q2-c-organic-atmos q3-c-practicals q6-c-p4 d-c-energy d-c-organic ce-formula ce-word ce-balance', { 'c-tests': EDX.c[7] })],
+  physics: [PPP_SCI('Paper 5', '1PF: motion and forces, energy, waves, light, radioactivity', 'p', [1, 2, 3, 4, 5, 6], 'p-weight p-speed p-accel p-newton2 p-ke p-gpe p-wave ph-units pr-energy pr-particles pr-forces-waves q2-p-energy q2-p-forces q2-p-waves-magnets q2-p-particles q3-p-practicals q6-p-p5 d-p-energy d-p-forces d-p-waves d-p-particles', { 'q2-p-particles': EDX.p[5], 'pr-particles': EDX.p[5], 'd-p-particles': EDX.p[5] }),
+    PPP_SCI('Paper 6', '2PF: work and power, electricity, magnetism, particles, forces and matter', 'p', [1, 8, 9, 10, 12, 13, 14, 15], 'p-work p-power-e p-ke p-gpe p-spring p-charge p-ohm p-power-vi p-power-ir p-energy-pt p-energy-qv p-density ph-units pr-electric pr-particles pr-forces-waves q2-p-electricity q2-p-particles q2-p-waves-magnets q3-p-practicals q6-p-p6 d-p-electric d-p-particles d-p-forces',
+      { 'q2-p-waves-magnets': EDX.p[11], 'pr-forces-waves': EDX.p[8], 'd-p-forces': EDX.p[8], 'p-ke': EDX.p[7], 'p-gpe': EDX.p[7], 'q2-p-particles': EDX.p[13], 'pr-particles': EDX.p[13] })],
   englang: [{ n: 'Paper 1', t: 'Creative reading and writing', mins: 105, marks: 80, qn: '5 questions', fixed: ['el1'] }, { n: 'Paper 2', t: 'Writers\' viewpoints and perspectives', mins: 105, marks: 80, qn: '5 questions', fixed: ['el2'] }],
   englit: [{ n: 'Paper 1', t: 'Macbeth and A Christmas Carol', mins: 105, marks: 64, qn: '2 essays', fixed: ['lit1'] }, { n: 'Paper 2', t: 'Journey\'s End and poetry', mins: 135, marks: 96, qn: '4 questions', fixed: ['lit2'] }],
   re: [{ n: 'Paper 1', t: 'Christianity and Islam', mins: 105, marks: 102, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re1', 're2'], spag: [3, 3] }, { n: 'Paper 2', t: 'Thematic studies', mins: 105, marks: 99, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re3', 're4'], spag: [3] }],
@@ -926,9 +940,12 @@ const PPP_NOTE = {
 const PPP_SPAG3 = [[3, 3, 'High: consistently accurate spelling, punctuation and grammar; a wide range of specialist terms.'], [2, 2, 'Intermediate: considerable accuracy; a good range of specialist terms.'], [1, 1, 'Threshold: reasonable accuracy; some specialist terms.']];
 const PPP_FRESH = { 'Christianity: beliefs': 'r-chr-beliefs q2-r-chr-beliefs q3-r-chr-more', 'Christianity: practices': 'r-chr-practice q2-r-chr-practice q3-r-chr-more', 'Islam: beliefs': 'r-isl-beliefs q2-r-isl-beliefs q3-r-isl-more',
   'Islam: practices': 'r-isl-practice q2-r-isl-practice q3-r-isl-more', 'Relationships and families': 'r-themes q2-r-themes', 'Religion and life': 'r-themes q2-r-themes q3-r-themes2', 'Peace and conflict': 'r-themes q2-r-themes q3-r-themes2', 'Crime and punishment': 'r-themes q2-r-themes q3-r-themes2' };
-const PPP_CLUSTER = { 'q2-b-homeostasis': 'Homeostasis', 'q2-b-genetics': 'Inheritance and evolution', 'bc-osmosis': 'Cell biology', 'bc-mean': 'Required practicals', 'ce-name': 'Chemical changes', 'q2-c-organic-atmos': 'Organic chemistry',
-  'q2-c-energy-rates': 'Energy changes', 'q2-p-particles': 'Particle model', 'q2-p-waves-magnets': 'Waves', 'p-work': 'Forces', 'p-speed': 'Forces', 'p-momentum': 'Forces', 'p-power-ir': 'Electricity', 'p-energy-qv': 'Electricity',
-  'q3-b-practicals': 'Required practicals', 'q3-c-practicals': 'Required practicals', 'q3-p-practicals': 'Required practicals', 'q2-c-atoms': 'Atomic structure', 'q2-c-bonding': 'Bonding', 'q2-p-forces': 'Forces',
+const PPP_CLUSTER = { 'q2-b-homeostasis': EDX.b[6], 'q2-b-genetics': EDX.b[2], 'bc-osmosis': EDX.b[0], 'bc-mean': 'Core practicals', 'ce-name': EDX.c[0], 'q2-c-organic-atmos': EDX.c[7],
+  'q2-c-energy-rates': EDX.c[6], 'q2-p-particles': EDX.p[13], 'q2-p-waves-magnets': EDX.p[3], 'p-work': EDX.p[7], 'p-speed': EDX.p[1], 'p-momentum': EDX.p[1], 'p-power-ir': EDX.p[9], 'p-energy-qv': EDX.p[9],
+  'q3-b-practicals': 'Core practicals', 'q3-c-practicals': 'Core practicals', 'q3-p-practicals': 'Core practicals', 'q2-c-atoms': EDX.c[0], 'q2-c-bonding': EDX.c[0], 'q2-p-forces': EDX.p[1],
+  'q2-b-cells': EDX.b[0], 'q2-b-infection': EDX.b[4], 'q2-b-organisation': EDX.b[7], 'q2-b-bioenergetics': EDX.b[5], 'q2-b-ecology': EDX.b[8], 'q2-c-quantitative': EDX.c[0], 'q2-c-changes': EDX.c[2],
+  'q2-p-energy': EDX.p[2], 'q2-p-electricity': EDX.p[9], 'ph-units': EDX.p[0], 'q6-b-cells': EDX.b[1], 'q6-b-evolution': EDX.b[3], 'q6-b-health': EDX.b[4], 'q6-b-body': EDX.b[6], 'q6-b-eco': EDX.b[8],
+  'q6-c-p3': EDX.c[2], 'q6-c-p4': EDX.c[7], 'q6-p-p5': EDX.p[1], 'q6-p-p6': EDX.p[9],
   'q2-bs-activity': 'Business in the real world', 'q2-bs-external': 'Influences on business', 'q2-bs-ops': 'Business operations', 'q2-bs-people': 'Human resources', 'q2-bs-marketing': 'Marketing', 'q2-bs-finance': 'Finance',
   'q3-bs-terms2': 'Business in the real world', 'q3-bs-scenarios': 'Business in the real world', 'bz-arr': 'Finance', 'bs-enterprise': 'Business in the real world' };
 const PPP_G = t => ({ biology: 'Biology', chemistry: 'Chemistry', physics: 'Physics' })[t] || trackSubj(t);
@@ -982,7 +999,7 @@ function pppBuild(track, k) {
       if (!qX(q).same || !out.length) push(qq, grp, '', pid); else out.push([q[0], q[1], q[2], Object.assign({}, q[3], { grp })]);
     });
   } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
-    const pool = (wps || []).flatMap(pid => pppPool(pid)).filter(o => !qX(o.q).same && (!wt || wt.includes(o.q[0])));
+    const pool = (wps || []).flatMap(pid => pppPool(pid)).filter((o, j, all) => !qX(o.q).same && (!wt || wt.includes(o.q[0])) && all.findIndex(x => x.sig === o.sig) === j); /* two papers can share one Higher paper */
     let left = marks; const items = [];
     const order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))], isLong = o => o.q[2].lv && qMax(o.q) >= 6;
     const longs = order.filter(isLong).slice(0, sp.long || 0);
@@ -992,7 +1009,8 @@ function pppBuild(track, k) {
     }
     /* bank parts are labelled with the paper topic they belong to (e.g. "Cell biology"), like a real paper, and results group the same way */
     const wTopics = [...new Set(pool.map(o => o.q[0]))], link = Object.entries(EXAM_LINK).filter(([key]) => key.startsWith(g + '|'));
-    const clus = id => { const hit = link.filter(([, v]) => v.includes(id)).map(([key]) => key.split('|')[1]); return hit.find(t => wTopics.includes(t)) || PPP_CLUSTER[id] || (sp.sec.length > 1 && wTopics[0]) || hit[0] || LEARN.name(id).replace(/ \(spec.*\)$/, '').replace(/: key terms$/, ''); };
+    const clus = id => { const hit = link.filter(([, v]) => v.includes(id)).map(([key]) => key.split('|')[1]); const l = hit.find(t => wTopics.includes(t)) || (wt && hit.find(t => wt.includes(t))) || PPP_CLUSTER[id] || (sp.sec.length > 1 && wTopics[0]) || hit[0] || LEARN.name(id).replace(/: key terms$/, '');
+      return !wt || wt.includes(l) || l === 'Core practicals' ? l : (sp.clus && sp.clus[id]) || wt[0]; }; /* a bank topic that spans both papers takes a topic of this paper */
     const noCalc = /^Non-calculator/.test(sp.t), ids = (bank || topicsFor(track).filter(id => LEARN.TOPIC[id].type === 'calc')).filter(id => LEARN.TOPIC[id] && usable(id) && !(noCalc && NEEDS_CALC.test(LEARN.name(id))));
     for (let guard = 0; left > 0 && ids.length && guard < 200; guard++) { const bq = pppBank(ids, used, track, left, noCalc); if (!bq) break; bq[0] = clus(bq[3].tid); items.push({ q: bq, m: qMax(bq) }); left -= qMax(bq); }
     if (sp.sec.length > 1) { items.sort((a, b) => !!a.q[2].lv - !!b.q[2].lv || a.m - b.m); items.forEach(it => push(it.q, 's' + si, title)); return; }
@@ -1009,13 +1027,14 @@ function pppBuild(track, k) {
     if (sp.easy) groups = shuf(groups).sort((a, b) => sum(a) - sum(b)); /* maths papers run from easy to hard */
     groups.forEach((gr, gi) => gr.forEach(it => push(it.q, 'q' + gi, title)));
   });
-  /* number it like AQA: 01, 02.1, 02.2 ... */
+  /* number it like the board: AQA 01, 02.1, 02.2 ...; Edexcel 1, 2(a), 2(b) ... */
   let num = 0, part = 0, last = null;
   const sizes = {}; for (const q of out) if (!q[3].same) sizes[q[3].grp] = (sizes[q[3].grp] || 0) + 1;
+  const edx = pppBoard(track) === 'Edexcel', label = (n, p, many) => edx ? n + (many ? `(${'abcdefghijklmnop'[p - 1] || p})` : '') : String(n).padStart(2, '0') + (many ? '.' + p : '');
   for (const q of out) {
-    if (q[3].same) { q[3].n = last ? last[3].n : '01'; continue; }
+    if (q[3].same) { q[3].n = last ? last[3].n : label(1, 1, false); continue; }
     if (!last || q[3].grp !== last[3].grp) { num++; part = 0; q[3].g0 = true; }
-    part++; q[3].n = String(num).padStart(2, '0') + (sizes[q[3].grp] > 1 ? '.' + part : ''); last = q;
+    part++; q[3].n = label(num, part, sizes[q[3].grp] > 1); last = q;
   }
   S.pused = [...used].slice(-4000);
   const qs = out.map(q => [q[0], q[1], q[2], Object.fromEntries(Object.entries(q[3]).filter(([key, v]) => key !== 'grp' && key !== 'sk' && v !== '' && v != null && v !== false))]);
@@ -1064,7 +1083,7 @@ function vPPP() {
     subHero('Experimental', 'PPP mode', 'lab', 'Pure past papers, done properly: sit a paper in the real exam format, mark it against the mark scheme, then correct every mistake before the next one.', 'Experimental'),
     R && examReport(R), R && R.self && (R.self.total > 0 || Object.keys(R.self.why).length > 0) && selfCard(R.self),
     h('ol', { class: 'ppp-loop' },
-      h('li', { class: run ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, 'Real format: the same marks, time and number of questions as the AQA paper')),
+      h('li', { class: run ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, `Real format: the same marks, time and number of questions as the ${pppBoard(T)} paper`)),
       h('li', { class: corrections ? 'on' : '' }, h('b', null, 'Correct it'), h('small', null, 'Redo each topic you got wrong until you get 3 right in a row')),
       h('li', null, h('b', null, 'Next paper'), h('small', null, 'New short questions every time, aimed at your weak spots'))),
     corrections > 0 && card('Corrections first', h('span', { class: 'pill' }, `${corrections} to fix`), h('p', { class: 'muted xs' }, 'Doing another paper before fixing these just repeats the same mistakes. Clear them, then sit the next one.'),
@@ -1072,7 +1091,7 @@ function vPPP() {
     run ? card('Paper in progress', null, h('p', null, h('b', null, run.name.replace(/^PPP /, '')), h('small', { class: 'muted' }, ` · ${S.exam.ph === 'mark' ? 'marking' : 'sitting'}, part ${S.exam.i + 1} of ${run.qs.length}`)),
         h('div', { class: 'row' }, B([icon('play'), 'Carry on'], 'exStart', 'primary', { 'data-id': run.id }), B([icon('scroll'), 'Print'], 'printRun', 'ghost desk-only'), B('Abandon', 'exQuit', 'link')))
       : S.mp && S.mp.ppp ? card('Paper in progress', null, B([icon('play'), `Carry on: ${TRACK_NAME(S.mp.track)} (question ${S.mp.i + 1})`], 'mpResume', 'primary'))
-      : card('Sit a paper', h('span', { class: 'muted' }, 'real AQA format'),
+      : card('Sit a paper', h('span', { class: 'muted' }, `real ${pppBoard(T)} format`),
         h('div', { class: 'chips scroll' }, mySubjects().filter(x => PPP_SPEC[x.id]).map(x => chip([icon(x.icon), x.name], x.id === T, 'pppSubj', { 'data-track': x.id }))),
         h('ul', { class: 'list' }, PPP_SPEC[T].map((sp, k) => h('li', { class: 'xp-row' },
           h('div', { class: 'grow' }, h('b', null, `${SUBJ_BY[T].name} ${sp.n}: ${sp.t}`), h('small', null, `${sp.marks} marks · ${hrs(sp.mins)} · ${sp.qn}`)),

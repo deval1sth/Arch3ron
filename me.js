@@ -33,6 +33,7 @@ const ME = (() => {
   ].map(([group, id, name, tracks, grade, f]) => ({ group, id, name, tracks, grade, ...f }));
   const byId = Object.fromEntries(CAT.map(c => [c.id, c]));
   const BOARDS = ['AQA', 'Edexcel', 'OCR', 'WJEC Eduqas', 'CCEA'];
+  const defBoard = id => ['combined', 'biology', 'chemistry', 'physics'].includes(id) ? 'Edexcel' : 'AQA'; /* the board Archeron's questions are written for */
   /* set texts and religions the banks cover, by the topic-id fragments that belong to them */
   const TEXTS = [['mac', 'Macbeth', 'Shakespeare'], ['acc', 'A Christmas Carol', '19th-century novel'], ['je', "Journey's End", 'Modern text'], ['poe', 'Power and Conflict', 'Poetry anthology']];
   const NOT_YET = { Shakespeare: 'Romeo and Juliet, The Tempest, Much Ado…', '19th-century novel': 'Jekyll and Hyde, Frankenstein…', 'Modern text': 'An Inspector Calls, Blood Brothers…', 'Poetry anthology': 'Love and Relationships…' };
@@ -182,7 +183,7 @@ const ME = (() => {
     subj(b) { const id = b.dataset.id, i = D.subs.findIndex(s => s.id === id);
       if (i >= 0) D.subs.splice(i, 1);
       else { if (id === 'combined') D.subs = D.subs.filter(s => !['biology', 'chemistry', 'physics'].includes(s.id)); if (['biology', 'chemistry', 'physics'].includes(id)) D.subs = D.subs.filter(s => s.id !== 'combined');
-        D.subs.push({ id, board: 'AQA', tier: byId[id].tier ? 'Higher' : null, cur: '', tgt: '', texts: id === 'englit' ? TEXTS.map(t => t[0]) : undefined, relig: id === 're' ? RELIG.map(r => r[0]) : undefined }); }
+        D.subs.push({ id, board: defBoard(id), tier: byId[id].tier ? 'Higher' : null, cur: '', tgt: '', texts: id === 'englit' ? TEXTS.map(t => t[0]) : undefined, relig: id === 're' ? RELIG.map(r => r[0]) : undefined }); }
       err = ''; paint(); },
     board(b) { sub(b.dataset.id).board = b.dataset.v; paint(); },
     tier(b) { sub(b.dataset.id).tier = b.dataset.v; paint(); },
@@ -231,11 +232,11 @@ const ME = (() => {
         ${groups.map(g => { const list = CAT.filter(c => c.group === g && (!q || c.name.toLowerCase().includes(q))); return list.length ? `<p class="su-g">${g}</p><div class="su-list">${list.map(c => { const on = !!sub(c.id);
           return `<button type="button" class="su-sub${on ? ' on' : ''}" data-su="subj" data-id="${c.id}" aria-pressed="${on}"><span>${esc(c.name)}</span>${ready(c)}<span class="su-pm" aria-hidden="true">${on ? '✓' : '+'}</span></button>`; }).join('')}</div>` : ''; }).join('')}
         <p class="muted xs">${D.subs.length} picked. Combined Science or separate sciences, not both.</p>`; }
-    if (step === 3) return `<h1>Boards and tiers</h1><p class="muted">Questions in Archeron are written for AQA. Most of the content overlaps with other boards, but the question styles will not always match your papers.</p>
+    if (step === 3) return `<h1>Boards and tiers</h1><p class="muted">Questions in Archeron are written for AQA, and Combined Science for Edexcel. Most of the content overlaps with other boards, but the question styles will not always match your papers.</p>
       ${D.subs.map(s => { const c = byId[s.id]; return `<div class="su-card"><b>${esc(c.name)}</b>
         <div class="chips">${BOARDS.map(b => chipB(b, s.board === b, 'board', `data-id="${s.id}" data-v="${b}"`)).join('')}</div>
         ${c.tier ? `<div class="chips">${['Foundation', 'Higher'].map(t => chipB(t, s.tier === t, 'tier', `data-id="${s.id}" data-v="${t}"`)).join('')}</div>${s.tier === 'Higher' && c.tracks.length ? (s.id === 'maths' ? '<p class="muted xs">You also get the Higher-only topics: the quadratic formula, completing the square, the sine and cosine rules, functions, surds and more, plus Higher practice papers.</p>' : '<p class="muted xs">You get Higher practice papers. The quick-fire questions are the ones both tiers share.</p>') : ''}` : ''}
-        ${s.board !== 'AQA' && c.tracks.length ? `<p class="muted xs">Questions are written for AQA: the content mostly overlaps with ${esc(s.board)}.</p>` : ''}
+        ${s.board !== defBoard(s.id) && c.tracks.length ? `<p class="muted xs">Questions are written for ${defBoard(s.id)}: the content mostly overlaps with ${esc(s.board)}.</p>` : ''}
         ${c.texts ? `<p class="su-l">Your set texts</p><div class="chips">${TEXTS.map(([k, n, kind]) => chipB(`${n} <small>${kind}</small>`, (s.texts || []).includes(k), 'text', `data-v="${k}"`)).join('')}</div><p class="muted xs">Not in Archeron yet: ${Object.values(NOT_YET).join('; ')}.</p>` : ''}
         ${c.relig ? `<p class="su-l">Your religions</p><div class="chips">${RELIG.map(([k, n]) => chipB(n, (s.relig || []).includes(k), 'relig', `data-v="${k}"`)).join('')}</div><p class="muted xs">Not in Archeron yet: ${RELIG_NOT}.</p>` : ''}</div>`; }).join('')}`;
     if (step === 4) { const opts = (v, notSure) => `<option value=""${!v ? ' selected' : ''}>${notSure}</option>` + [9, 8, 7, 6, 5, 4, 3, 2, 1].map(g => `<option value="${g}"${String(v) === String(g) ? ' selected' : ''}>${g}</option>`).join('');
@@ -290,7 +291,7 @@ const ME = (() => {
     if (!r || typeof r !== 'object' || !Array.isArray(r.subs)) return null;
     const av = r.av && r.av.k === 'p' && typeof r.av.d === 'string' && r.av.d.length < 200000 && /^data:image\/(jpeg|png|webp);base64,/.test(r.av.d) ? { k: 'p', d: r.av.d }
       : { k: 'a', i: Math.min(23, Math.max(0, Math.round(+(r.av && r.av.i) || 0))) };
-    const subs = r.subs.filter(s => s && byId[s.id]).slice(0, 20).map(s => ({ id: s.id, board: BOARDS.includes(s.board) ? s.board : 'AQA', tier: byId[s.id].tier ? (s.tier === 'Foundation' ? 'Foundation' : 'Higher') : null,
+    const subs = r.subs.filter(s => s && byId[s.id]).slice(0, 20).map(s => ({ id: s.id, board: BOARDS.includes(s.board) ? s.board : defBoard(s.id), tier: byId[s.id].tier ? (s.tier === 'Foundation' ? 'Foundation' : 'Higher') : null,
       cur: GR(s.cur), tgt: GR(s.tgt), texts: s.id === 'englit' ? (Array.isArray(s.texts) ? s.texts : []).filter(k => TEXTS.some(t => t[0] === k)) : undefined,
       relig: s.id === 're' ? (Array.isArray(s.relig) ? s.relig : []).filter(k => RELIG.some(t => t[0] === k)) : undefined }));
     const avail = {}; for (let w = 0; w < 7; w++) avail[w] = Math.min(3, Math.max(0, Math.round(+(r.avail && r.avail[w]) || 0)));
@@ -303,7 +304,7 @@ const ME = (() => {
   function seedLegacy() {
     const subs = ['maths', 'combined', 'englang', 'englit', 'geography', 'business', 're'].map(id => {
       const c = byId[id], g = S.grades[c.grade] || {}, cur = dig(g.cur), tgt = dig(g.tgt);
-      return { id, board: 'AQA', tier: c.tier ? (+tgt && +tgt <= 5 ? 'Foundation' : 'Higher') : null, cur, tgt, texts: id === 'englit' ? TEXTS.map(t => t[0]) : undefined, relig: id === 're' ? RELIG.map(t => t[0]) : undefined };
+      return { id, board: defBoard(id), tier: c.tier ? (+tgt && +tgt <= 5 ? 'Foundation' : 'Higher') : null, cur, tgt, texts: id === 'englit' ? TEXTS.map(t => t[0]) : undefined, relig: id === 're' ? RELIG.map(t => t[0]) : undefined };
     });
     const avail = {}; for (let w = 0; w < 7; w++) { const n = (S.plan[w] || []).reduce((a, s) => a + (s.kind === 'train' ? s.sets : 0), 0); avail[w] = n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0; }
     S.me = { name: (S.profile.name || 'Me').slice(0, 24), av: { k: 'a', i: Math.floor(Math.random() * 24) }, year: 11, subs, mock: S.mock, exams: defaultsFor(11).exams, avail };

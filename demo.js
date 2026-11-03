@@ -507,7 +507,7 @@ const DEMO = (() => {
   const fill = (tpl, v) => tpl.replace(/\{(\w+)\}/g, (_, k) => n(v[k]));
   /* why each AQA equation applies, and the slip examiners see most often with it */
   const PW = {
-    weight: ['Weight is the force of gravity pulling on a mass. On Earth every kilogram is pulled with 9.8 N.', 'Mass (kg) and weight (N) are different things. Mass stays the same on the Moon; weight does not.'],
+    weight: ['Weight is the force of gravity pulling on a mass. On Earth every kilogram is pulled with about 10 N.', 'Mass (kg) and weight (N) are different things. Mass stays the same on the Moon; weight does not.'],
     work: ['Work is done whenever a force moves something along the direction of the force. It is energy transferred.', 'The distance must be in metres and along the line of the force.'],
     spring: ['Hooke\'s law: the extension is proportional to the force, up to the limit of proportionality.', 'e is how much the spring stretched, not its total length, and it must be in metres.'],
     speed: ['Speed is the distance travelled each second.', 'For m/s, distance must be in metres and time in seconds. Convert minutes and km first.'],
@@ -515,7 +515,7 @@ const DEMO = (() => {
     newton2: ['Newton\'s second law: a bigger resultant force gives a bigger acceleration, and a bigger mass gives a smaller one.', 'F is the resultant force: add forces in the same direction, subtract opposite ones first.'],
     momentum: ['Momentum is mass × velocity. It is conserved in collisions and explosions.', 'Velocity has a direction, so momentum does too. Take one direction as positive.'],
     ke: ['A moving object has energy in its kinetic store. Double the speed and you get four times the energy.', 'Only v is squared. Square the speed first, then × mass, then halve.'],
-    gpe: ['Lifting something transfers energy into its gravitational potential store.', 'h is the change in height, in metres. g is 9.8 N/kg on Earth.'],
+    gpe: ['Lifting something transfers energy into its gravitational potential store.', 'h is the change in height, in metres. g is 10 N/kg on Earth.'],
     'power-e': ['Power is how fast energy is transferred: 1 watt is 1 joule every second.', 'Time must be in seconds: minutes × 60.'],
     charge: ['Current is the rate of flow of charge: 1 amp is 1 coulomb flowing every second.', 'Time in seconds, not minutes.'],
     ohm: ['For a component in a circuit, the potential difference across it is current × resistance.', 'It is V = I × R. Students often divide when they should multiply: cover the one you need in the V-I-R triangle.'],

@@ -122,7 +122,7 @@ const GUIDES = {
     'CH₄ + 2 O₂ → CO₂ + 2 H₂O: C 1 = 1, H 4 = 4, O 4 = 4', 'Stuck with an odd number of O on one side? Double everything and try again.'],
 
   /* ---------------- Physics (equation topics) ---------------- */
-  'p-weight': ['Weight is the force of gravity on a mass.', ['W = m × g', 'W in newtons (N), m in kg, g in N/kg (9.8 on Earth)'], '5 kg: 5 × 9.8 = 49 N', 'Mass is in kg and does not change; weight is in N and changes with gravity.'],
+  'p-weight': ['Weight is the force of gravity on a mass.', ['W = m × g', 'W in newtons (N), m in kg, g in N/kg (10 on Earth)'], '5 kg: 5 × 10 = 50 N', 'Mass is in kg and does not change; weight is in N and changes with gravity.'],
   'p-work': ['Work done is energy transferred by a force moving something.', ['W = F × s', 'W in joules (J), F in N, s in metres'], '20 N over 3 m: 60 J', 'Distance must be in metres: 50 cm = 0.5 m.'],
   'p-spring': ['A spring stretches in proportion to the force, up to its limit.', ['F = k × e', 'F in N, k (spring constant) in N/m, e (extension) in m'], 'k = 40 N/m, e = 0.05 m: F = 2 N', 'Extension = stretched length − original length, not the total length.'],
   'p-speed': ['Speed is distance per second.', ['v = s ÷ t', 'v in m/s, s in m, t in s'], '100 m in 20 s: 5 m/s', 'Convert minutes to seconds (× 60) first.'],
@@ -130,7 +130,7 @@ const GUIDES = {
   'p-newton2': ['Resultant force = mass × acceleration (Newton\'s second law).', ['F = m × a', 'F in N, m in kg, a in m/s²'], '1200 kg at 2 m/s²: 2400 N', 'Use the RESULTANT force: forward forces minus backward forces.'],
   'p-momentum': ['Momentum is mass in motion.', ['p = m × v', 'p in kg m/s, m in kg, v in m/s'], '60 kg at 5 m/s: 300 kg m/s', 'In a collision, total momentum before = total momentum after.'],
   'p-ke': ['Kinetic energy is the energy of a moving object.', ['Ek = ½ × m × v²', 'Square the speed FIRST, then × m, then halve'], '2 kg at 3 m/s: ½ × 2 × 9 = 9 J', 'Doubling speed makes KE four times bigger.'],
-  'p-gpe': ['Gravitational potential energy is energy stored by height.', ['Ep = m × g × h', 'Ep in J, m in kg, g = 9.8 N/kg, h in m'], '3 kg raised 2 m: 3 × 9.8 × 2 = 58.8 J', 'h is the change in height, not the total height.'],
+  'p-gpe': ['Gravitational potential energy is energy stored by height.', ['Ep = m × g × h', 'Ep in J, m in kg, g = 10 N/kg, h in m'], '3 kg raised 2 m: 3 × 10 × 2 = 60 J', 'h is the change in height, not the total height.'],
   'p-power-e': ['Power is energy transferred per second.', ['P = E ÷ t', 'P in watts (W), E in J, t in s'], '600 J in 30 s: 20 W', '1 W = 1 J per second; 1 kW = 1000 W.'],
   'p-charge': ['Current is charge flowing per second.', ['Q = I × t', 'Q in coulombs (C), I in amps (A), t in s'], '2 A for 60 s: 120 C', 'Minutes into seconds before you multiply.'],
   'p-ohm': ['Potential difference pushes current through resistance.', ['V = I × R', 'V in volts, I in amps, R in ohms (Ω)'], '0.5 A through 12 Ω: 6 V', 'Use the triangle V over I × R to rearrange.'],

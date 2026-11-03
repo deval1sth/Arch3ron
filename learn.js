@@ -573,10 +573,10 @@ const LEARN = (() => {
   });
 
 
-  /* ---------- Physics: AQA equations to recall, forwards and rearranged ---------- */
+  /* ---------- Physics: equations to recall, forwards and rearranged (g = 10 N/kg, as Edexcel uses) ---------- */
   const P = {};
   const E = (id, name, eq, out, ins, sub, re, f) => { P[id] = { id, name, eq, out, ins, sub, re, f }; };
-  E('weight', 'Weight', 'W = m × g', ['W', 'W', 'weight', 'N'], [['m', 'm', 'mass', 'kg', [2, 5, 8, 10, 15, 20, 50, 60, 75]], ['g', 'g', 'gravitational field strength', 'N/kg', [9.8]]], '{m} × {g}', { m: ['m = W ÷ g', '{W} ÷ {g}'] }, v => v.m * v.g);
+  E('weight', 'Weight', 'W = m × g', ['W', 'W', 'weight', 'N'], [['m', 'm', 'mass', 'kg', [2, 5, 8, 10, 15, 20, 50, 60, 75]], ['g', 'g', 'gravitational field strength', 'N/kg', [10]]], '{m} × {g}', { m: ['m = W ÷ g', '{W} ÷ {g}'] }, v => v.m * v.g);
   E('work', 'Work done', 'W = F × s', ['W', 'W', 'work done', 'J'], [['F', 'F', 'force', 'N', [5, 10, 20, 25, 40, 50, 100, 250]], ['s', 's', 'distance', 'm', [2, 3, 4, 5, 8, 10, 12, 20]]], '{F} × {s}', { F: ['F = W ÷ s', '{W} ÷ {s}'], s: ['s = W ÷ F', '{W} ÷ {F}'] }, v => v.F * v.s);
   E('spring', 'Spring force', 'F = k × e', ['F', 'F', 'force', 'N'], [['k', 'k', 'spring constant', 'N/m', [20, 25, 40, 50, 100, 200]], ['e', 'e', 'extension', 'm', [.02, .05, .1, .15, .2, .3]]], '{k} × {e}', { k: ['k = F ÷ e', '{F} ÷ {e}'], e: ['e = F ÷ k', '{F} ÷ {k}'] }, v => v.k * v.e);
   E('speed', 'Speed', 'v = s ÷ t', ['v', 'v', 'speed', 'm/s'], [['s', 's', 'distance', 'm', [100, 200, 400, 600, 1000, 1500, 3000]], ['t', 't', 'time', 's', [10, 20, 25, 40, 50, 100, 200]]], '{s} ÷ {t}', { s: ['s = v × t', '{v} × {t}'], t: ['t = s ÷ v', '{s} ÷ {v}'] }, v => v.s / v.t);
@@ -584,7 +584,7 @@ const LEARN = (() => {
   E('newton2', 'Resultant force', 'F = m × a', ['F', 'F', 'resultant force', 'N'], [['m', 'm', 'mass', 'kg', [.5, 2, 5, 10, 50, 800, 1200]], ['a', 'a', 'acceleration', 'm/s²', [.5, 2, 3, 4, 5, 10]]], '{m} × {a}', { m: ['m = F ÷ a', '{F} ÷ {a}'], a: ['a = F ÷ m', '{F} ÷ {m}'] }, v => v.m * v.a);
   E('momentum', 'Momentum', 'p = m × v', ['p', 'p', 'momentum', 'kg m/s'], [['m', 'm', 'mass', 'kg', [.2, 2, 5, 60, 80, 1000, 1500]], ['v', 'v', 'velocity', 'm/s', [2, 3, 5, 10, 15, 20, 25]]], '{m} × {v}', { m: ['m = p ÷ v', '{p} ÷ {v}'], v: ['v = p ÷ m', '{p} ÷ {m}'] }, v => v.m * v.v);
   E('ke', 'Kinetic energy', 'Eₖ = ½ × m × v²', ['E', 'Eₖ', 'kinetic energy', 'J'], [['m', 'm', 'mass', 'kg', [2, 4, 10, 50, 60, 1000]], ['v', 'v', 'speed', 'm/s', [2, 3, 4, 5, 10, 20]]], '½ × {m} × {v}²', { m: ['m = 2 × Eₖ ÷ v²', '2 × {E} ÷ {v}²'], v: ['v = √(2 × Eₖ ÷ m)', '√(2 × {E} ÷ {m})'] }, v => .5 * v.m * v.v * v.v);
-  E('gpe', 'Gravitational potential energy', 'Eₚ = m × g × h', ['E', 'Eₚ', 'gravitational potential energy', 'J'], [['m', 'm', 'mass', 'kg', [2, 5, 10, 50, 60]], ['g', 'g', 'gravitational field strength', 'N/kg', [9.8]], ['h', 'h', 'height', 'm', [2, 5, 10, 20, 50]]], '{m} × {g} × {h}', { m: ['m = Eₚ ÷ (g × h)', '{E} ÷ ({g} × {h})'], h: ['h = Eₚ ÷ (m × g)', '{E} ÷ ({m} × {g})'] }, v => v.m * v.g * v.h);
+  E('gpe', 'Gravitational potential energy', 'Eₚ = m × g × h', ['E', 'Eₚ', 'gravitational potential energy', 'J'], [['m', 'm', 'mass', 'kg', [2, 5, 10, 50, 60]], ['g', 'g', 'gravitational field strength', 'N/kg', [10]], ['h', 'h', 'height', 'm', [2, 5, 10, 20, 50]]], '{m} × {g} × {h}', { m: ['m = Eₚ ÷ (g × h)', '{E} ÷ ({g} × {h})'], h: ['h = Eₚ ÷ (m × g)', '{E} ÷ ({m} × {g})'] }, v => v.m * v.g * v.h);
   E('power-e', 'Power (energy)', 'P = E ÷ t', ['P', 'P', 'power', 'W'], [['E', 'E', 'energy transferred', 'J', [600, 1200, 3000, 6000, 12000, 36000]], ['t', 't', 'time', 's', [10, 20, 30, 60, 120, 300]]], '{E} ÷ {t}', { E: ['E = P × t', '{P} × {t}'], t: ['t = E ÷ P', '{E} ÷ {P}'] }, v => v.E / v.t);
   E('charge', 'Charge', 'Q = I × t', ['Q', 'Q', 'charge', 'C'], [['I', 'I', 'current', 'A', [.2, .5, 1.5, 2, 3, 5, 10]], ['t', 't', 'time', 's', [10, 20, 30, 60, 120, 300]]], '{I} × {t}', { I: ['I = Q ÷ t', '{Q} ÷ {t}'], t: ['t = Q ÷ I', '{Q} ÷ {I}'] }, v => v.I * v.t);
   E('ohm', 'Potential difference', 'V = I × R', ['V', 'V', 'potential difference', 'V'], [['I', 'I', 'current', 'A', [.1, .2, .5, 1.5, 2, 3, 4]], ['R', 'R', 'resistance', 'Ω', [2, 5, 10, 12, 20, 50, 100]]], '{I} × {R}', { I: ['I = V ÷ R', '{V} ÷ {R}'], R: ['R = V ÷ I', '{V} ÷ {I}'] }, v => v.I * v.R);
@@ -771,8 +771,8 @@ const LEARN = (() => {
   ];
   /* the same slip inside a real calculation: [question, answer, unit, steps] */
   const UCALC = [
-    () => { const g = pick([250, 500, 750, 1500]), m = clean(g / 1000), W = clean(m * 9.8);
-      return [`A bag has a mass of ${g} g. Gravitational field strength is 9.8 N/kg. Find its weight.`, W, 'N', [`Convert first: ${g} g ÷ 1000 = ${n(m)} kg`, 'W = m × g', `= ${n(m)} × 9.8 = ${n(W)} N`]]; },
+    () => { const g = pick([250, 500, 750, 1500]), m = clean(g / 1000), W = clean(m * 10);
+      return [`A bag has a mass of ${g} g. Gravitational field strength is 10 N/kg. Find its weight.`, W, 'N', [`Convert first: ${g} g ÷ 1000 = ${n(m)} kg`, 'W = m × g', `= ${n(m)} × 10 = ${n(W)} N`]]; },
     () => { const [km, min] = pick([[1.2, 5], [1.5, 5], [2.4, 10], [3, 10], [6, 25], [9, 30]]), s = clean(km * 1000), t = min * 60, v = clean(s / t);
       return [`A runner covers ${n(km)} km in ${min} minutes. Find their average speed in m/s.`, v, 'm/s', [`Convert first: ${n(km)} km × 1000 = ${n(s)} m, and ${min} minutes × 60 = ${t} s`, 'v = s ÷ t', `= ${n(s)} ÷ ${t} = ${n(v)} m/s`]]; },
     () => { const mA = pick([200, 250, 500, 800]), min = pick([2, 5, 10]), I = clean(mA / 1000), t = min * 60, Q = clean(I * t);
@@ -794,7 +794,7 @@ const LEARN = (() => {
   const fx = f => f >= 1 ? `× ${n(f)}` : `÷ ${Math.round(1 / f)}`; /* every factor here is a whole number or one over one */
   const said = f => f === 1 ? 'It stays the same' : f === 2 ? 'It doubles' : f === .5 ? 'It halves' : f === 3 ? 'It triples' : f > 1 ? `It goes up ${n(f)} times (× ${n(f)})` : `It falls to ${PART[Math.round(1 / f)]} (÷ ${Math.round(1 / f)})`;
   CT('ph-change', 'physics', 'Doubling and halving', () => {
-    const e = pick(Object.values(P)), can = e.ins.filter(i => i[4].length > 1), base = Object.fromEntries(e.ins.map(i => [i[0], i[4][1] || i[4][0]])); /* g stays 9.8 */
+    const e = pick(Object.values(P)), can = e.ins.filter(i => i[4].length > 1), base = Object.fromEntries(e.ins.map(i => [i[0], i[4][1] || i[4][0]])); /* g stays 10 */
     const ch = can.length > 1 && Math.random() < .5 ? shuffle(can).slice(0, 2).map(i => [i, pick([[2, 'doubles'], [.5, 'halves']])]) : [[pick(can), pick([[2, 'doubles'], [3, 'triples'], [.5, 'halves']])]];
     const f = clean(e.f({ ...base, ...Object.fromEntries(ch.map(([i, [m]]) => [i[0], base[i[0]] * m])) }) / e.f(base));
     const pow = i => Math.round(Math.log2(e.f({ ...base, [i[0]]: base[i[0]] * 2 }) / e.f(base))), each = ch.map(([i, [m]]) => clean(m ** pow(i)));

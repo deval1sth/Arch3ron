@@ -73,12 +73,11 @@ Sugar made by photosynthesis|Glucose
 Insoluble substance plants store glucose as|Starch
 Substance made from glucose to build cell walls|Cellulose`],
   'b-disease': ['biology', 'What causes the disease?', `
-Measles|Virus
+Cholera|Bacterium
 HIV|Virus
-Tobacco mosaic virus (TMV)|Virus
-Salmonella food poisoning|Bacterium
-Gonorrhoea|Bacterium
-Rose black spot|Fungus
+Tuberculosis (TB)|Bacterium
+Chlamydia|Bacterium
+Chalara ash dieback|Fungus
 Malaria|Protist`],
   'b-immune': ['biology', 'Immunity and medicines', `
 White blood cells engulfing and digesting pathogens|Phagocytosis
@@ -100,7 +99,7 @@ Anaerobic respiration in muscles|glucose → lactic acid
 Anaerobic respiration in yeast (fermentation)|glucose → ethanol + carbon dioxide
 Photosynthesis takes in energy from the surroundings, so it is…|Endothermic|Exothermic;Neutral;Reversible
 Respiration releases energy, so it is…|Exothermic|Endothermic;Neutral;Reversible
-Extra oxygen needed after exercise to break down lactic acid|Oxygen debt|Oxygen surplus;Lactic gain;Breath debt
+Volume of blood the heart pumps each minute (stroke volume × heart rate)|Cardiac output|Stroke volume;Heart rate;Blood pressure
 The sum of all the reactions in a cell or the body|Metabolism|Respiration;Digestion;Homeostasis
 Factors that can limit the rate of photosynthesis|Light intensity, temperature, carbon dioxide|Oxygen, glucose, water vapour;Starch, nitrogen, oxygen;Wind, soil type, humidity`],
   'b-hormones': ['biology', 'Hormones and homeostasis', `
@@ -250,7 +249,7 @@ Process that separates crude oil into fractions|Fractional distillation
 General formula of the alkanes|CₙH₂ₙ₊₂|CₙH₂ₙ;CₙH₂ₙ₋₂;CₙHₙ
 Simplest alkane, CH₄|Methane
 Breaking long hydrocarbons into shorter, more useful ones|Cracking
-What bromine water does with an alkene|Turns from orange to colourless|Turns from colourless to orange;Turns milky;Stays orange
+Toxic gas made by incomplete combustion|Carbon monoxide|Carbon dioxide;Nitrogen;Oxygen
 Products of complete combustion of a hydrocarbon|Carbon dioxide and water|Carbon monoxide and water;Carbon and hydrogen;Methane and oxygen
 As hydrocarbon chains get longer, viscosity…|Increases|Decreases;Stays the same;Disappears`],
   'c-tests': ['chemistry', 'Gas tests and analysis', `
@@ -258,8 +257,8 @@ Test for hydrogen|A lit splint gives a squeaky pop
 Test for oxygen|It relights a glowing splint
 Test for carbon dioxide|It turns limewater milky
 Test for chlorine|It bleaches damp litmus paper white
-A single element or compound with nothing else mixed in|Pure substance|Formulation;Mixture;Alloy
-A mixture designed as a useful product, e.g. paint|Formulation|Pure substance;Element;Isotope`],
+A single element or compound with nothing else mixed in|Pure substance|Solution;Mixture;Alloy
+How a pure substance melts|At a sharp, fixed temperature|Over a range of temperatures;At any temperature;Only at room temperature`],
   'c-atmos': ['chemistry', 'Atmosphere and resources', `
 Gas that makes up about 80% of today's atmosphere|Nitrogen
 Gas that makes up about 20% of today's atmosphere|Oxygen
