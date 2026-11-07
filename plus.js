@@ -958,7 +958,11 @@ function pppBankQ(q, track, left) {
   if (q.kind === 'mcq') return [LEARN.name(q.id), q.q, [`${'ABCD'[q.a]}: ${q.options[q.a]}`], { tid: q.id, auto: q }];
   const steps = arr(q.steps).filter(s => !/^Calculator check/.test(s)), eq = LEARN.TOPIC[q.id].type === 'eq';
   const m = eq ? 1 : Math.min(left, clamp(steps.length - 1, 1, track === 'maths' ? 4 : 3));
-  return [LEARN.name(q.id), q.q, m > 1 ? [...steps.slice(0, m - 1).map(s => 'Method: ' + s), 'Answer: ' + q.show] : [q.show], { tid: q.id, auto: q }];
+  /* a physics equation in exam words, not the drill's symbols: "Calculate the speed when the distance is 1000 m and the time is 10 s." */
+  const pe = q.dm && q.dm.pid && LEARN.PEQ[q.dm.pid], all = pe ? [pe.out, ...pe.ins] : [], tgt = all.find(i => i[0] === q.dm.find);
+  const known = tgt ? all.filter(i => i !== tgt).map(i => `the ${i[2]} is ${String(+(+q.dm.v[i[0]]).toPrecision(10))} ${i[3]}`) : [];
+  const text = tgt ? `Calculate the ${tgt[2]} when ${known.slice(0, -1).join(', ')}${known.length > 1 ? ' and ' : ''}${known[known.length - 1]}.` : q.q;
+  return [LEARN.name(q.id), text, m > 1 ? [...steps.slice(0, m - 1).map(s => 'Method: ' + s), 'Answer: ' + q.show] : [q.show], { tid: q.id, auto: q }];
 }
 /* non-calculator papers: no topic that needs a calculator, and no generated answer that only works out to a rounded decimal */
 const NEEDS_CALC = /Compound|Circles: area|Trigonometry|sine rule|cosine rule|sin C|Iteration|quadratic formula/i;

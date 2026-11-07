@@ -575,12 +575,13 @@ const LEARN = (() => {
 
   /* ---------- Physics: equations to recall, forwards and rearranged (g = 10 N/kg, as Edexcel uses) ---------- */
   const P = {};
-  const E = (id, name, eq, out, ins, sub, re, f) => { P[id] = { id, name, eq, out, ins, sub, re, f }; };
+  /* lim: the range a believable answer falls in; inputs are picked again until it does (no 300 m/s runners) */
+  const E = (id, name, eq, out, ins, sub, re, f, lim) => { P[id] = { id, name, eq, out, ins, sub, re, f, lim }; };
   E('weight', 'Weight', 'W = m × g', ['W', 'W', 'weight', 'N'], [['m', 'm', 'mass', 'kg', [2, 5, 8, 10, 15, 20, 50, 60, 75]], ['g', 'g', 'gravitational field strength', 'N/kg', [10]]], '{m} × {g}', { m: ['m = W ÷ g', '{W} ÷ {g}'] }, v => v.m * v.g);
   E('work', 'Work done', 'W = F × s', ['W', 'W', 'work done', 'J'], [['F', 'F', 'force', 'N', [5, 10, 20, 25, 40, 50, 100, 250]], ['s', 's', 'distance', 'm', [2, 3, 4, 5, 8, 10, 12, 20]]], '{F} × {s}', { F: ['F = W ÷ s', '{W} ÷ {s}'], s: ['s = W ÷ F', '{W} ÷ {F}'] }, v => v.F * v.s);
   E('spring', 'Spring force', 'F = k × e', ['F', 'F', 'force', 'N'], [['k', 'k', 'spring constant', 'N/m', [20, 25, 40, 50, 100, 200]], ['e', 'e', 'extension', 'm', [.02, .05, .1, .15, .2, .3]]], '{k} × {e}', { k: ['k = F ÷ e', '{F} ÷ {e}'], e: ['e = F ÷ k', '{F} ÷ {k}'] }, v => v.k * v.e);
-  E('speed', 'Speed', 'v = s ÷ t', ['v', 'v', 'speed', 'm/s'], [['s', 's', 'distance', 'm', [100, 200, 400, 600, 1000, 1500, 3000]], ['t', 't', 'time', 's', [10, 20, 25, 40, 50, 100, 200]]], '{s} ÷ {t}', { s: ['s = v × t', '{v} × {t}'], t: ['t = s ÷ v', '{s} ÷ {v}'] }, v => v.s / v.t);
-  E('accel', 'Acceleration', 'a = Δv ÷ t', ['a', 'a', 'acceleration', 'm/s²'], [['dv', 'Δv', 'change in velocity', 'm/s', [2, 4, 5, 6, 10, 12, 15, 20, 30]], ['t', 't', 'time', 's', [2, 4, 5, 10, 20]]], '{dv} ÷ {t}', { dv: ['Δv = a × t', '{a} × {t}'], t: ['t = Δv ÷ a', '{dv} ÷ {a}'] }, v => v.dv / v.t);
+  E('speed', 'Speed', 'v = s ÷ t', ['v', 'v', 'speed', 'm/s'], [['s', 's', 'distance', 'm', [100, 200, 400, 600, 1000, 1500, 3000]], ['t', 't', 'time', 's', [10, 20, 25, 40, 50, 100, 200]]], '{s} ÷ {t}', { s: ['s = v × t', '{v} × {t}'], t: ['t = s ÷ v', '{s} ÷ {v}'] }, v => v.s / v.t, [1, 35]);
+  E('accel', 'Acceleration', 'a = Δv ÷ t', ['a', 'a', 'acceleration', 'm/s²'], [['dv', 'Δv', 'change in velocity', 'm/s', [2, 4, 5, 6, 10, 12, 15, 20, 30]], ['t', 't', 'time', 's', [2, 4, 5, 10, 20]]], '{dv} ÷ {t}', { dv: ['Δv = a × t', '{a} × {t}'], t: ['t = Δv ÷ a', '{dv} ÷ {a}'] }, v => v.dv / v.t, [.5, 5]);
   E('newton2', 'Resultant force', 'F = m × a', ['F', 'F', 'resultant force', 'N'], [['m', 'm', 'mass', 'kg', [.5, 2, 5, 10, 50, 800, 1200]], ['a', 'a', 'acceleration', 'm/s²', [.5, 2, 3, 4, 5, 10]]], '{m} × {a}', { m: ['m = F ÷ a', '{F} ÷ {a}'], a: ['a = F ÷ m', '{F} ÷ {m}'] }, v => v.m * v.a);
   E('momentum', 'Momentum', 'p = m × v', ['p', 'p', 'momentum', 'kg m/s'], [['m', 'm', 'mass', 'kg', [.2, 2, 5, 60, 80, 1000, 1500]], ['v', 'v', 'velocity', 'm/s', [2, 3, 5, 10, 15, 20, 25]]], '{m} × {v}', { m: ['m = p ÷ v', '{p} ÷ {v}'], v: ['v = p ÷ m', '{p} ÷ {m}'] }, v => v.m * v.v);
   E('ke', 'Kinetic energy', 'Eₖ = ½ × m × v²', ['E', 'Eₖ', 'kinetic energy', 'J'], [['m', 'm', 'mass', 'kg', [2, 4, 10, 50, 60, 1000]], ['v', 'v', 'speed', 'm/s', [2, 3, 4, 5, 10, 20]]], '½ × {m} × {v}²', { m: ['m = 2 × Eₖ ÷ v²', '2 × {E} ÷ {v}²'], v: ['v = √(2 × Eₖ ÷ m)', '√(2 × {E} ÷ {m})'] }, v => .5 * v.m * v.v * v.v);
@@ -592,15 +593,15 @@ const LEARN = (() => {
   E('power-ir', 'Power (resistance)', 'P = I² × R', ['P', 'P', 'power', 'W'], [['I', 'I', 'current', 'A', [.5, 2, 3, 4, 5, 10]], ['R', 'R', 'resistance', 'Ω', [2, 4, 5, 10, 20, 50]]], '{I}² × {R}', { R: ['R = P ÷ I²', '{P} ÷ {I}²'], I: ['I = √(P ÷ R)', '√({P} ÷ {R})'] }, v => v.I * v.I * v.R);
   E('energy-pt', 'Energy transferred (power)', 'E = P × t', ['E', 'E', 'energy transferred', 'J'], [['P', 'P', 'power', 'W', [60, 100, 500, 1000, 2000, 3000]], ['t', 't', 'time', 's', [10, 30, 60, 120, 600]]], '{P} × {t}', { P: ['P = E ÷ t', '{E} ÷ {t}'], t: ['t = E ÷ P', '{E} ÷ {P}'] }, v => v.P * v.t);
   E('energy-qv', 'Energy transferred (charge)', 'E = Q × V', ['E', 'E', 'energy transferred', 'J'], [['Q', 'Q', 'charge', 'C', [2, 5, 10, 20, 50, 100, 500]], ['V', 'V', 'potential difference', 'V', [1.5, 3, 6, 9, 12, 230]]], '{Q} × {V}', { Q: ['Q = E ÷ V', '{E} ÷ {V}'], V: ['V = E ÷ Q', '{E} ÷ {Q}'] }, v => v.Q * v.V);
-  E('density', 'Density', 'ρ = m ÷ V', ['rho', 'ρ', 'density', 'kg/m³'], [['m', 'm', 'mass', 'kg', [.4, .8, 1.2, 2, 2.7, 5.4, 7.8]], ['V', 'V', 'volume', 'm³', [.0002, .0005, .001, .002]]], '{m} ÷ {V}', { m: ['m = ρ × V', '{rho} × {V}'], V: ['V = m ÷ ρ', '{m} ÷ {rho}'] }, v => v.m / v.V);
+  E('density', 'Density', 'ρ = m ÷ V', ['rho', 'ρ', 'density', 'kg/m³'], [['m', 'm', 'mass', 'kg', [.4, .8, 1.2, 2, 2.7, 5.4, 7.8]], ['V', 'V', 'volume', 'm³', [.0002, .0005, .001, .002]]], '{m} ÷ {V}', { m: ['m = ρ × V', '{rho} × {V}'], V: ['V = m ÷ ρ', '{m} ÷ {rho}'] }, v => v.m / v.V, [500, 11000]);
   E('wave', 'Wave speed', 'v = f × λ', ['v', 'v', 'wave speed', 'm/s'], [['f', 'f', 'frequency', 'Hz', [2, 5, 10, 50, 100, 200, 500, 1000]], ['lam', 'λ', 'wavelength', 'm', [.1, .2, .5, 1.5, 2, 3, 4]]], '{f} × {lam}', { f: ['f = v ÷ λ', '{v} ÷ {lam}'], lam: ['λ = v ÷ f', '{v} ÷ {f}'] }, v => v.f * v.lam);
 
   const fill = (tpl, v) => tpl.replace(/\{(\w+)\}/g, (_, k) => n(v[k]));
   /* a labelled sketch for the physics equations that have one in pics.js; the unknown is "?" */
   const physPic = (e, v, find) => typeof PIC === 'undefined' ? undefined : PIC.phys(e.id, Object.fromEntries([e.out, ...e.ins].map(i => [i[0], i[0] === find ? '?' : `${n(v[i[0]])} ${i[3]}`]))) || undefined;
   function genPhys(e) {
-    const v = {}; for (const [k, , , , vals] of e.ins) v[k] = pick(vals);
-    const [ok, osym, oname, ounit] = e.out; v[ok] = clean(e.f(v));
+    const [ok, osym, oname, ounit] = e.out, v = {};
+    for (let t = 0; t < 60; t++) { for (const [k, , , , vals] of e.ins) v[k] = pick(vals); v[ok] = clean(e.f(v)); if (!e.lim || (v[ok] >= e.lim[0] && v[ok] <= e.lim[1])) break; }
     const keys = Object.keys(e.re), desc = list => list.map(i => `${i[1]} = ${n(v[i[0]])} ${i[3]}`).join(', ');
     if (!keys.length || Math.random() < .5)
       return { q: `Find the ${oname} when ${desc(e.ins)}.`, sub: e.name, pic: physPic(e, v, ok), kind: 'num', v: v[ok], dm: { pid: e.id, v, find: ok }, rel: .005, suf: ounit, show: `${n(v[ok])} ${ounit}`,
