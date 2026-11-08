@@ -1056,7 +1056,9 @@ function normPaper(p) {
     return [s(q[0], 80), s(q[1], 4000), sch(q[2]), Object.fromEntries(Object.entries({ n: s(x.n, 8), sec: s(x.sec, 90), src: s(x.src, 4), same: !!x.same, g0: !!x.g0, tid: s(x.tid, 40), auto: x.auto ? plain(x.auto) : null }).filter(([, v]) => v))]; })
     .filter(q => q[0] && q[1] && qMax(q) > 0);
   const ids = arr(p.srcFrom).filter(id => EXAMS.some(e => e.id === id)), pp = obj(p.ppp);
-  return { id: s(p.id, 40) || 'ppp', g: s(p.g, 40), subj: SUBJ.includes(p.subj) ? p.subj : 'Maths', name: s(p.name, 140), mins: clamp(Math.round(num(p.mins, 60)), 5, 200), srcFrom: ids, src: pppSrc(ids), ppp: { track: s(pp.track, 20), k: num(pp.k), qn: num(pp.qn), parts: num(pp.parts) }, qs };
+  /* straight from EXAMS, not pppSrc: this runs inside app.js's load(), before paperOf exists, and the throw made the whole save "unreadable" */
+  const src = Object.assign({}, ...ids.map(id => EXAMS.find(e => e.id === id).src || {}));
+  return { id: s(p.id, 40) || 'ppp', g: s(p.g, 40), subj: SUBJ.includes(p.subj) ? p.subj : 'Maths', name: s(p.name, 140), mins: clamp(Math.round(num(p.mins, 60)), 5, 200), srcFrom: ids, src, ppp: { track: s(pp.track, 20), k: num(pp.k), qn: num(pp.qn), parts: num(pp.parts) }, qs };
 }
 /* the app checks your marking on the parts it can mark itself, and your reasons for lost marks build up across papers */
 function pppCheck(p, E) {
