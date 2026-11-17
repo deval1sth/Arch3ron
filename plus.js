@@ -900,7 +900,7 @@ const EDX = {
     'Energy: forces doing work', 'Forces and their effects', 'Electricity and circuits', null, 'Magnetism and the motor effect', 'Electromagnetic induction', 'Particle model', 'Forces and matter'] };
 const edxTopics = (s, nums) => nums.map(n => EDX[s][n - 1]);
 const PPP_SCI = (n, t, s, nums, ids, clus) => ({ n, t, mins: 70, marks: 60, qn: 'about 10 questions in parts', ws: .45, parts: 5, maxQ: 8, minQ: 4, long: 2, clus,
-  sec: [[null, 60, [s + '1', s + '2', s + '1x', s + '2x'], edxTopics(s, nums), PPP_IDS(ids)]] }); /* real papers have one or two 6-mark questions; clus: headings for bank topics that span both papers */
+  sec: [[null, 60, [s + '1', s + '2', s + '1x', s + '2x', s + '3x'], edxTopics(s, nums), PPP_IDS(ids)]] }); /* real papers have one or two 6-mark questions; clus: headings for bank topics that span both papers */
 const PPP_SPEC = {
   maths: [['Paper 1', 'Non-calculator', 'm1'], ['Paper 2', 'Calculator', 'm2'], ['Paper 3', 'Calculator', 'm2']].map(([n, t, w]) => ({ n, t, mins: 90, marks: 80, qn: 'about 25 to 30 questions', ws: .3, parts: 2, maxQ: 6, easy: true, sec: [[null, 80, [w], null, null]] })),
   biology: [PPP_SCI('Paper 1', '1BF: cells, genetics, evolution, health and disease', 'b', [1, 2, 3, 4, 5], 'bc-mag bc-osmosis bc-mean b-cells b-transport b-digestion b-nerves b-genes b-disease b-immune q2-b-cells q2-b-infection q2-b-genetics q3-b-practicals q6-b-cells q6-b-evolution q6-b-health d-b-cells d-b-disease d-b-genetics'),
