@@ -130,113 +130,193 @@ const str = (v, max = 200) => String(v ?? '').slice(0, max);
 let uid = Date.now();
 const newId = () => ++uid;
 
-function normalize(raw) {
-  const r = obj(raw), s = freshState();
-  s.xp = Math.max(0, Math.round(num(r.xp)));
-  s.mock = isKey(r.mock) && (r.mock !== '2027-01-11' || r.me) ? r.mock : s.mock; /* old placeholder date → real first mock, unless a set-up picked it */
-  s.guided = !!r.guided;
-  s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
-  for (const [k, v] of Object.entries(obj(r.dailyLog))) if (isKey(k)) { if ([0, 1, 2, 3, 4, 5].includes(v)) s.dailyLog[k] = v + '/5'; else if (/^[0-5]\/[1-5]$|^([mcp][01]){1,3}$/.test(v)) s.dailyLog[k] = v; } /* 'm1c0p1' = right/wrong per subject; 'score/out of' and bare numbers are old Daily fives */
-  if (s.daily) s.dailyLog[s.daily.d] = s.dailyLog[s.daily.d] || s.daily.s + '/5'; /* scores from before the archive existed */
-  s.dailyStreak = !!r.dailyStreak;
-  s.bgfx = r.bgfx !== false;
-  s.me = ME.clean(r.me); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
-  for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) };
-  const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
-  s.theme = THEMES.some(t => t[0] === r.theme) ? r.theme : OLD_HL[r.theme] || 'lime'; s.achV = num(r.achV);
-  s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
-  for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
-  s.deload = !!r.deload;
-  s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.sound = ['off', 'quiet', 'normal'].includes(r.sound) ? r.sound : 'quiet'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
-  const t = obj(r.timer);
-  s.timer = { focus: clamp(Math.round(num(t.focus, 25)), 1, 120), brk: clamp(Math.round(num(t.brk, 5)), 1, 60) };
-  for (const [k, c] of Object.entries(obj(r.cards))) { const o = obj(c); if (isKey(o.due)) s.cards[k] = { box: clamp(Math.round(num(o.box)), 0, 5), due: o.due }; }
-  for (const [k, v] of Object.entries(obj(r.checks))) if (v) s.conf[k] = 3; /* v1/v2 ticks → exam-ready */
-  for (const [k, v] of Object.entries(obj(r.conf))) { const n = clamp(Math.round(num(v)), 0, 3); if (n) s.conf[k] = n; }
-  for (const [k, g] of Object.entries(obj(r.grades))) { const o = obj(g); s.grades[k] = { cur: str(o.cur, 8), tgt: str(o.tgt, 8), pct: str(o.pct, 4) }; }
-  for (const [k, v] of Object.entries(obj(r.skill))) { const o = obj(v); s.skill[k] = { n: num(o.n), ok: num(o.ok), best: num(o.best), run: num(o.run), rec: arr(o.rec).slice(-6).map(Boolean) }; }
-  for (const [k, v] of Object.entries(obj(r.ach))) { const o = obj(v); if (num(o.tier) > 0) s.ach[k] = { tier: Math.round(num(o.tier)), date: isKey(o.date) ? o.date : dkey() }; }
-  for (const [k, v] of Object.entries(obj(r.hidden))) if (v) s.hidden[k] = true;
-  const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k]));
-  const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) };
-  for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v;
-  s.sess = sessNorm(r.sess);
-  for (const [k, v] of Object.entries(obj(r.why))) if (WHY.some(w => w[0] === k)) s.why[k] = Math.max(0, Math.round(num(v)));
-  s.pused = arr(r.pused).filter(x => typeof x === 'string').slice(-4000).map(x => x.slice(0, 120));
-  s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : '';
-  s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal'; s.seb = r.seb !== false;
-  s.fbk = arr(r.fbk).map(obj).filter(x => x.q || x.note || x.fix).slice(-60).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 30), q: str(x.q, 300), mark: Math.round(num(x.mark, -1)), max: Math.max(0, num(x.max)), fix: str(x.fix, 200), note: str(x.note, 4000) }));
-  { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; }
-  for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100);
-  for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
-  for (const [k, v] of Object.entries(obj(r.tnotes))) if (/^[a-z0-9-]{1,40}$/.test(k) && typeof v === 'string' && v.trim()) s.tnotes[k] = str(v, 4000);
-  s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) }));
-  for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
-    s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
-  s.mistakes = arr(r.mistakes).map(obj).filter(m => m.topic).map(m => ({
-    id: num(m.id, newId()), date: isKey(m.date) ? m.date : dkey(), subj: str(m.subj, 40), topic: str(m.topic, 80),
-    note: str(m.note, 300), redo: isKey(m.redo) ? m.redo : dkey(), fixed: !!m.fixed }));
-  s.fixedCount = Math.max(num(r.fixedCount), s.mistakes.filter(m => m.fixed).length);
-  s.scores = arr(r.scores).map(obj).filter(x => num(x.max) > 0 && Number.isFinite(+x.score)).map(x => ({
-    id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 40), paper: str(x.paper, 80),
-    score: Math.max(0, +x.score), max: +x.max,
-    lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
-    tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
-  const ex = obj(r.exam), paper = ex.paper ? normPaper(ex.paper) : EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
-  if (paper && paper.qs.length) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
-    got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
-    lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1), end: Math.max(0, num(ex.end)) };
-  if (s.exam && ex.paper) Object.assign(s.exam, { paper, ph: ex.ph === 'mark' ? 'mark' : 'sit', why: paper.qs.map((_, k) => WHY.some(w => w[0] === arr(ex.why)[k]) ? arr(ex.why)[k] : ''), used: clamp(Math.round(num(ex.used)), 0, 300), timed: !!ex.timed, printed: !!ex.printed });
-  const rp = obj(r.plan);
-  if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
-    s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
-      const kind = ['train', 'rest', 'other'].includes(x.kind) ? x.kind : 'train';
-      return { id: str(x.id, 30), t: str(x.t, 12), label: str(x.label || 'Session', 60), kind, sets: kind === 'train' ? clamp(Math.round(num(x.sets, 1)), 1, 12) : 0 };
-    });
-  }
-  for (const [k, d] of Object.entries(obj(r.days))) {
-    if (!isKey(k)) continue;
-    const out = { s: {}, f: {} }, src = obj(d);
-    if ((r.v || 1) >= 2) {
-      for (const [sid, a] of Object.entries(obj(src.s))) if (Array.isArray(a)) out.s[sid] = a.map(Boolean);
-      for (const [i, v] of Object.entries(obj(src.f))) if (v) out.f[i] = true;
-    } else { /* v1: {0:[..],1:[..],f0:true} keyed by plan index for that weekday */
-      const w = parseKey(k).getDay();
-      for (const [key, v] of Object.entries(src)) {
-        if (/^f\d$/.test(key)) { if (v) out.f[key.slice(1)] = true; }
-        else if (Array.isArray(v)) out.s[`d${w}-${key}`] = v.map(Boolean);
-      }
+/* Parts of the save that could not be read on the last normalize() call. One bad part (an unfinished paper, say) is left
+   out on its own: it can never again cost the rest of the save (8 Nov 2026: one paper hid everything behind set-up). */
+let normSkipped = [];
+function normalize(raw, only, into) {
+  const r = obj(raw), s = into || freshState(), F = freshState(), DEF = { me: null, guided: false, tc: {} }; normSkipped = [];
+  /* each part resets its own fields, then fills them; if it throws they go back to fresh and its name is noted.
+     only = the part names to (re)do; into = the state to fill (load() retries failed parts once every script has run) */
+  const part = (name, keys, fill) => {
+    if (only && !only.includes(name)) return;
+    const reset = () => keys.forEach(k => { s[k] = k in F ? F[k] : DEF[k]; });
+    try { reset(); fill(); } catch (e) { reset(); normSkipped.push(name); try { console.warn('Archeron: left out saved ' + name, e); } catch (x) {} }
+  };
+  part('basics', ['xp', 'mock', 'guided'], () => {
+    s.xp = Math.max(0, Math.round(num(r.xp)));
+    s.mock = isKey(r.mock) && (r.mock !== '2027-01-11' || r.me) ? r.mock : s.mock; /* old placeholder date → real first mock, unless a set-up picked it */
+    s.guided = !!r.guided;
+  });
+  part('daily', ['daily', 'dailyLog', 'dailyStreak', 'bgfx'], () => {
+    s.daily = r.daily && isKey(r.daily.d) && [0, 1, 2, 3, 4, 5].includes(r.daily.s) ? { d: r.daily.d, s: r.daily.s } : null;
+    for (const [k, v] of Object.entries(obj(r.dailyLog))) if (isKey(k)) { if ([0, 1, 2, 3, 4, 5].includes(v)) s.dailyLog[k] = v + '/5'; else if (/^[0-5]\/[1-5]$|^([mcp][01]){1,3}$/.test(v)) s.dailyLog[k] = v; } /* 'm1c0p1' = right/wrong per subject; 'score/out of' and bare numbers are old Daily fives */
+    if (s.daily) s.dailyLog[s.daily.d] = s.dailyLog[s.daily.d] || s.daily.s + '/5'; /* scores from before the archive existed */
+    s.dailyStreak = !!r.dailyStreak;
+    s.bgfx = r.bgfx !== false;
+  });
+  part('me', ['me'], () => { s.me = ME.clean(r.me); }); /* this profile's set-up: subjects, boards, tiers, grades, dates, availability */
+  part('lvl', ['lvl'], () => { for (const [k, v] of Object.entries(obj(r.lvl))) if (LEARN.TOPIC[k] && v && [1, 2, 3].includes(v.l)) s.lvl[k] = { l: v.l, r: clamp(Math.round(num(v.r)), 0, 9), w: clamp(Math.round(num(v.w)), 0, 9) }; });
+  part('look', ['theme', 'achV', 'mode', 'motion', 'sound', 'motionHint', 'wrapSeen', 'text', 'seb'], () => {
+    const OLD_HL = { amethyst: 'lilac', abyss: 'sky', frost: 'sky' }; /* the five dark schemes before 8.3 */
+    s.theme = THEMES.some(t => t[0] === r.theme) ? r.theme : OLD_HL[r.theme] || 'lime'; s.achV = num(r.achV);
+    s.mode = MODES.some(m => m[0] === r.mode) ? r.mode : 'paper';
+    s.motion = ['auto', 'full', 'reduced'].includes(r.motion) ? r.motion : 'auto'; s.sound = ['off', 'quiet', 'normal'].includes(r.sound) ? r.sound : 'quiet'; s.motionHint = !!r.motionHint; s.wrapSeen = isKey(r.wrapSeen) ? r.wrapSeen : '';
+    s.text = ['normal', 'large', 'xl'].includes(r.text) ? r.text : 'normal'; s.seb = r.seb !== false;
+  });
+  part('counts', ['focusSets', 'focusMin', 'learnOk', 'quoteOk', 'deload'], () => {
+    for (const k of ['focusSets', 'focusMin', 'learnOk', 'quoteOk']) s[k] = Math.max(0, num(r[k]));
+    s.deload = !!r.deload;
+  });
+  part('timer', ['timer'], () => { const t = obj(r.timer); s.timer = { focus: clamp(Math.round(num(t.focus, 25)), 1, 120), brk: clamp(Math.round(num(t.brk, 5)), 1, 60) }; });
+  part('cards', ['cards'], () => { for (const [k, c] of Object.entries(obj(r.cards))) { const o = obj(c); if (isKey(o.due)) s.cards[k] = { box: clamp(Math.round(num(o.box)), 0, 5), due: o.due }; } });
+  part('conf', ['conf'], () => {
+    for (const [k, v] of Object.entries(obj(r.checks))) if (v) s.conf[k] = 3; /* v1/v2 ticks → exam-ready */
+    for (const [k, v] of Object.entries(obj(r.conf))) { const n = clamp(Math.round(num(v)), 0, 3); if (n) s.conf[k] = n; }
+  });
+  part('grades', ['grades'], () => { for (const [k, g] of Object.entries(obj(r.grades))) { const o = obj(g); s.grades[k] = { cur: str(o.cur, 8), tgt: str(o.tgt, 8), pct: str(o.pct, 4) }; } });
+  part('skill', ['skill'], () => { for (const [k, v] of Object.entries(obj(r.skill))) { const o = obj(v); s.skill[k] = { n: num(o.n), ok: num(o.ok), best: num(o.best), run: num(o.run), rec: arr(o.rec).slice(-6).map(Boolean) }; } });
+  part('ach', ['ach'], () => { for (const [k, v] of Object.entries(obj(r.ach))) { const o = obj(v); if (num(o.tier) > 0) s.ach[k] = { tier: Math.round(num(o.tier)), date: isKey(o.date) ? o.date : dkey() }; } });
+  part('hidden', ['hidden'], () => { for (const [k, v] of Object.entries(obj(r.hidden))) if (v) s.hidden[k] = true; });
+  part('stat', ['stat'], () => { const st = obj(r.stat); for (const k of STAT_KEYS) s.stat[k] = Math.max(0, num(st[k])); });
+  part('profile', ['profile'], () => { const p = obj(r.profile); s.profile = { name: str(p.name, 30), emblem: str(p.emblem || 'bat', 20) }; });
+  part('read', ['read'], () => { for (const [k, v] of Object.entries(obj(r.read))) if (STUDY_BY[k] && isKey(v)) s.read[k] = v; });
+  part('sess', ['sess'], () => { s.sess = sessNorm(r.sess); });
+  part('why', ['why'], () => { for (const [k, v] of Object.entries(obj(r.why))) if (WHY.some(w => w[0] === k)) s.why[k] = Math.max(0, Math.round(num(v))); });
+  part('pused', ['pused'], () => { s.pused = arr(r.pused).filter(x => typeof x === 'string').slice(-4000).map(x => x.slice(0, 120)); });
+  part('backup', ['lastBackup', 'backupSnooze'], () => { s.lastBackup = isKey(r.lastBackup) ? r.lastBackup : ''; s.backupSnooze = isKey(r.backupSnooze) ? r.backupSnooze : ''; });
+  part('fbk', ['fbk'], () => { s.fbk = arr(r.fbk).map(obj).filter(x => x.q || x.note || x.fix).slice(-60).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 30), q: str(x.q, 300), mark: Math.round(num(x.mark, -1)), max: Math.max(0, num(x.max)), fix: str(x.fix, 200), note: str(x.note, 4000) })); });
+  part('resume', ['resume'], () => { const rs = obj(r.resume); if (STUDY_BY[rs.g] && isKey(rs.at)) s.resume = { g: rs.g, at: rs.at }; });
+  part('readyLog', ['readyLog'], () => { for (const [k, v] of Object.entries(obj(r.readyLog)).filter(([k]) => isKey(k)).sort().slice(-90)) s.readyLog[k] = clamp(Math.round(num(v)), 0, 100); });
+  part('notes', ['notes', 'tnotes'], () => {
+    for (const [k, v] of Object.entries(obj(r.notes))) if (isKey(k) && typeof v === 'string' && v) s.notes[k] = str(v, 2000);
+    for (const [k, v] of Object.entries(obj(r.tnotes))) if (/^[a-z0-9-]{1,40}$/.test(k) && typeof v === 'string' && v.trim()) s.tnotes[k] = str(v, 4000);
+  });
+  part('plans', ['plans'], () => { s.plans = arr(r.plans).map(obj).filter(x => x.kind).slice(-200).map(x => ({ id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), kind: str(x.kind, 20), prompt: str(x.prompt, 300), f: arr(x.f).map(v => str(v, 2000)) })); });
+  part('custom', ['custom'], () => {
+    for (const [k, list] of Object.entries(obj(r.custom))) if (DECKS[k])
+      s.custom[k] = arr(list).map(obj).filter(c => c.f && c.b).map(c => ({ id: str(c.id || 'u' + newId(), 30), f: str(c.f, 300), b: str(c.b, 300) }));
+  });
+  part('mistakes', ['mistakes', 'fixedCount'], () => {
+    s.mistakes = arr(r.mistakes).map(obj).filter(m => m.topic).map(m => ({
+      id: num(m.id, newId()), date: isKey(m.date) ? m.date : dkey(), subj: str(m.subj, 40), topic: str(m.topic, 80),
+      note: str(m.note, 300), redo: isKey(m.redo) ? m.redo : dkey(), fixed: !!m.fixed }));
+    s.fixedCount = Math.max(num(r.fixedCount), s.mistakes.filter(m => m.fixed).length);
+  });
+  part('scores', ['scores'], () => {
+    s.scores = arr(r.scores).map(obj).filter(x => num(x.max) > 0 && Number.isFinite(+x.score)).map(x => ({
+      id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 40), paper: str(x.paper, 80),
+      score: Math.max(0, +x.score), max: +x.max,
+      lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
+      tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
+  });
+  part('exam', ['exam'], () => {
+    const ex = obj(r.exam), paper = ex.paper ? normPaper(ex.paper) : EXAMS.find(p => p.id === ex.pid); /* in-progress practice paper */
+    if (paper && paper.qs.length) s.exam = { pid: paper.id, i: clamp(Math.round(num(ex.i)), 0, paper.qs.length - 1), ans: paper.qs.map((_, k) => str(arr(ex.ans)[k], 12000)),
+      got: paper.qs.map((q, k) => qTicks(q).map((_, j) => !!arr(arr(ex.got)[k])[j])), marked: paper.qs.map((_, k) => !!arr(ex.marked)[k]),
+      lv: paper.qs.map((q, k) => q[2].lv ? clamp(Math.round(num(arr(ex.lv)[k], -1)), -1, qMax(q)) : -1), end: Math.max(0, num(ex.end)) };
+    if (s.exam && ex.paper) Object.assign(s.exam, { paper, ph: ex.ph === 'mark' ? 'mark' : 'sit', why: paper.qs.map((_, k) => WHY.some(w => w[0] === arr(ex.why)[k]) ? arr(ex.why)[k] : ''), used: clamp(Math.round(num(ex.used)), 0, 300), timed: !!ex.timed, printed: !!ex.printed });
+  });
+  part('plan', ['plan'], () => {
+    const rp = obj(r.plan);
+    if (Object.keys(rp).length) for (let w = 0; w < 7; w++) {
+      s.plan[w] = arr(rp[w]).map(obj).filter(x => x.id).map(x => {
+        const kind = ['train', 'rest', 'other'].includes(x.kind) ? x.kind : 'train';
+        return { id: str(x.id, 30), t: str(x.t, 12), label: str(x.label || 'Session', 60), kind, sets: kind === 'train' ? clamp(Math.round(num(x.sets, 1)), 1, 12) : 0 };
+      });
     }
-    if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
-    const e = Object.entries(obj(src.ev)).filter(([k, v]) => /^[a-z0-9:]{1,24}$/.test(k) && Number.isFinite(+v)); if (e.length) out.ev = Object.fromEntries(e.map(([k, v]) => [k, Math.max(0, Math.round(+v))]));
-    const tt = Object.entries(obj(src.t)).filter(([k, v]) => /^[a-z]{1,16}$/.test(k) && +v > 0 && Number.isFinite(+v)); if (tt.length) out.t = Object.fromEntries(tt.map(([k, v]) => [k, Math.round(+v)]));
-    const starts = arr(src.studyStarts).map(Number).filter(v => Number.isFinite(v) && v > 0).slice(-12);
-    if (starts.length) out.studyStarts = starts;
-    const lastAt = num(src.studyLastAt); if (lastAt > 0) out.studyLastAt = lastAt;
-    s.days[k] = out;
-  }
-  for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x));
-  s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() }));
-  const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
-  if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
-    s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, at: isKey(mp.at) ? mp.at : null, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
-  s.tc = obj(r.tc); /* lessons, gap finder, grade tests and exam questions by topic (teach.js, check.js) */
+  });
+  part('days', ['days'], () => {
+    for (const [k, d] of Object.entries(obj(r.days))) {
+      if (!isKey(k)) continue;
+      const out = { s: {}, f: {} }, src = obj(d);
+      if ((r.v || 1) >= 2) {
+        for (const [sid, a] of Object.entries(obj(src.s))) if (Array.isArray(a)) out.s[sid] = a.map(Boolean);
+        for (const [i, v] of Object.entries(obj(src.f))) if (v) out.f[i] = true;
+      } else { /* v1: {0:[..],1:[..],f0:true} keyed by plan index for that weekday */
+        const w = parseKey(k).getDay();
+        for (const [key, v] of Object.entries(src)) {
+          if (/^f\d$/.test(key)) { if (v) out.f[key.slice(1)] = true; }
+          else if (Array.isArray(v)) out.s[`d${w}-${key}`] = v.map(Boolean);
+        }
+      }
+      if (num(src.qa) > 0) { out.qa = Math.round(num(src.qa)); out.qr = clamp(Math.round(num(src.qr)), 0, out.qa); }
+      const e = Object.entries(obj(src.ev)).filter(([k, v]) => /^[a-z0-9:]{1,24}$/.test(k) && Number.isFinite(+v)); if (e.length) out.ev = Object.fromEntries(e.map(([k, v]) => [k, Math.max(0, Math.round(+v))]));
+      const tt = Object.entries(obj(src.t)).filter(([k, v]) => /^[a-z]{1,16}$/.test(k) && +v > 0 && Number.isFinite(+v)); if (tt.length) out.t = Object.fromEntries(tt.map(([k, v]) => [k, Math.round(+v)]));
+      const starts = arr(src.studyStarts).map(Number).filter(v => Number.isFinite(v) && v > 0).slice(-12);
+      if (starts.length) out.studyStarts = starts;
+      const lastAt = num(src.studyLastAt); if (lastAt > 0) out.studyLastAt = lastAt;
+      s.days[k] = out;
+    }
+  });
+  part('items', ['items'], () => { for (const [k, v] of Object.entries(obj(r.items))) if (Array.isArray(v) && v.length === 4 && v.every(x => Number.isFinite(+x))) s.items[str(k, 16)] = v.map(x => Math.round(+x)); });
+  part('queue', ['queue'], () => { s.queue = arr(r.queue).map(obj).filter(x => LEARN.TOPIC[x.id]).slice(-40).map(x => ({ id: x.id, why: str(x.why, 160), date: isKey(x.date) ? x.date : dkey() })); });
+  part('mp', ['mp'], () => {
+    const mp = obj(r.mp); /* generated Maths paper in progress: our own question objects */
+    if (Array.isArray(mp.qs) && mp.qs.length && mp.qs.every(q => q && typeof q.q === 'string' && LEARN.TOPIC[q.id]))
+      s.mp = { qs: mp.qs, ans: mp.qs.map((_, k) => str(arr(mp.ans)[k], 40)), i: clamp(Math.round(num(mp.i)), 0, mp.qs.length - 1), ppp: !!mp.ppp, at: isKey(mp.at) ? mp.at : null, self: mp.self && Array.isArray(mp.self.my) ? { i: clamp(Math.round(num(mp.self.i)), 0, mp.qs.length - 1), my: mp.qs.map((_, k) => typeof mp.self.my[k] === 'boolean' ? mp.self.my[k] : null), why: mp.qs.map((_, k) => str(arr(mp.self.why)[k], 12)) } : null, track: LEARN.SUBJECTS.some(x => x.id === mp.track) ? mp.track : 'maths' };
+  });
+  part('tc', ['tc'], () => { s.tc = obj(r.tc); }); /* lessons, gap finder, grade tests and exam questions by topic (teach.js, check.js) */
   return s;
 }
 
-let S, bootNote = '';
+let S, bootNote = '', BOOT_SKIPPED = []; /* BOOT_SKIPPED: parts that failed while app.js was still loading (boottest.html reads it) */
 let storeErr = '';
 function store(k, v) { try { localStorage.setItem(k, v); storeErr = ''; return true; } catch (e) { storeErr = e && (e.code === 22 || e.code === 1014 || /quota/i.test(e.name)) ? 'full' : 'blocked'; return false; } }
 function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+/* Safety copies on this device, in IndexedDB (its own space, so they never crowd out the save), per profile: the first
+   save of each day (newest 7 kept) and the save as it was before every restore, reset or set-aside (newest 5 kept).
+   They undo a bad restore or an app bug. Clearing the browser's site data removes them too: downloaded backups survive that.
+   Defined before load() on purpose: load() and save() use it while app.js is still running. */
+const SNAPS = (() => {
+  const ST = 'snaps', KEEP = { day: 7, before: 5 };
+  let dbp = null, dayDone = '';
+  const db = () => dbp || (dbp = new Promise((ok, no) => {
+    try { const q = indexedDB.open('archeron-safety', 1); q.onupgradeneeded = () => q.result.createObjectStore(ST, { keyPath: 'id' }); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); } catch (e) { no(e); }
+  }));
+  const run = (mode, fn) => db().then(d => new Promise((ok, no) => { const t = d.transaction(ST, mode), out = fn(t.objectStore(ST)); t.oncomplete = () => ok(out && out.result); t.onerror = t.onabort = () => no(t.error); }));
+  const all = () => run('readonly', st => st.getAll()).then(a => (a || []).filter(x => x.key === K).sort((x, y) => y.at - x.at));
+  const prune = () => all().then(a => { const drop = ['day', 'before'].flatMap(k => a.filter(x => x.kind === k).slice(KEEP[k])); return drop.length ? run('readwrite', st => drop.forEach(x => st.delete(x.id))) : null; });
+  const sum = json => { try { const d = JSON.parse(json); return { xp: Math.round(num(d.xp)), days: Object.keys(obj(d.days)).length }; } catch (e) { return { xp: null, days: null }; } };
+  const rec = (kind, why, json) => Object.assign({ id: K + '|' + kind + '|' + (kind === 'day' ? dkey() : Date.now()), key: K, kind, why, at: Date.now(), json }, sum(json));
+  /* never waits more than 1.5 s and never throws: no IndexedDB (some private windows) just means no safety copies */
+  const soft = p => Promise.race([p.catch(() => null), new Promise(ok => setTimeout(ok, 1500, null))]);
+  return {
+    /* the first save of the day only: a later bug that empties the save can't overwrite the morning's copy */
+    day(json) { const d = dkey(); if (dayDone === d) return; dayDone = d; const x = rec('day', 'start of day', json);
+      soft(run('readwrite', st => { const g = st.get(x.id); g.onsuccess = () => { if (!g.result) st.put(x); }; }).then(prune)); },
+    before: (why, json) => soft(run('readwrite', st => st.put(rec('before', why, json))).then(prune)),
+    list: () => soft(all()).then(a => a || []),
+    get: id => soft(run('readonly', st => st.get(id))),
+  };
+})();
+/* keep a save the app could not fully read, untouched: next to the save (Settings → Safety copies lists it) and as a safety copy */
+function setAside(text, why) {
+  if (!text) return '';
+  SNAPS.before(why, text);
+  const key = K + '-unreadable-' + Date.now();
+  return store(key, text) || (storeErr === 'full' && freeSpace() && store(key, text)) ? key : '';
+}
 (function load() {
-  const raw = read(K);
+  const raw = read(K); let data;
   try {
-    if (raw) S = normalize(JSON.parse(raw));
-    else { const old = read(OLD); S = normalize(old ? JSON.parse(old) : {}); if (old) bootNote = 'Your Nightwatch progress moved into Archeron'; }
-  } catch (e) {
-    store(K + '-unreadable-' + Date.now(), raw || read(OLD) || '');
-    S = freshState(); bootNote = 'Saved data could not be read. A copy was kept and a fresh start made.';
+    if (raw) data = JSON.parse(raw);
+    else { const old = read(OLD); data = old ? JSON.parse(old) : {}; if (old) bootNote = 'Your Nightwatch progress moved into Archeron'; }
+  } catch (e) { /* not even readable text: keep it untouched and start fresh */
+    setAside(raw || read(OLD) || '', 'set aside: unreadable'); S = freshState(); bootNote = 'Saved progress could not be read. It was kept safe: see Settings → Safety copies.'; return;
   }
+  S = normalize(data);
+  if (!normSkipped.length) return;
+  /* a part failed while the app was still loading (8 Nov: an unfinished paper): keep the whole save untouched, try those
+     parts again once every script has run, and only drop the kept copy if they all come back */
+  BOOT_SKIPPED = normSkipped.slice();
+  const parts = BOOT_SKIPPED.slice(), key = setAside(raw || read(OLD) || '', 'set aside: part unreadable (' + parts.join(', ') + ')');
+  const again = () => {
+    normalize(data, parts, S);
+    if (!normSkipped.length) { if (key) try { localStorage.removeItem(key); } catch (e) {} }
+    else toast('Part of your saved progress could not be loaded. Everything else is here, and the full save was kept: see Settings → Safety copies.');
+    save(); render();
+  };
+  if (document.readyState === 'loading') addEventListener('DOMContentLoaded', again, { once: true }); else setTimeout(again);
 })();
 let saveWarned = false, RESTORE = null; /* a picked backup file waiting for Replace or Cancel */
 /* full storage: drop old unreadable copies, keeping the newest, so the real save fits */
@@ -244,7 +324,7 @@ function freeSpace() { try { const old = Object.keys(localStorage).filter(k => k
 /* warn again whenever saving fails after it had started working, not just once per visit */
 function save() {
   const json = JSON.stringify(S);
-  if (store(K, json) || (storeErr === 'full' && freeSpace() && store(K, json))) { saveWarned = false; return; }
+  if (store(K, json) || (storeErr === 'full' && freeSpace() && store(K, json))) { saveWarned = false; if (S.xp || Object.keys(S.items).length) SNAPS.day(json); return; }
   /* still full: the review log (forecast.js) is the one thing that can shrink without losing progress */
   const L = S.tc && S.tc.rlog;
   if (storeErr === 'full' && Array.isArray(L) && L.length > 100) { L.splice(0, Math.ceil(L.length / 2)); if (store(K, JSON.stringify(S))) { saveWarned = false; return; } }
@@ -662,6 +742,9 @@ function alsoToday(rough) {
 }
 /* One notice at a time, most important first */
 function noticeLine() {
+  if (asideKeys().length) /* a save the app could not fully read is waiting: never let that go unnoticed again */
+    return h('div', { class: 'notice' }, icon('shield'), h('span', { class: 'grow' }, 'Some saved progress was kept to one side because the app could not fully read it. It is safe.'),
+      B('See it', 'go', 'primary sm', { 'data-tab': 'me' }));
   const since = daysSince(S.lastBackup), worth = lifeSets() + S.scores.length + Object.keys(S.items).length >= 5;
   if (worth && !(since != null && since < 7) && !((daysSince(S.backupSnooze) ?? 99) < 3))
     return h('div', { class: 'notice' }, icon('shield'), h('span', { class: 'grow' }, since == null ? 'Back up your progress: it only lives on this device' : `Last backup ${since} days ago`),
@@ -1640,11 +1723,11 @@ function vMe() {
         card('Backup', h('span', { class: 'muted' }, backupLine()), h('p', { class: 'muted xs' }, 'Progress lives only on this device. Back up weekly: on a phone, choose Save to Files or Google Drive. Restore it on any device.'),
           h('div', { class: 'row' }, B([icon('download'), 'Download'], 'exp', 'primary'),
             h('label', { class: 'btn ghost' }, icon('upload'), 'Restore', h('input', { type: 'file', accept: '.json,application/json', 'data-act': 'imp', class: 'sr' }))),
-          RESTORE && h('div', { class: 'notice' }, icon('upload'), h('span', { class: 'grow' }, `${RESTORE.name}: ${RESTORE.days} study day${RESTORE.days === 1 ? '' : 's'}, ${RESTORE.items} topic${RESTORE.items === 1 ? '' : 's'} practised. Replace this device's progress with it?`),
-            B('Replace', 'impYes', 'primary sm'), B('Cancel', 'impNo', 'link sm'))),
+          RESTORE && !RESTORE.safety && restoreAsk()),
+        card('Safety copies', null, asideRows(), snapRows(), RESTORE && RESTORE.safety && restoreAsk()),
         typeof rlogCard === 'function' && rlogCard(),
         card('Install', null, h('p', { class: 'muted xs' }, h('b', null, 'iPhone: '), 'Safari → Share → Add to Home Screen.', h('br'), h('b', null, 'Android: '), 'Chrome menu ⋮ → Install app.')),
-        card('Start over', null, h('p', { class: 'muted xs' }, 'Wipes everything on this device. Download a backup first.'), B('Reset everything', 'reset', 'ghost danger')), h('p', { class: 'muted xs', style: 'text-align:center' }, '© 2026 Runo304. All rights reserved.'))));
+        card('Start over', null, h('p', { class: 'muted xs' }, 'Wipes everything on this device. A safety copy is kept under Safety copies, but download a backup first.'), B('Reset everything', 'reset', 'ghost danger')), h('p', { class: 'muted xs', style: 'text-align:center' }, '© 2026 Runo304. All rights reserved.'))));
 }
 
 /* ---------- shell ---------- */
@@ -1935,8 +2018,10 @@ const ACT = {
 
   reset() {
     if (!sure('Wipe ALL progress on this device? Download a backup first.')) return;
-    try { [K, OLD, TK, TABK].forEach(k => localStorage.removeItem(k)); } catch (e) {}
-    location.reload();
+    SNAPS.before('reset', JSON.stringify(S)).then(() => { /* the wiped save stays under Safety copies */
+      try { [K, OLD, TK, TABK].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+      location.reload();
+    });
   }
 };
 const CHG = {
@@ -1967,8 +2052,56 @@ const CHG = {
     }).catch(() => toast('That file is not an Archeron or Nightwatch backup')).finally(() => { el.value = ''; });
   }
 };
-ACT.impYes = () => { if (!RESTORE) return; S = normalize(RESTORE.data); RESTORE = null; DRAFT.grades = null; save(); checkAch(true); toast('Backup restored'); render(); };
+ACT.impYes = () => {
+  if (!RESTORE) return; const R = RESTORE;
+  SNAPS.before('restore', JSON.stringify(S)); /* the progress being replaced stays under Safety copies */
+  S = normalize(R.data); const missed = normSkipped.length; RESTORE = null; DRAFT.grades = null; save(); checkAch(true);
+  if (R.aside && !missed) try { localStorage.removeItem(R.aside); } catch (e) {}
+  toast(missed ? 'Restored. One part could not be read and was left out; the copy is still kept.' : 'Progress restored'); render();
+};
 ACT.impNo = () => { RESTORE = null; render(); };
+
+/* ---------- Safety copies (Settings): saves the app set aside, and SNAPS copies ---------- */
+function restoreAsk() {
+  return h('div', { class: 'notice' }, icon('upload'), h('span', { class: 'grow' }, `${RESTORE.name}: ${RESTORE.days} study day${RESTORE.days === 1 ? '' : 's'}, ${RESTORE.items} topic${RESTORE.items === 1 ? '' : 's'} practised. Replace this device's progress with it?`),
+    B('Replace', 'impYes', 'primary sm'), B('Cancel', 'impNo', 'link sm'));
+}
+function asideKeys() { try { return Object.keys(localStorage).filter(k => k.startsWith(K + '-unreadable-')).sort().reverse(); } catch (e) { return []; } }
+function whenTxt(ms) { const d = new Date(ms); return fmtDate(dkey(d)) + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function saveSum(xp, days) { return xp == null ? 'could not be read as a save' : `${xp.toLocaleString()} XP · ${days} study day${days === 1 ? '' : 's'}`; }
+function saveText(name, text) {
+  const a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function asideData(k) { try { const d = JSON.parse(read(k)); return d && typeof d === 'object' ? d : null; } catch (e) { return null; } }
+function asideRows() {
+  const keys = asideKeys(); if (!keys.length) return null;
+  return h('div', null, h('p', { class: 'muted xs' }, 'The app could not fully read these saves, so it kept them exactly as they were. Restore brings back everything it can read.'),
+    h('ul', { class: 'list' }, keys.map(k => { const d = asideData(k);
+      return copyRow('Set aside ' + whenTxt(+k.split('-unreadable-')[1]), d ? saveSum(Math.round(num(d.xp)), Object.keys(obj(d.days)).length) : saveSum(null),
+        d && B('Restore', 'asideUse', 'primary sm', { 'data-k': k }), B('Download', 'asideGet', 'ghost sm', { 'data-k': k }), B('Delete', 'asideDel', 'link sm', { 'data-k': k })); })));
+}
+function snapName(x) { return x.kind === 'day' ? 'Start of ' + fmtDate(dkey(new Date(x.at))) : (/^restore/.test(x.why) ? 'Before a restore, ' : /^reset/.test(x.why) ? 'Before a reset, ' : /^deleted/.test(x.why) ? 'A deleted set-aside save, ' : 'A save the app set aside, ') + whenTxt(x.at); }
+function snapRows() {
+  const box = h('div', null, h('p', { class: 'muted xs' }, 'Looking for safety copies…'));
+  SNAPS.list().then(a => box.replaceChildren(
+    h('p', { class: 'muted xs' }, a.length ? 'Kept automatically on this device: the start of each of your last 7 study days, and your progress just before each restore or reset. Clearing the browser’s site data removes these too, so keep downloading backups.'
+      : 'None yet. From your next study day the app keeps a copy of the start of each day here, and one before every restore or reset.'),
+    a.length ? h('ul', { class: 'list' }, a.map(x => copyRow(snapName(x), saveSum(x.xp, x.days),
+      x.xp != null && B('Restore', 'snapUse', 'primary sm', { 'data-id': x.id }), B('Download', 'snapGet', 'ghost sm', { 'data-id': x.id })))) : ''));
+  return box;
+}
+/* one copy: what it is and how much it holds on top, its buttons on their own line (the card is narrow on a PC too) */
+function copyRow(title, sum, ...btns) { return h('li', { style: 'flex-wrap:wrap' }, h('span', { style: 'flex:1 1 100%' }, h('b', null, title), h('small', null, sum)), h('div', { class: 'row' }, btns)); }
+const restoreFrom = (data, name, extra) => { RESTORE = Object.assign({ data, name, days: Object.keys(obj(data.days)).length, items: Object.keys(obj(data.items)).length, safety: true }, extra); render(); };
+ACT.asideUse = el => { const k = el.dataset.k, d = asideData(k); if (!d) return toast('That copy could not be read'); restoreFrom(d, 'The save set aside ' + whenTxt(+k.split('-unreadable-')[1]), { aside: k }); };
+ACT.asideGet = el => saveText('archeron-set-aside-' + dkey(new Date(+el.dataset.k.split('-unreadable-')[1])) + '.json', read(el.dataset.k) || '');
+ACT.asideDel = el => {
+  const k = el.dataset.k; if (!sure('Delete this set-aside save? A safety copy of it stays on this device for a while.')) return;
+  SNAPS.before('deleted set-aside save', read(k) || '').then(() => { try { localStorage.removeItem(k); } catch (e) {} render(); });
+};
+ACT.snapUse = el => SNAPS.get(el.dataset.id).then(x => { let d = null; try { d = x && JSON.parse(x.json); } catch (e) {} if (!d || typeof d !== 'object') return toast('That safety copy could not be read'); restoreFrom(d, snapName(x)); });
+ACT.snapGet = el => SNAPS.get(el.dataset.id).then(x => x ? saveText('archeron-safety-copy-' + dkey(new Date(x.at)) + '.json', x.json) : toast('That safety copy is gone'));
 
 Object.assign(ACT, EXACT, MPACT, STUDYACT, PLUSACT);
 ACT.swapKeep = el => { SWAP_KEEP.add(el.dataset.l); if (timerActive() && T.mode === 'focus') { T.swap = false; saveT(); } render(); };

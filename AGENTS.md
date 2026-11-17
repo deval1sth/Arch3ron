@@ -26,7 +26,9 @@ Runo's time goes on revising, not on new features. Until the real exams are over
 - **Never use `confirm()` or `alert()`.** Browsers can switch them off. Use `sure(msg)` (tap twice) or buttons on the page.
 - **Service worker.** When you change any file the app loads, bump `VERSION` in `sw.js` (and `beta/sw.js` for beta files). Check HANDOFF.md for the latest number so two agents don't pick the same one. When testing, unregister the service worker and clear caches before reloading, or you'll test old cached files.
 - **Main first.** Edit the main app directly; Runo doesn't want changes staged in `beta/` any more, and `beta/` is no longer kept in sync. Main still has no friends feature: no FRIENDS/vFriends/fr* code.
-- **Saved state.** New state lives in `S.tc` or needs a line in `normalize()`, or it is dropped on load.
+- **Saved state.** New state lives in `S.tc` or needs a line in `normalize()` (inside a `part(...)`), or it is dropped on load.
+- **Boot order.** `load()` near the top of app.js runs `normalize()` (and through it `ME.clean`, `normPaper`, `sessNorm`, ...) before the rest of app.js and before every script after it. Nothing reachable from there may use a `const`/`let` declared further down app.js or a name from a later script. On 8 Nov 2026 `paperOf` did, and one unfinished paper hid Runo's whole save behind the set-up screen. `normalize()` now drops only the failing part and retries it once loading ends, but a boot skip is still a bug: open `boottest.html` on the local server and run it before pushing any change to app.js, plus.js, study.js, me.js or anything `normalize()` calls. Every state must pass.
+- **Never lose a save.** Anything that replaces or wipes the save first calls `SNAPS.before(why, JSON.stringify(S))`. Never delete `*-unreadable-*` keys automatically: they are saves the app could not read, and Settings → Safety copies lets Runo restore or download them.
 
 ## Tone and design rules (from Runo)
 - The main app is calm: no streaks, rewards, games, penalties, "you failed" wording, or counters of what's left. Show progress that can never be lost.

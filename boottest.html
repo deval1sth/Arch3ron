@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archeron boot check</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px; background: #101010; color: #e8e8e8; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  p { color: #aaa; max-width: 70ch; }
+  button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid #555; background: #222; color: inherit; cursor: pointer; }
+  #out { font: 12.5px/1.45 ui-monospace, monospace; white-space: pre-wrap; margin-top: 12px; }
+  .ok { color: #8fd18f; } .bad { color: #ff8a8a; } .sum { font-weight: 700; margin-top: 8px; }
+  iframe { width: min(100%, 420px); height: 260px; border: 1px solid #333; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>Boot check</h1>
+<p>Starts the app with every kind of unfinished state (each practice paper, each PPP paper, generated papers, a revision session, a guide to resume) and checks that no part of the save is left out while app.js is still loading. That is the bug that hid Runo's whole save on 8 Nov 2026. Run it before pushing any change to app.js, plus.js, study.js, me.js or a script that normalize() calls.</p>
+<p>Local server only. It uses its own test profile and puts this browser's Archeron storage back when it ends. Agents: read <code>window.BOOT_RESULT</code>.</p>
+<button id="go" type="button">Run the check</button>
+<div id="out"></div>
+<iframe id="f" title="app under test"></iframe>
+<script>
+(() => {
+  const out = document.getElementById('out'), F = document.getElementById('f'), PID = 'boottest', KEY = 'archeron-p-' + PID;
+  const say = (t, c) => { const d = document.createElement('div'); d.textContent = t; if (c) d.className = c; out.append(d); };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  if (!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) { say('Runs on a local server only: it borrows this browser\'s Archeron storage.', 'bad'); document.getElementById('go').disabled = true; return; }
+
+  /* a fresh app in the frame, after every script and the retry have run. The app's top-level const/let names are not
+     window properties, so they are read through the frame's own global scope (indirect eval; the app's CSP allows it). */
+  async function boot() {
+    F.src = 'index.html?boottest=' + Math.random().toString(36).slice(2);
+    await new Promise(r => { F.onload = r; });
+    const win = F.contentWindow;
+    for (let i = 0; i < 100 && !win.ARCHERON_OK; i++) await wait(100);
+    await wait(500);
+    if (!win.ARCHERON_OK) return { ARCHERON_OK: false };
+    return win.eval(`({ ARCHERON_OK: true, get S() { return S; }, ME, LEARN, STUDY, DECKS, WHY, EXAMS, PPP_SPEC, MPACT, dkey, qTicks, pppStart, makeSession,
+      get BOOT_SKIPPED() { return BOOT_SKIPPED; }, get normSkipped() { return normSkipped; } })`);
+  }
+
+  async function run() {
+    out.textContent = ''; document.getElementById('go').disabled = true;
+    const kept = {}; for (const k of Object.keys(localStorage)) if (k.startsWith('archeron')) kept[k] = localStorage.getItem(k);
+    let who = null; try { who = sessionStorage.getItem('archeron-who'); } catch (e) {}
+    const result = { pass: 0, fail: 0, failures: [], fixtures: 0 };
+    try {
+      for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+      for (const k of await caches.keys()) await caches.delete(k);
+      for (const k of Object.keys(localStorage)) if (k.startsWith('archeron')) localStorage.removeItem(k);
+      localStorage.setItem('archeron-profiles', JSON.stringify({ list: [{ id: PID, name: 'Boot test', av: { k: 'a', i: 0 } }], active: PID }));
+      sessionStorage.setItem('archeron-who', PID);
+
+      /* 1. build fixtures with the app's own functions, so they have exactly the shapes it saves */
+      let w = await boot();
+      if (!w.ARCHERON_OK) throw new Error('the app did not start with an empty save');
+      const S0 = w.S;
+      S0.me = w.ME.clean({ name: 'Boot test', ok: true, subs: Object.keys(w.ME.byId).map(id => ({ id, tier: 'Foundation' })), avail: { 0: 1, 1: 2, 2: 2, 3: 2, 4: 2, 5: 1, 6: 3 } });
+      const topic = Object.keys(w.LEARN.TOPIC)[0], guide = w.STUDY[0] && w.STUDY[0].id, deck = Object.keys(w.DECKS)[0], today = w.dkey();
+      Object.assign(S0, { xp: 123, lvl: { [topic]: { l: 2, r: 1, w: 0 } }, queue: [{ id: topic, why: 'boot check', date: today }], why: { [w.WHY[0][0]]: 1 },
+        read: guide ? { [guide]: today } : {}, resume: guide ? { g: guide, at: today } : null, custom: deck ? { [deck]: [{ id: 'u1', f: 'front', b: 'back' }] } : {},
+        items: { [topic]: [1, 2, 3, 4] }, days: { [today]: { s: {}, f: {}, qa: 3, qr: 2 } }, scores: [{ id: 1, date: today, subj: 'Maths', paper: 'x', score: 3, max: 5 }],
+        mistakes: [{ id: 2, date: today, subj: 'Maths', topic: 'x', redo: today }], tc: { boot: 1 } });
+      try { S0.sess = w.makeSession(25, [S0.me.subs[0].id]); } catch (e) { say('could not build a revision session: ' + e.message, 'bad'); }
+      const base = JSON.parse(JSON.stringify(S0)), fixtures = [['everything except papers', base]];
+      for (const p of w.EXAMS) { const s = JSON.parse(JSON.stringify(base));
+        s.exam = { pid: p.id, i: 0, ans: p.qs.map(() => ''), got: p.qs.map(q => w.qTicks(q).map(() => false)), lv: p.qs.map(() => -1), marked: p.qs.map(() => false), end: 0 };
+        fixtures.push(['practice paper ' + p.id, s]); }
+      for (const track of Object.keys(w.PPP_SPEC)) w.PPP_SPEC[track].forEach((sp, k) => {
+        try { w.S.exam = null; w.pppStart(track, k, false); if (w.S.exam && w.S.exam.paper) { const s = JSON.parse(JSON.stringify(base)); s.exam = JSON.parse(JSON.stringify(w.S.exam)); s.pused = w.S.pused; fixtures.push([`PPP ${track} ${sp.n}`, s]); } }
+        catch (e) { say(`could not build PPP ${track} ${k}: ${e.message}`, 'bad'); } });
+      for (const sub of w.LEARN.SUBJECTS) {
+        try { w.S.mp = null; w.MPACT.mpNew({ dataset: { track: sub.id } }); if (w.S.mp) { const s = JSON.parse(JSON.stringify(base)); s.mp = JSON.parse(JSON.stringify(w.S.mp)); fixtures.push(['generated paper ' + sub.id, s]); } }
+        catch (e) { /* subjects without generated papers */ } }
+      result.fixtures = fixtures.length;
+      say(`${fixtures.length} saved states to boot…`);
+
+      /* 2. boot each one for real and check nothing was left out */
+      for (const [name, s] of fixtures) {
+        localStorage.setItem(KEY, JSON.stringify(s));
+        for (const k of Object.keys(localStorage)) if (k.includes('-unreadable-')) localStorage.removeItem(k);
+        w = await boot();
+        const why = [];
+        if (!w.ARCHERON_OK) why.push('app.js did not finish');
+        else {
+          if (w.BOOT_SKIPPED.length) why.push('left out while loading: ' + w.BOOT_SKIPPED.join(', '));
+          if (w.normSkipped.length) why.push('still left out after loading: ' + w.normSkipped.join(', '));
+          if (Object.keys(localStorage).some(k => k.includes('-unreadable-'))) why.push('a copy was set aside');
+          if (w.S.xp !== s.xp) why.push(`xp ${w.S.xp}, saved ${s.xp}`);
+          if (s.exam && (!w.S.exam || w.S.exam.pid !== s.exam.pid)) why.push('the paper in progress was lost');
+          if (s.mp && !w.S.mp) why.push('the generated paper was lost');
+          if (s.sess && !w.S.sess) why.push('the revision session was lost');
+          if (s.resume && !w.S.resume) why.push('the guide to resume was lost');
+          if (!w.S.me) why.push('the set-up was lost');
+        }
+        if (why.length) { result.fail++; result.failures.push({ name, why }); say('✗ ' + name + ': ' + why.join('; '), 'bad'); }
+        else { result.pass++; say('✓ ' + name, 'ok'); }
+      }
+    } catch (e) { result.fail++; result.failures.push({ name: 'harness', why: [e.message] }); say('The check itself broke: ' + e.message, 'bad'); }
+    finally { /* put this browser's Archeron storage back exactly as it was */
+      F.src = 'about:blank'; await wait(200);
+      for (const k of Object.keys(localStorage)) if (k.startsWith('archeron')) localStorage.removeItem(k);
+      for (const [k, v] of Object.entries(kept)) localStorage.setItem(k, v);
+      try { if (who) sessionStorage.setItem('archeron-who', who); else sessionStorage.removeItem('archeron-who'); } catch (e) {}
+      document.getElementById('go').disabled = false;
+    }
+    say(`BOOT CHECK: ${result.pass} of ${result.pass + result.fail} passed`, 'sum ' + (result.fail ? 'bad' : 'ok'));
+    window.BOOT_RESULT = result;
+    return result;
+  }
+  window.runBootCheck = run;
+  document.getElementById('go').onclick = run;
+})();
+</script>
+</body>
+</html>
