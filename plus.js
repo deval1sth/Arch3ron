@@ -911,7 +911,11 @@ const PPP_SPEC = {
     PPP_SCI('Paper 6', '2PF: work and power, electricity, magnetism, particles, forces and matter', 'p', [1, 8, 9, 10, 12, 13, 14, 15], 'p-work p-power-e p-ke p-gpe p-spring p-charge p-ohm p-power-vi p-power-ir p-energy-pt p-energy-qv p-density ph-units pr-electric pr-particles pr-forces-waves q2-p-electricity q2-p-particles q2-p-waves-magnets q3-p-practicals q6-p-p6 d-p-electric d-p-particles d-p-forces',
       { 'q2-p-waves-magnets': EDX.p[11], 'pr-forces-waves': EDX.p[8], 'd-p-forces': EDX.p[8], 'p-ke': EDX.p[7], 'p-gpe': EDX.p[7], 'q2-p-particles': EDX.p[13], 'pr-particles': EDX.p[13] })],
   englang: [{ n: 'Paper 1', t: 'Creative reading and writing', mins: 105, marks: 80, qn: '5 questions', fixed: ['el1'] }, { n: 'Paper 2', t: 'Writers\' viewpoints and perspectives', mins: 105, marks: 80, qn: '5 questions', fixed: ['el2'] }],
-  englit: [{ n: 'Paper 1', t: 'Macbeth and A Christmas Carol', mins: 105, marks: 64, qn: '2 essays', fixed: ['lit1'] }, { n: 'Paper 2', t: 'Journey\'s End and poetry', mins: 135, marks: 96, qn: '4 questions', fixed: ['lit2'] }],
+  /* built from lit1/lit2 plus the lit3x bank (papers.js), one essay per section like the real AQA papers; SPaG goes on the first essay; unseen poems come as a 24 + 8 pair */
+  englit: [{ n: 'Paper 1', t: 'Macbeth and A Christmas Carol', mins: 105, marks: 64, qn: '2 essays', long: 1, ws: 1, keepOrder: true, spag: [4],
+      sec: [['Section A: Shakespeare', 30, ['lit1', 'lit3x'], ['Macbeth']], ['Section B: The 19th-century novel', 30, ['lit1', 'lit3x'], ['A Christmas Carol']]] },
+    { n: 'Paper 2', t: 'Journey\'s End and poetry', mins: 135, marks: 96, qn: '4 questions', long: 1, ws: 1, keepOrder: true, spag: [4],
+      sec: [['Section A: Modern text', 30, ['lit2', 'lit3x'], ["Journey's End"]], ['Section B: Poetry anthology', 30, ['lit2', 'lit3x'], ['Power and Conflict poetry']], ['Section C: Unseen poetry', 32, ['lit2', 'lit3x'], ['Unseen poetry']]] }],
   re: [{ n: 'Paper 1', t: 'Christianity and Islam', mins: 105, marks: 102, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re1', 're2'], spag: [3, 3] }, { n: 'Paper 2', t: 'Thematic studies', mins: 105, marks: 99, qn: '4 questions of 5 parts, plus SPaG', fixed: ['re3', 're4'], spag: [3] }],
   geography: [{ n: 'Paper 1', t: 'Living with the physical environment', mins: 90, marks: 88, qn: '3 sections, plus SPaG', ws: .85, spag: [3], sec: [
       ['Section A: The challenge of natural hazards', 30, ['g1', 'g3'], ['Natural hazards', 'Weather and climate'], PPP_IDS('g-tectonics g-weather q2-g-hazards q2-g-climate q3-g-cases-hazards gc-data')],
@@ -932,7 +936,7 @@ const PPP_SPEC = {
 };
 const PPP_NOTE = {
   englang: 'Same format as the real paper: 5 questions on an unseen source. This app has one source per paper, so the questions repeat: leave a few weeks between sittings.',
-  englit: 'Same format as the real papers. The essay questions repeat, so leave a few weeks between sittings and try to beat your last mark.',
+  englit: 'Same format as the real papers, with new essay questions each time. Extract questions name the passage: read it in your own copy first.',
   re: 'The 1-mark questions are new each time. The longer questions repeat once you have done them, like redoing a past paper.',
   geography: 'Paper 3 uses AQA\'s pre-release booklet and your own fieldwork, so it cannot be generated here. Section C covers coasts and rivers.'
 };
@@ -1003,14 +1007,16 @@ function pppBuild(track, k) {
       if (!qX(q).same || !out.length) push(qq, grp, '', pid); else out.push([q[0], q[1], q[2], Object.assign({}, q[3], { grp })]);
     });
   } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
-    const pool = (wps || []).flatMap(pid => pppPool(pid)).filter((o, j, all) => !qX(o.q).same && (!wt || wt.includes(o.q[0])) && all.findIndex(x => x.sig === o.sig) === j); /* two papers can share one Higher paper */
+    const pool = (wps || []).flatMap(pid => pppPool(pid)).filter((o, j, all) => !qX(o.q).same && !qX(o.q).pairOf && (!wt || wt.includes(o.q[0])) && all.findIndex(x => x.sig === o.sig) === j); /* two papers can share one Higher paper; a pairOf part only comes with its pair */
+    const partner = o => qX(o.q).pair && pppPool(o.pid).find(x => qX(x.q).pairOf === qX(o.q).pair); /* unseen poetry: the 8-mark comparison that belongs to this 24-mark question */
     let left = marks; const items = [];
     /* written questions already sat come back only for the long answers (too few of those yet); short marks go to fresh bank parts instead */
     const isLong = o => o.q[2].lv && qMax(o.q) >= 6, order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig) && isLong(o)))];
     const longs = order.filter(isLong).slice(0, sp.long || 0);
     for (const o of [...longs, ...order.filter(o => !longs.includes(o) && !(sp.long && isLong(o)))]) {
-      const m = qMax(o.q); if (m > left || marks - left + m > marks * (ws || sp.ws || .45) + 1) continue;
-      items.push({ q: o.q, m }); used.add(o.sig); if (o.q[3] && o.q[3].src) srcFrom.add(o.pid); left -= m;
+      const pt = partner(o), m = qMax(o.q) + (pt ? qMax(pt.q) : 0); if (m > left || marks - left + m > marks * (ws || sp.ws || .45) + 1) continue;
+      for (const x of pt ? [o, pt] : [o]) { items.push({ q: x.q, m: qMax(x.q) }); used.add(x.sig); if (x.q[3] && x.q[3].src) srcFrom.add(x.pid); }
+      left -= m;
     }
     /* bank parts are labelled with the paper topic they belong to (e.g. "Cell biology"), like a real paper, and results group the same way */
     const wTopics = [...new Set(pool.map(o => o.q[0]))], link = Object.entries(EXAM_LINK).filter(([key]) => key.startsWith(g + '|'));
@@ -1018,7 +1024,7 @@ function pppBuild(track, k) {
       return !wt || wt.includes(l) || l === 'Core practicals' ? l : (sp.clus && sp.clus[id]) || wt[0]; }; /* a bank topic that spans both papers takes a topic of this paper */
     const noCalc = /^Non-calculator/.test(sp.t), ids = (bank || topicsFor(track).filter(id => LEARN.TOPIC[id].type === 'calc')).filter(id => LEARN.TOPIC[id] && usable(id) && !(noCalc && NEEDS_CALC.test(LEARN.name(id))));
     for (let guard = 0; left > 0 && ids.length && guard < 200; guard++) { const bq = pppBank(ids, used, track, left, noCalc); if (!bq) break; bq[0] = clus(bq[3].tid); items.push({ q: bq, m: qMax(bq) }); left -= qMax(bq); }
-    if (sp.sec.length > 1) { items.sort((a, b) => !!a.q[2].lv - !!b.q[2].lv || a.m - b.m); items.forEach(it => push(it.q, 's' + si, title)); return; }
+    if (sp.sec.length > 1) { if (!sp.keepOrder) items.sort((a, b) => !!a.q[2].lv - !!b.q[2].lv || a.m - b.m); items.forEach(it => push(it.q, 's' + si, title)); return; }
     /* one section: group parts into numbered questions by topic, like a real paper */
     const byC = new Map(); for (const it of items) { const c = it.q[0]; if (!byC.has(c)) byC.set(c, []); byC.get(c).push(it); }
     const sum = l => l.reduce((a, it) => a + it.m, 0);
@@ -1043,9 +1049,11 @@ function pppBuild(track, k) {
   }
   S.pused = [...used].slice(-4000);
   const qs = out.map(q => [q[0], q[1], q[2], Object.fromEntries(Object.entries(q[3]).filter(([key, v]) => key !== 'grp' && key !== 'sk' && v !== '' && v != null && v !== false))]);
-  return { id: 'ppp' + newId(), g, subj: trackSubj(track), name: `PPP ${g} ${sp.n}${sp.t ? ` (${sp.t})` : ''}`, mins: sp.mins, srcFrom: [...srcFrom], src: pppSrc([...srcFrom]), ppp: { track, k, qn: num, parts: qs.filter(q => !q[3].same).length }, qs };
+  return { id: 'ppp' + newId(), g, subj: trackSubj(track), name: `PPP ${g} ${sp.n}${sp.t ? ` (${sp.t})` : ''}`, mins: sp.mins, srcFrom: [...srcFrom], src: srcUsed(pppSrc([...srcFrom]), qs), ppp: { track, k, qn: num, parts: qs.filter(q => !q[3].same).length }, qs };
 }
 const pppSrc = ids => Object.assign({}, ...ids.map(id => (paperOf(id) || {}).src || {}));
+/* only the sources a paper's questions refer to, so a printed paper does not carry every extract of the papers it drew on */
+const srcUsed = (all, qs) => { const keep = new Set(qs.flatMap(q => [].concat((q[3] && q[3].src) || []))); return Object.fromEntries(Object.entries(all).filter(([k]) => keep.has(k))); };
 /* a saved PPP paper, rebuilt field by field: a restored backup is untrusted */
 function normPaper(p) {
   p = obj(p); const s = (v, n = 400) => str(v, n);
@@ -1054,11 +1062,11 @@ function normPaper(p) {
   const prim = x => ['string', 'number', 'boolean'].includes(typeof x);
   const plain = o => Object.fromEntries(Object.entries(obj(o)).filter(([, v]) => prim(v) || (Array.isArray(v) && v.every(prim))).map(([k, v]) => [k, typeof v === 'string' ? s(v, 600) : Array.isArray(v) ? v.slice(0, 12).map(e => typeof e === 'string' ? s(e, 300) : e) : v]));
   const qs = arr(p.qs).slice(0, 150).map(q => { q = arr(q); const x = obj(q[3]);
-    return [s(q[0], 80), s(q[1], 4000), sch(q[2]), Object.fromEntries(Object.entries({ n: s(x.n, 8), sec: s(x.sec, 90), src: s(x.src, 4), same: !!x.same, g0: !!x.g0, tid: s(x.tid, 40), auto: x.auto ? plain(x.auto) : null }).filter(([, v]) => v))]; })
+    return [s(q[0], 80), s(q[1], 4000), sch(q[2]), Object.fromEntries(Object.entries({ n: s(x.n, 8), sec: s(x.sec, 90), src: Array.isArray(x.src) ? x.src.slice(0, 4).map(v => s(v, 4)) : s(x.src, 4), same: !!x.same, g0: !!x.g0, tid: s(x.tid, 40), auto: x.auto ? plain(x.auto) : null }).filter(([, v]) => v))]; })
     .filter(q => q[0] && q[1] && qMax(q) > 0);
   const ids = arr(p.srcFrom).filter(id => EXAMS.some(e => e.id === id)), pp = obj(p.ppp);
   /* straight from EXAMS, not pppSrc: this runs inside app.js's load(), before paperOf exists, and the throw made the whole save "unreadable" */
-  const src = Object.assign({}, ...ids.map(id => EXAMS.find(e => e.id === id).src || {}));
+  const src = srcUsed(Object.assign({}, ...ids.map(id => EXAMS.find(e => e.id === id).src || {})), qs);
   return { id: s(p.id, 40) || 'ppp', g: s(p.g, 40), subj: SUBJ.includes(p.subj) ? p.subj : 'Maths', name: s(p.name, 140), mins: clamp(Math.round(num(p.mins, 60)), 5, 200), srcFrom: ids, src, ppp: { track: s(pp.track, 20), k: num(pp.k), qn: num(pp.qn), parts: num(pp.parts) }, qs };
 }
 /* the app checks your marking on the parts it can mark itself, and your reasons for lost marks build up across papers */

@@ -223,8 +223,8 @@ EXAMS.push(
     ['Journey\'s End', 'How does Sherriff present the effects of the war on Stanhope in Journey\'s End? Write about what Stanhope is like and how he is affected by the war, and how Sherriff presents Stanhope by the ways he writes. (Use quotes from your own copy, checked word for word.)', { lv: LV.lit30, look: LOOK.lit.filter((_, i) => i !== 1).concat(['Used stage directions as well as dialogue', 'Context: Sherriff\'s own war service, shell shock, life in the trenches', 'Compared Stanhope with Raleigh, Osborne or Hibbert']) }, { mins: 45 }],
     ['Spelling, punctuation and grammar', 'Mark your Journey\'s End essay for spelling, punctuation and grammar (4 marks).', { lv: LV.spag4, look: LOOK.spag }, { same: true }],
     ['Power and Conflict poetry', 'Compare how poets present the effects of power in "Ozymandias" and in one other poem from "Power and conflict".', { lv: LV.lit30, look: ['Compared the poems throughout, not one then the other', 'Chose a strong second poem (e.g. My Last Duchess, London, Tissue, Storm on the Island)', 'Quotes from both poems', 'Analysed form and structure (sonnet, volta, enjambment, dramatic monologue)', 'Context: Shelley\'s Romanticism and dislike of tyranny', 'Both similarities AND differences'] }, { src: 'O', mins: 45 }],
-    ['Unseen poetry', 'In "Remember", how does the poet present the speaker\'s feelings about being remembered after death?', { lv: LV.lit24, look: ['A clear answer about the speaker\'s feelings', 'Short, embedded quotes', 'Close language analysis', 'Form and structure: sonnet, the turn at "Yet"', 'Showed how the feelings change through the poem', 'A personal interpretation'] }, { src: 'R', mins: 30 }],
-    ['Unseen poetry', 'In both "Remember" and "Sonnet 71" the speakers describe how they want to be remembered after death. What are the similarities and/or differences between the ways the poets present these feelings?', { lv: [[7, 8, 'Exploratory comparison of methods, with precise subject terms.'], [5, 6, 'Thoughtful comparison of methods and their effects.'], [3, 4, 'Relevant comparison of methods, with some explanation.'], [1, 2, 'Simple comments on methods in one or both poems.']], look: ['Compared METHODS, not just meanings', 'Quotes from both poems', 'Similarities and differences', 'Subject terms (sonnet, imperative, rhyme, volta, imagery)'] }, { src: ['R', 'S'], mins: 15 }]] },
+    ['Unseen poetry', 'In "Remember", how does the poet present the speaker\'s feelings about being remembered after death?', { lv: LV.lit24, look: ['A clear answer about the speaker\'s feelings', 'Short, embedded quotes', 'Close language analysis', 'Form and structure: sonnet, the turn at "Yet"', 'Showed how the feelings change through the poem', 'A personal interpretation'] }, { src: 'R', mins: 30, pair: 'r1' }],
+    ['Unseen poetry', 'In both "Remember" and "Sonnet 71" the speakers describe how they want to be remembered after death. What are the similarities and/or differences between the ways the poets present these feelings?', { lv: [[7, 8, 'Exploratory comparison of methods, with precise subject terms.'], [5, 6, 'Thoughtful comparison of methods and their effects.'], [3, 4, 'Relevant comparison of methods, with some explanation.'], [1, 2, 'Simple comments on methods in one or both poems.']], look: ['Compared METHODS, not just meanings', 'Quotes from both poems', 'Similarities and differences', 'Subject terms (sonnet, imperative, rhyme, volta, imagery)'] }, { src: ['R', 'S'], mins: 15, pairOf: 'r1' }]] },
 
   /* ---------------- Geography ---------------- */
   { id: 'g1', g: 'Geography', subj: 'Geography', name: 'Geography practice paper 1 (physical environment)', mins: 50, qs: [
@@ -489,3 +489,136 @@ EXAMS.push(
     six('Particle model', 'Use the particle model to explain what happens as a solid is heated until it melts and then boils.', ['In a solid, particles are close together in a regular arrangement and vibrate in fixed positions', 'Heating increases the energy of the particles, so they vibrate more and the temperature rises', 'At the melting point, energy breaks the bonds holding the particles in place: they can move around each other (liquid)', 'During a change of state the temperature stays the same, because energy is used to break bonds (latent heat)', 'At the boiling point, particles gain enough energy to escape and move far apart, fast and randomly (gas)', 'The mass stays the same: only the arrangement and energy of the particles change']),
     six('Forces and matter', 'Explain the difference between elastic and inelastic deformation, using a spring as an example.', ['To stretch, squash or bend an object, more than one force must act on it', 'Elastic deformation: the object returns to its original shape when the forces are removed', 'Inelastic deformation: the object stays permanently changed', 'A spring obeys Hooke\'s law: force = spring constant × extension, so extension is proportional to force', 'Beyond the limit of proportionality the extension is no longer proportional and the spring may not return to its original length', 'Energy stored in a stretched spring is in its elastic potential store'])] }
 );
+
+/* English Literature question bank (Nov 2026) for PPP: new essay questions every paper instead of the same two papers.
+   Extract questions name the passage (act/scene or stave, first and last words) rather than printing it: read it in your own
+   copy first, so no quote is ever learned from a typo. Unseen poems are short, out of copyright and printed in full.
+   bank: true keeps this out of the papers list and timed mocks (paperFits); PPP draws on it by topic. */
+EXAMS.push((() => {
+  const own = (topic, q, extra) => [topic, q + ' (Read the passage in your own copy first.)', { lv: LV.lit30, look: LOOK.lit.concat(extra) }, { mins: 50 }];
+  const je = (q, extra) => ["Journey's End", q + ' (Use quotes from your own copy, checked word for word.)', { lv: LV.lit30, look: LOOK.lit.filter((_, i) => i !== 1).concat(['Used stage directions as well as dialogue'], extra) }, { mins: 45 }];
+  const pc = (poem, focus, pair) => ['Power and Conflict poetry', `Compare how poets present ${focus} in "${poem}" and in one other poem from "Power and conflict".`, { lv: LV.lit30, look: ['Compared the poems throughout, not one then the other', `Chose a strong second poem (e.g. ${pair})`, 'Quotes from both poems', 'Analysed language, form and structure and their effects', 'Context linked to the comparison', 'Both similarities AND differences'] }, { mins: 45 }];
+  const UC8 = [[7, 8, 'Exploratory comparison of methods, with precise subject terms.'], [5, 6, 'Thoughtful comparison of methods and their effects.'], [3, 4, 'Relevant comparison of methods, with some explanation.'], [1, 2, 'Simple comments on methods in one or both poems.']];
+  return { id: 'lit3x', g: 'English Literature', subj: 'English Literature', bank: true, name: 'English Literature question bank', mins: 50,
+    src: {
+      U1: ['I Wandered Lonely as a Cloud, by William Wordsworth (1807)', `I wandered lonely as a cloud
+That floats on high o'er vales and hills,
+When all at once I saw a crowd,
+A host, of golden daffodils;
+Beside the lake, beneath the trees,
+Fluttering and dancing in the breeze.
+
+Continuous as the stars that shine
+And twinkle on the milky way,
+They stretched in never-ending line
+Along the margin of a bay:
+Ten thousand saw I at a glance,
+Tossing their heads in sprightly dance.
+
+The waves beside them danced; but they
+Out-did the sparkling waves in glee:
+A poet could not but be gay,
+In such a jocund company:
+I gazed—and gazed—but little thought
+What wealth the show to me had brought:
+
+For oft, when on my couch I lie
+In vacant or in pensive mood,
+They flash upon that inward eye
+Which is the bliss of solitude;
+And then my heart with pleasure fills,
+And dances with the daffodils.`],
+      U2: ['Adlestrop, by Edward Thomas (1917)', `Yes. I remember Adlestrop—
+The name, because one afternoon
+Of heat the express-train drew up there
+Unwontedly. It was late June.
+
+The steam hissed. Someone cleared his throat.
+No one left and no one came
+On the bare platform. What I saw
+Was Adlestrop—only the name
+
+And willows, willow-herb, and grass,
+And meadowsweet, and haycocks dry,
+No whit less still and lonely fair
+Than the high cloudlets in the sky.
+
+And for that minute a blackbird sang
+Close by, and round him, mistier,
+Farther and farther, all the birds
+Of Oxfordshire and Gloucestershire.`],
+      U3: ['A Poison Tree, by William Blake (1794)', `I was angry with my friend;
+I told my wrath, my wrath did end.
+I was angry with my foe:
+I told it not, my wrath did grow.
+
+And I watered it in fears,
+Night and morning with my tears;
+And I sunned it with smiles,
+And with soft deceitful wiles.
+
+And it grew both day and night,
+Till it bore an apple bright;
+And my foe beheld it shine,
+And he knew that it was mine,
+
+And into my garden stole,
+When the night had veiled the pole;
+In the morning glad I see
+My foe outstretched beneath the tree.`],
+      U4: ['The Sick Rose, by William Blake (1794)', `O Rose, thou art sick.
+The invisible worm,
+That flies in the night
+In the howling storm,
+
+Has found out thy bed
+Of crimson joy,
+And his dark secret love
+Does thy life destroy.`] },
+    qs: [
+      own('Macbeth', "Starting with Act 1 Scene 7, from \"If it were done when 'tis done\" to the end of Macbeth's soliloquy, explore how Shakespeare presents Macbeth's doubts about killing Duncan. Write about how Shakespeare presents Macbeth in this speech, and how he presents Macbeth's ambition in the play as a whole.", ['Ambition as a "vaulting" force that overreaches', 'Context: the Divine Right of Kings, regicide as a sin against God', 'Tracked how his doubts disappear by Act 3 and Act 4']),
+      own('Macbeth', 'Starting with Act 1 Scene 7, from "We will proceed no further in this business" to the end of the scene, explore how Shakespeare presents the relationship between Macbeth and Lady Macbeth. Write about the relationship in this extract, and in the play as a whole.', ['Lady Macbeth questioning his manhood to persuade him', 'How the relationship changes: he stops confiding in her by Act 3', 'Context: Jacobean ideas about gender and marriage']),
+      own('Macbeth', "Starting with Act 1 Scene 3, from the witches greeting Macbeth (\"All hail, Macbeth!\") to Banquo's warning about \"instruments of darkness\", explore how Shakespeare presents the supernatural. Write about the supernatural in this extract, and in the play as a whole.", ["The witches' equivocation and paradox", "Banquo's reaction contrasted with Macbeth's", 'Context: King James I and witchcraft (Daemonologie)']),
+      own('Macbeth', 'Starting with Act 2 Scene 1, from "Is this a dagger which I see before me" to the end of the scene, explore how Shakespeare presents Macbeth\'s state of mind. Write about Macbeth\'s state of mind in this speech, and in the play as a whole.', ['Hallucination and the blurring of reality', 'Dark imagery of night, witchcraft and murder', 'Links to the ghost of Banquo and to his later despair']),
+      own('Macbeth', 'Starting with Act 5 Scene 1, the sleepwalking scene, explore how Shakespeare presents guilt. Write about how Shakespeare presents guilt in this extract, and in the play as a whole.', ["Lady Macbeth's broken prose, compared with her confident verse in Act 1", 'Blood and washing imagery ("Out, damned spot")', "Macbeth's guilt too: \"Sleep no more\", Banquo's ghost"]),
+      own('Macbeth', "Starting with Act 1 Scene 2, the Captain's report of the battle, explore how Shakespeare presents violence. Write about how violence is presented in this extract, and in the play as a whole.", ['"Brave Macbeth": violence first presented as heroic', 'How violence becomes murder and tyranny later', "Context: loyalty to the king and the soldier's role"]),
+      own('Macbeth', "Starting with Act 3 Scene 1, Banquo's soliloquy (\"Thou hast it now\") and Macbeth's \"To be thus is nothing\", explore how Shakespeare presents Banquo as different from Macbeth. Write about Banquo in this extract, and in the play as a whole.", ["Banquo as a foil: he resists the witches' temptation", "Macbeth's fear of Banquo's \"royalty of nature\" and his heirs", 'Context: King James I was said to descend from Banquo']),
+      own('Macbeth', 'Starting with Act 4 Scene 3, from Ross telling Macduff his family has been killed to the end of the scene, explore how Shakespeare presents masculinity. Write about how masculinity is presented in this extract, and in the play as a whole.', ['"But I must also feel it as a man": grief as part of being a man', "Contrast with Lady Macbeth's idea of manhood in Act 1", 'Macduff as a just avenger']),
+      own('Macbeth', "Starting with Act 5 Scene 5, from Macbeth hearing of the Queen's death to the end of his \"Tomorrow, and tomorrow, and tomorrow\" speech, explore how Shakespeare presents Macbeth's feelings near the end of the play. Write about Macbeth in this extract, and how he changes across the play.", ['Nihilism: life as "a tale told by an idiot"', 'Theatre and shadow imagery', 'Contrast with the ambitious Macbeth of Act 1']),
+      own('Macbeth', 'Starting with Act 4 Scene 3, where Malcolm and Macduff describe Scotland under Macbeth, explore how Shakespeare presents kingship. Write about kingship in this extract, and in the play as a whole.', ['The "king-becoming graces" Malcolm lists', 'Duncan and Edward the Confessor as good kings; Macbeth as a tyrant', 'Context: the Divine Right of Kings and the Great Chain of Being']),
+      own('Macbeth', "Starting with Act 1 Scene 4, from Duncan's \"There's no art to find the mind's construction in the face\" to Macbeth's \"Stars, hide your fires\", explore how Shakespeare presents appearance and reality. Write about this theme in this extract, and in the play as a whole.", ['Dramatic irony: Duncan trusts Macbeth just after being betrayed by Cawdor', 'Light and dark imagery in "Stars, hide your fires"', "\"Look like the innocent flower, but be the serpent under't\" (Act 1 Scene 5)"]),
+      own('A Christmas Carol', 'Starting with Stave 1, where the two gentlemen collect for charity ("Are there no prisons?"), explore how Dickens presents attitudes to the poor. Write about this extract, and the novella as a whole.', ['Scrooge echoing harsh views of the time: "decrease the surplus population"', 'Context: the 1834 Poor Law and workhouses', "How Scrooge's words are thrown back at him later"]),
+      own('A Christmas Carol', "Starting with Stave 1, from Marley's Ghost explaining his chain (\"I wear the chain I forged in life\") to his warning about the three spirits, explore how Dickens presents regret. Write about regret in this extract, and in the novella as a whole.", ['The chain as a symbol of greed and selfishness', '"Mankind was my business": social responsibility', 'Gothic elements and their effect on Scrooge']),
+      own('A Christmas Carol', "Starting with Stave 2, Fezziwig's Christmas party, explore how Dickens presents employers and their responsibilities. Write about this extract, and the novella as a whole.", ["Fezziwig's generosity and its effect on his workers", 'Contrast with how Scrooge treats Bob Cratchit', "Context: working conditions and Dickens's own childhood work"]),
+      own('A Christmas Carol', 'Starting with Stave 2, from Belle releasing Scrooge from their engagement ("Another idol has displaced me") to the end of that scene, explore how Dickens presents the effects of greed. Write about this extract, and the novella as a whole.', ['The "golden" idol: money replacing love', "Scrooge's pain as he watches the past", 'How the past begins his transformation']),
+      own('A Christmas Carol', "Starting with Stave 3, the Cratchits' Christmas dinner, explore how Dickens presents family. Write about this extract, and the novella as a whole.", ['Happiness despite poverty', "Fred's family and Christmas at his house", "Scrooge's isolation compared with family warmth"]),
+      own('A Christmas Carol', "Starting with Stave 3, from Scrooge asking whether Tiny Tim will live to the Ghost repeating Scrooge's words about the \"surplus population\", explore how Dickens uses Tiny Tim. Write about this extract, and the novella as a whole.", ['Tiny Tim as a symbol of the vulnerable poor', "Scrooge's words used against him", 'Stave 5: "to Tiny Tim, who did NOT die, he was a second father"']),
+      own('A Christmas Carol', 'Starting with Stave 3, the end of the stave where the Ghost shows Scrooge the children Ignorance and Want, explore how Dickens presents the dangers of ignoring poverty. Write about this extract, and the novella as a whole.', ['Ignorance and Want as allegorical figures', '"Beware this boy": a warning to readers', "Context: Dickens's campaigning against child poverty and lack of education"]),
+      own('A Christmas Carol', 'Starting with Stave 4, Scrooge at his own gravestone, explore how Dickens presents fear. Write about this extract, and the novella as a whole.', ['The silent Ghost of Christmas Yet to Come and the Gothic setting', "Scrooge's pleading and promises", 'Fear as what finally changes him']),
+      own('A Christmas Carol', 'Starting with Stave 5, from Scrooge waking up ("I am as light as a feather") to his meeting with the boy in the street, explore how Dickens presents Scrooge\'s transformation. Write about this extract, and the novella as a whole.', ['Similes and exclamations showing joy', 'Contrast with the "tight-fisted" Scrooge of Stave 1', 'Redemption and the Christian message of Christmas']),
+      own('A Christmas Carol', "Starting with Stave 1, Fred's visit to Scrooge's office, explore how Dickens presents the spirit of Christmas. Write about this extract, and the novella as a whole.", ['Fred\'s speech: Christmas as "a kind, forgiving, charitable, pleasant time"', 'Scrooge\'s "Bah! Humbug!"', 'Christmas values across the novella']),
+      je("How does Sherriff present Raleigh's feelings about Stanhope and how they change during the play?", ["Raleigh's hero-worship from school", "The letter scene and Stanhope's fear of being exposed", "Raleigh's death and the end of their relationship"]),
+      je('How does Sherriff present Osborne as important to the other officers?', ['Osborne as "Uncle", a calm father figure', 'His conversation with Raleigh before the raid (Alice in Wonderland)', 'The effect of his death on Stanhope']),
+      je("How does Sherriff present fear in Journey's End?", ['Hibbert and his "neuralgia"', "Stanhope's drinking as a way of coping with fear", 'The tension before the attack']),
+      je("How does Sherriff present ideas about social class in Journey's End?", ['Trotter as a working-class officer; his food and humour', 'Mason the servant and the comedy of the food', 'Context: officers from public schools']),
+      je("How does Sherriff present the futility of war in Journey's End?", ["The raid: the colonel's orders and the cost", "Osborne's death for little gain", 'The ending: the dugout collapses']),
+      je('How does Sherriff present the ways the soldiers cope with life in the trenches?', ['Food, routine, humour and small talk', "Alcohol: Stanhope's whisky", 'Avoiding talk of death and danger']),
+      je("How does Sherriff present friendship in Journey's End?", ["Stanhope and Osborne's trust", 'Stanhope and Raleigh at the end', 'Comradeship between officers of different backgrounds']),
+      je('How does Sherriff use the setting of the dugout to present life at the front?', ['Stage directions describing the dark, cramped dugout', 'Candles, the steps up to the trench and sounds offstage', 'The final collapse of the dugout']),
+      je('How does Sherriff present Stanhope as a leader?', ['His care for his men and his officers', 'His strictness, e.g. with Hibbert', 'The strain of command and his drinking']),
+      pc('Remains', 'the effects of conflict on soldiers', 'Bayonet Charge, Exposure, War Photographer'),
+      pc('Storm on the Island', 'the power of nature', 'Exposure, The Prelude: stealing the boat, Ozymandias'),
+      pc('Poppies', 'loss and grief', 'War Photographer, Kamikaze, Remains'),
+      pc('The Émigrée', 'memory', 'Kamikaze, Remains, The Prelude: stealing the boat'),
+      pc('Checking Out Me History', 'identity', 'The Émigrée, Kamikaze, Tissue'),
+      pc('My Last Duchess', 'power and control', 'Ozymandias, London, Tissue'),
+      pc('The Charge of the Light Brigade', 'the reality of war', 'Bayonet Charge, Exposure, Remains'),
+      pc('Exposure', 'suffering in war', 'The Charge of the Light Brigade, Bayonet Charge, Remains'),
+      pc('Bayonet Charge', 'fear in conflict', 'Exposure, Remains, Kamikaze'),
+      pc('War Photographer', 'guilt', 'Remains, Kamikaze, Poppies'),
+      pc('London', 'the abuse of power', 'Ozymandias, My Last Duchess, Checking Out Me History'),
+      ['Unseen poetry', 'In "I Wandered Lonely as a Cloud", how does the poet present the speaker\'s feelings about nature?', { lv: LV.lit24, look: ["A clear answer about the speaker's feelings", 'Personification of the daffodils ("dancing", "jocund company")', 'Loneliness at the start, joy at the end', 'Memory: "that inward eye" in the final stanza', 'Form and structure: regular rhyme and metre, four stanzas', 'A personal interpretation'] }, { src: 'U1', mins: 30, pair: 'u1' }],
+      ['Unseen poetry', 'In both "I Wandered Lonely as a Cloud" and "Adlestrop" the speakers remember a moment in nature. What are the similarities and/or differences between the ways the poets present these moments?', { lv: UC8, look: ['Compared METHODS, not just meanings', 'Quotes from both poems', 'Lively movement in the daffodils against stillness in Adlestrop', 'Endings that widen out: memory in one, the birds of two counties in the other'] }, { src: ['U1', 'U2'], mins: 15, pairOf: 'u1' }],
+      ['Unseen poetry', 'In "A Poison Tree", how does the poet present anger?', { lv: LV.lit24, look: ['A clear answer about how anger is presented', 'The extended metaphor of the tree growing', 'The contrast between telling and hiding anger in stanza 1', 'The apple and the ending: hidden anger destroys', 'Simple rhyming couplets that make it sound like a warning or fable', 'A personal interpretation'] }, { src: 'U3', mins: 30, pair: 'u3' }],
+      ['Unseen poetry', 'In both "A Poison Tree" and "The Sick Rose" something hidden causes harm. What are the similarities and/or differences between the ways the poet presents this?', { lv: UC8, look: ['Compared METHODS, not just meanings', 'Quotes from both poems', 'Symbols: the tree and apple; the rose and the "invisible worm"', 'Secrecy and night in both poems; short lines in The Sick Rose'] }, { src: ['U3', 'U4'], mins: 15, pairOf: 'u3' }]] };
+})());

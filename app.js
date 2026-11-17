@@ -1161,7 +1161,7 @@ function tierFor(subj) {
   const s = S.me && S.me.subs.find(x => ids.includes(x.id));
   return s && s.tier ? s.tier[0] : null;
 }
-const paperFits = p => !p.tier || !tierFor(p.subj) || tierFor(p.subj) === p.tier;
+const paperFits = p => !p.bank && (!p.tier || !tierFor(p.subj) || tierFor(p.subj) === p.tier); /* bank: a question store for PPP, never sat as one paper */
 function qMax(q) { const s = q[2]; return Array.isArray(s) ? s.length : s.lv ? s.lv[0][1] : s.max; }
 function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.look; }
 const qX = q => q[3] || {};
