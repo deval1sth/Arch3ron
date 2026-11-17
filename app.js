@@ -1167,6 +1167,14 @@ function qTicks(q) { const s = q[2]; return Array.isArray(s) ? s : s.any || s.lo
 const qX = q => q[3] || {};
 const marksOf = p => p.qs.reduce((n, q) => n + qMax(q), 0);
 const groupOf = p => p.g || p.name.split(' ')[0];
+/* the fixed papers below never change, so each subject also offers a new paper in the real format, built by PPP (plus.js) */
+const GROUP_TRACK = { Maths: 'maths', Biology: 'biology', Chemistry: 'chemistry', Physics: 'physics', 'English Language': 'englang', 'English Literature': 'englit', Geography: 'geography', Business: 'business', RE: 're' };
+function freshRow(g) {
+  const t = GROUP_TRACK[g]; if (!t || typeof PPP_SPEC === 'undefined' || !PPP_SPEC[t] || !mySubjects().some(x => x.id === t)) return null;
+  return h('div', { class: 'fresh' }, h('p', { class: 'muted xs' }, h('b', null, 'New paper, real format: '), 'different questions each time, timed like the real one.'),
+    h('div', { class: 'row' }, PPP_SPEC[t].map((sp, k) => [B([icon('play'), sp.n], 'pppGo', 'primary sm', { 'data-track': t, 'data-k': k, title: sp.t }),
+      B(icon('scroll'), 'pppPrint', 'ghost sm icon-only desk-only', { 'data-track': t, 'data-k': k, 'aria-label': `Print a new ${sp.n}`, title: `Print a new ${sp.n}` })])));
+}
 function qScore(q, ticks, lv) { const s = q[2]; if (s.lv) return Math.max(0, lv); const n = ticks.filter(Boolean).length; return s.any ? Math.min(n, s.max) : n; }
 const qDone = (E, k, q) => E.marked[k] && (!q[2].lv || E.lv[k] >= 0);
 const qType = q => qX(q).auto && qX(q).auto.kind !== 'mcq' ? 'Calculation' : q[2].lv ? 'Extended writing' : /^(Calculate|Work out)/.test(q[1]) ? 'Calculation' : qMax(q) >= 3 ? 'Extended writing' : 'Recall';
@@ -1185,7 +1193,7 @@ function vExam() {
       h('div', { class: 'chips' }, chip('Quick · 20 questions', GP_LEN === 20, 'gpLen', { 'data-n': 20 }), chip('Long · 40 questions', GP_LEN === 40, 'gpLen', { 'data-n': 40 })),
       S.mp && B([icon('play'), `Resume ${TRACK_NAME(S.mp.track || 'maths')} paper (Q${S.mp.i + 1})`], 'mpResume', 'primary'),
       h('div', { class: 'chips' }, mySubjects().map(x => chip([icon(x.icon), x.name], false, 'mpNew', { 'data-track': x.id })))),
-    groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]),
+    groups.map(g => card(g, null, EXAM_HOW[g] && h('p', { class: 'muted xs how' }, EXAM_HOW[g]), freshRow(g),
       h('ul', { class: 'list' }, shown.filter(p => groupOf(p) === g).map(p => {
       const done = S.scores.filter(x => x.paper.startsWith(p.name)), best = done.length ? Math.max(...done.map(pctOf)) + '%' : '–', label = p.name.slice(g.length).trim();
       return h('li', { class: 'xp-row' }, h('div', { class: 'grow' }, h('b', null, label.charAt(0).toUpperCase() + label.slice(1)), h('small', null, `${p.qs.length} questions · ${marksOf(p)} marks · about ${p.mins} min`)),
@@ -1732,7 +1740,7 @@ function vMe() {
 
 /* ---------- shell ---------- */
 const TABS = [['home', 'flame', 'Focus'], ['daily', 'star', 'Daily'], ['learn', 'sparkle', 'Learn'], ['mocks', 'scroll', 'Mocks'], ['numbers', 'chart', 'Stats'], ['tools', 'grid', 'Toolkit']];
-const PARENT = { dailyarc: 'daily', lab: 'tools', ppp: 'tools', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', study: 'learn', guide: 'learn', session: 'home', listen: 'learn', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
+const PARENT = { dailyarc: 'daily', lab: 'tools', ppp: 'mocks', feedback: 'learn', exam: 'mocks', examq: 'mocks', mpaper: 'mocks', mockstart: 'mocks', wrapped: 'mocks', profile: 'tools', stats: 'numbers', ready: 'numbers', week: 'numbers', study: 'learn', guide: 'learn', session: 'home', listen: 'learn', today: 'home', drill: 'learn', subject: 'learn', write: 'learn', cards: 'learn', papers: 'numbers', lists: 'tools', fix: 'mocks', plan: 'tools', me: 'tools' };
 const VIEWS = { daily: vDailyHub, dailyarc: vDailyArc, lab: vLab, ppp: vPPP, feedback: vFeedback, search: vSearch, ready: progView('ready', vReady), mockstart: vMockStart, week: progView('week', vWeek), home: vHome, learn: vLearn, subject: vSubject, drill: vDrill, write: vWrite, study: vStudy, guide: vGuide, session: vSession, mocks: vMocks, wrapped: vWrapped, profile: vProfile, tools: vTools, today: planView('today', vToday), papers: progView('papers', vPapers), exam: vExam, examq: vExamQ, mpaper: vMPaper, stats: progView('stats', vStats), numbers: progView('numbers', vNumbers), cards: vCards, lists: vLists, fix: vFixAll, plan: planView('plan', vPlan), me: vMe };
 const ORDER = t => { const p = PARENT[t] || t, i = TABS.findIndex(x => x[0] === p); return i * 10 + (PARENT[t] ? 5 : 0); };
 let renderedDay = dkey();

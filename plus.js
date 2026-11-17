@@ -874,7 +874,7 @@ function vLab() {
       h('form', { class: 'row lab-form', 'data-lab': '1' }, h('input', { id: 'labpw', type: 'password', autocomplete: 'off', placeholder: 'Password', 'aria-label': 'Password' }), h('button', { type: 'submit', class: 'btn primary' }, 'Unlock'))));
   return h('div', { class: 'stack narrow' },
     subHero('Toolkit', 'Experimental', 'tools', 'Features being tried out. They may change or disappear. Tell Claude what works.'),
-    h('button', { type: 'button', class: 'card fixlink', 'data-act': 'go', 'data-tab': 'ppp' }, icon('scroll'), h('span', { class: 'grow' }, h('b', null, 'PPP mode'), h('small', null, 'Pure past papers: paper, mark, correct, repeat. No question ever repeats across papers.')), h('span', { class: 'btn primary sm' }, 'Open')),
+    card('Nothing being tried out right now', null, h('p', { class: 'muted xs' }, 'PPP mode has graduated: it lives in Mocks now.')),
     B('Lock again on this device', 'labLock', 'link'));
 }
 document.addEventListener('submit', e => {
@@ -1005,7 +1005,8 @@ function pppBuild(track, k) {
   } else sp.sec.forEach(([title, marks, wps, wt, bank, ws], si) => {
     const pool = (wps || []).flatMap(pid => pppPool(pid)).filter((o, j, all) => !qX(o.q).same && (!wt || wt.includes(o.q[0])) && all.findIndex(x => x.sig === o.sig) === j); /* two papers can share one Higher paper */
     let left = marks; const items = [];
-    const order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig)))], isLong = o => o.q[2].lv && qMax(o.q) >= 6;
+    /* written questions already sat come back only for the long answers (too few of those yet); short marks go to fresh bank parts instead */
+    const isLong = o => o.q[2].lv && qMax(o.q) >= 6, order = [...shuf(pool.filter(o => !used.has(o.sig))), ...shuf(pool.filter(o => used.has(o.sig) && isLong(o)))];
     const longs = order.filter(isLong).slice(0, sp.long || 0);
     for (const o of [...longs, ...order.filter(o => !longs.includes(o) && !(sp.long && isLong(o)))]) {
       const m = qMax(o.q); if (m > left || marks - left + m > marks * (ws || sp.ws || .45) + 1) continue;
@@ -1081,12 +1082,11 @@ function pppStart(track, k, printed) {
   EXRES = null; exOpen(0); go('examq', '#exans'); scrollTo({ top: 0 });
 }
 function vPPP() {
-  if (!labOpen()) return vLab();
   const papers = S.scores.filter(x => /^PPP /.test(x.paper)), corrections = S.queue.length, run = S.exam && S.exam.paper;
   const bySubj = {}; for (const p of papers) (bySubj[p.subj] = bySubj[p.subj] || []).push(pctOf(p));
   const T = PPP_SPEC[DRAFT.pppT] ? DRAFT.pppT : sessRank()[0], R = EXRES && EXRES.ppp ? EXRES : null;
   return h('div', { class: 'stack narrow' },
-    subHero('Experimental', 'PPP mode', 'lab', 'Pure past papers, done properly: sit a paper in the real exam format, mark it against the mark scheme, then correct every mistake before the next one.', 'Experimental'),
+    subHero('Mocks', 'PPP mode', 'mocks', 'Pure past papers, done properly: sit a paper in the real exam format, mark it against the mark scheme, then correct every mistake before the next one.'),
     R && examReport(R), R && R.self && (R.self.total > 0 || Object.keys(R.self.why).length > 0) && selfCard(R.self),
     h('ol', { class: 'ppp-loop' },
       h('li', { class: run ? 'on' : '' }, h('b', null, 'Sit it'), h('small', null, `Real format: the same marks, time and number of questions as the ${pppBoard(T)} paper`)),
@@ -1205,7 +1205,7 @@ function vMocks() {
       hubTool('fix', 'wrench', 'Fix', fx ? `${fx} to fix · topics and mistakes` : 'Nothing waiting. Nice.'),
       hubTool('numbers', 'chart', 'Stats', `${R.pct}% ready · grades and marks`),
       hubTool('wrapped', 'star', 'Your week, wrapped', 'Last week as a story', 'wrapOpen'),
-      labOpen() && hubTool('ppp', 'scroll', 'PPP mode', 'Real-format papers, mark, correct')].filter(Boolean)),
+      hubTool('ppp', 'scroll', 'PPP mode', 'New real-format papers: sit, mark, correct')].filter(Boolean)),
     card('Do this next', h('span', { class: 'pill' }, 'moves your grades most'), ...doNext, h('div', { class: 'row' }, B('Choose a different paper', 'go', 'link', { 'data-tab': 'exam' }))),
     card('Predicted grades', B('Details', 'go', 'link sm', { 'data-tab': 'stats' }),
       h('ul', { class: 'mg' }, rows.map(({ s, p, aim }) => h('li', { class: p && typeof p.g === 'number' && p.g >= aim ? 'ok' : '' },
