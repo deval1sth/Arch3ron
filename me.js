@@ -116,17 +116,25 @@ const ME = (() => {
     return plan;
   }
 
-  /* ---------- apply a finished set-up to the app's saved state ---------- */
-  function apply(me, rebuild) {
-    S.me = me; S.profile.name = me.name; S.mock = me.mock;
-    for (const s of me.subs) { const c = byId[s.id]; if (!c) continue; const g = S.grades[c.grade] = S.grades[c.grade] || {}; if (gn(s.cur) != null) g.cur = String(s.cur); if (gn(s.tgt) != null) g.tgt = String(s.tgt); }
-    const tracks = new Set(me.subs.flatMap(s => (byId[s.id] || { tracks: [] }).tracks)), lit = me.subs.find(s => s.id === 'englit'), re = me.subs.find(s => s.id === 're');
-    const mathsTier = (me.subs.find(s => s.id === 'maths') || {}).tier; /* Higher-only Maths topics are hidden on Foundation */
-    S.hidden = {};
+  /* the topics a set-up hides by itself: subjects not taken, Higher-only Maths on Foundation, texts and religions not studied */
+  function autoHidden(me) {
+    const out = {}, tracks = new Set(me.subs.flatMap(s => (byId[s.id] || { tracks: [] }).tracks)), lit = me.subs.find(s => s.id === 'englit'), re = me.subs.find(s => s.id === 're');
+    const mathsTier = (me.subs.find(s => s.id === 'maths') || {}).tier;
     for (const id of Object.keys(LEARN.TOPIC)) {
       const t = LEARN.TOPIC[id].subject, tx = topicText(id), rl = topicRelig(id);
-      if (!tracks.has(t) || (LEARN.TOPIC[id].tier === 'H' && mathsTier !== 'Higher') || (t === 'englit' && tx && lit && !(lit.texts || []).includes(tx)) || (t === 're' && rl && re && !(re.relig || []).includes(rl))) S.hidden[id] = true;
+      if (!tracks.has(t) || (LEARN.TOPIC[id].tier === 'H' && mathsTier !== 'Higher') || (t === 'englit' && tx && lit && !(lit.texts || []).includes(tx)) || (t === 're' && rl && re && !(re.relig || []).includes(rl))) out[id] = true;
     }
+    return out;
+  }
+  /* ---------- apply a finished set-up to the app's saved state ---------- */
+  function apply(me, rebuild) {
+    /* topics you switched off yourself in Settings stay off: only the ones the old set-up hid are worked out again */
+    const prevHidden = S.hidden || {}, wasAuto = S.me && Array.isArray(S.me.subs) ? autoHidden(S.me) : null;
+    try { DRAFT.grades = null; } catch (e) {} /* Settings' grade table is rebuilt from the new grades, not saved back over them */
+    S.me = me; S.profile.name = me.name; S.mock = me.mock;
+    for (const s of me.subs) { const c = byId[s.id]; if (!c) continue; const g = S.grades[c.grade] = S.grades[c.grade] || {}; if (gn(s.cur) != null) g.cur = String(s.cur); if (gn(s.tgt) != null) g.tgt = String(s.tgt); }
+    S.hidden = autoHidden(me);
+    if (wasAuto) for (const id of Object.keys(prevHidden)) if (prevHidden[id] && !wasAuto[id] && LEARN.TOPIC[id]) S.hidden[id] = true;
     if (rebuild) S.plan = buildPlan(me);
     const p = idx.list.find(x => x.id === active); if (p) { p.name = me.name; p.av = me.av; saveIdx(); }
     save();
@@ -156,15 +164,15 @@ const ME = (() => {
   function blank() { const d = defaultsFor(11); return { name: '', av: { k: 'a', i: Math.floor(Math.random() * 24) }, year: 11, subs: [], mock: d.mock, exams: d.exams, avail: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 1, 6: 3, 0: 1 }, ok: true }; }
   /* check = the one-time welcome for whoever used Archeron before set-up existed: their own set-up, filled in, from the start.
      Grades come only from what was typed on this device, never from the built-in report. */
-  function open(edit, check) {
-    D = (edit || check) && S.me ? JSON.parse(JSON.stringify(S.me)) : blank(); D.edit = !!(edit || check); D.check = !!check; step = check ? -1 : edit ? 2 : 0; err = ''; search = '';
+  function open(edit, check, at) { /* at: the step to open on (0 = name and picture) */
+    D = (edit || check) && S.me ? JSON.parse(JSON.stringify(S.me)) : blank(); D.edit = !!(edit || check); D.check = !!check; step = check ? -1 : edit ? (at ?? 2) : 0; err = ''; search = '';
     if (check) for (const s of D.subs) { const g = (byId[s.id] && S.grades[byId[s.id].grade]) || {}; s.cur = dig(g.cur); s.tgt = dig(g.tgt); }
     if (!root) { root = document.createElement('div'); root.id = 'su'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Set up Archeron'); document.body.append(root); }
     document.documentElement.classList.add('su-open'); paint();
-    root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange);
+    root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'su-name') { e.preventDefault(); ACT.next(); } }); root.addEventListener('change', onChange);
   }
-  function close() { if (!root) return; root.remove(); root = null; document.documentElement.classList.remove('su-open'); }
-  const firstStep = () => D.check ? -1 : D.edit ? 2 : 0;
+  function close() { if (!root) return; root.remove(); root = null; document.documentElement.classList.remove('su-open'); scrollTo(0, 0); }
+  const firstStep = () => D.check ? -1 : 0; /* editing can go back to the name and picture step */
   /* once the first person has checked their own set-up, the built-in report grades are no longer used for anyone */
   function forgetReport() { if (typeof REPORT !== 'undefined') for (const k of Object.keys(REPORT)) delete REPORT[k]; }
   const sub = id => D.subs.find(s => s.id === id);
@@ -197,7 +205,7 @@ const ME = (() => {
       try { sessionStorage.setItem(WHO, active); } catch (e) {}
       location.reload();
     },
-    keepPlan() { const me = { ...S.me, ...D, subs: D.subs.map(s => ({ ...s })), ok: true }; delete me.edit; delete me.check; apply(me, false); close(); forgetReport(); render(); toast('Set-up saved. Your plan is unchanged.'); },
+    keepPlan() { if (!D.name.trim()) { step = 0; err = 'Type your name (or a nickname) first.'; return paint(); } D.name = D.name.trim().slice(0, 24); const me = { ...S.me, ...D, subs: D.subs.map(s => ({ ...s })), ok: true }; delete me.edit; delete me.check; apply(me, false); close(); forgetReport(); render(); toast('Set-up saved. Your plan is unchanged.'); },
     skip() { for (const s of S.me.subs) { const g = (byId[s.id] && S.grades[byId[s.id].grade]) || {}; s.cur = dig(g.cur); s.tgt = dig(g.tgt); } S.me.ok = true; save(); close(); forgetReport(); render(); },
     cancel() { close(); }
   };
@@ -219,7 +227,7 @@ const ME = (() => {
       <div class="su-card"><b>What is new</b><ul class="su-new"><li>Foundation or Higher for Maths and Science, with Higher-only topics and Higher papers</li><li>Topics get harder as you get them right (levels 1 to 3)</li><li>The Daily five: five Maths questions, the same for everyone each day</li><li>Pictures on questions</li><li>More subjects: History, Computer Science, French and Spanish</li></ul></div>
       <div class="su-card"><b>What stays the same</b><p class="muted xs">Your progress, your ticks and your weekly plan. Nothing is deleted.</p></div>
       <div class="row">${btn('Skip, keep everything as it is', 'skip', 'link')}</div>`;
-    if (step === 0) return `<h1>Set up Archeron for you</h1><p class="muted">Two minutes. You can change any of this later in Toolkit.</p>
+    if (step === 0) return `<h1>${D.edit ? 'Your name and picture' : 'Set up Archeron for you'}</h1><p class="muted">${D.edit ? 'Save here, or press Next to change the rest of your set-up.' : 'Two minutes. You can change any of this later in Toolkit.'}</p>
       <label class="su-l" for="su-name">Your name or a nickname</label><input id="su-name" maxlength="24" autocomplete="off" value="${esc(D.name)}" placeholder="e.g. Sam">
       <p class="su-l">Pick a picture</p><div class="su-avs">${Array.from({ length: 24 }, (_, i) => `<button type="button" class="su-av${D.av.k === 'a' && D.av.i === i ? ' on' : ''}" data-su="av" data-i="${i}" aria-label="Avatar ${i + 1}" aria-pressed="${D.av.k === 'a' && D.av.i === i}">${avatarSvg(i)}</button>`).join('')}</div>
       <div class="row"><span class="su-me"></span>${btn('Use my own photo', 'photo', 'ghost sm')}<input type="file" id="su-file" accept="image/*" hidden></div>
@@ -261,10 +269,11 @@ const ME = (() => {
     const pct = Math.round((step + 1) / STEPS.length * 100), last = step === STEPS.length - 1, first = step === firstStep();
     root.innerHTML = `<div class="su-top"><span class="su-logo">Archeron</span><div class="su-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Set-up progress"><i style="width:${pct}%"></i></div>${D.edit && !D.check ? btn('✕', 'cancel', 'ghost icon-only', 'aria-label="Close set-up"') : '<span></span>'}</div>
       <div class="su-body">${stepHtml()}${err ? `<p class="su-err" role="alert">${esc(err)}</p>` : ''}</div>
-      <div class="su-foot">${first ? '<span></span>' : btn('Back', 'back', 'ghost')}${last ? (D.check ? btn('Build a new week', 'finish', 'ghost') + btn('Keep my plan', 'keepPlan', 'primary') : D.edit ? btn('Keep my plan', 'keepPlan', 'ghost') + btn('Build my new week', 'finish', 'primary') : btn('Start revising', 'finish', 'primary')) : btn(step === -1 ? 'Check my set-up' : 'Next', 'next', 'primary')}</div>`;
+      <div class="su-foot">${first ? (D.edit && !D.check && step === 0 ? btn('Save', 'keepPlan', 'ghost') : '<span></span>') : btn('Back', 'back', 'ghost')}${last ? (D.check ? btn('Build a new week', 'finish', 'ghost') + btn('Keep my plan', 'keepPlan', 'primary') : D.edit ? btn('Keep my plan', 'keepPlan', 'ghost') + btn('Build my new week', 'finish', 'primary') : btn('Start revising', 'finish', 'primary')) : btn(step === -1 ? 'Check my set-up' : 'Next', 'next', 'primary')}</div>`;
     const me = root.querySelector('.su-me'); if (me) me.append(avatarEl(D.av, 56));
     if (keepY) root.querySelector('.su-body').scrollTop = keepY;
     if (keepFocus) { const f = root.querySelector(keepFocus); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
+    else if (step === 0 && !D.name) root.querySelector('#su-name')?.focus(); /* first run: type your name straight away */
     else if (moved) { root.querySelector('.su-body').scrollTop = 0; const h1 = root.querySelector('h1'); if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); } }
   }
 
@@ -331,7 +340,7 @@ const ME = (() => {
     top.append(t); box.append(top);
     const row = document.createElement('div'); row.className = 'row';
     const mk = (label, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.onclick = fn; row.append(b); };
-    mk('Edit set-up', () => open(true), 'primary sm'); mk(idx.list.length > 1 ? 'Switch profile' : 'Add someone', () => idx.list.length > 1 ? picker() : addProfile(), 'ghost sm'); mk('Delete profile', removeProfile, 'ghost sm danger-t');
+    mk('Edit set-up', () => open(true), 'primary sm'); mk('Name and picture', () => open(true, false, 0), 'ghost sm'); mk(idx.list.length > 1 ? 'Switch profile' : 'Add someone', () => idx.list.length > 1 ? picker() : addProfile(), 'ghost sm'); mk('Delete profile', removeProfile, 'ghost sm danger-t');
     box.append(row); return box;
   }
   return { keys, start, open, card, picker, clean, buildPlan, apply, tracks, selfSubject, selfPriority, avatarEl, CAT, byId, profiles: () => idx.list, active: () => active };

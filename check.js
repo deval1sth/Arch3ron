@@ -13,7 +13,7 @@ const testable = sid => topicsFor(sid).filter(id => TESTABLE.has(LEARN.TOPIC[id]
 function startTest(ctx, track, qs, extra = {}) {
   DR = Object.assign({ track, topic: null, ctx, q: null, state: 'ask', count: 0, ok: 0, run: 0, last: null, picked: null, msg: '', gq: qs, res: [] }, extra);
   DRAFT.dr = ''; DR.q = qs[0] || null; SUBJ_SEL = track;
-  go('drill', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans');
+  go('drill', '#view ' + drFocusSel());
 }
 
 /* ---------- gap finder ---------- */
@@ -103,8 +103,8 @@ function testResults() {
         left > 0 && B(`Check ${Math.min(12, left)} more`, 'gapStart', first ? 'ghost' : 'primary', { 'data-track': DR.track }), B('Done', 'go', 'link', { 'data-tab': 'subject' })),
       h('p', { class: 'muted xs' }, left ? `${left} ${sn} topic${left > 1 ? 's' : ''} not checked yet.` : `Every ${sn} topic has now been checked.`));
   }
-  const g = DR.grade, pc = res.length ? ok.length / res.length : 0;
-  const [head, line] = pc >= .7 ? ['Secure at this level', `You are working at about grade ${g} on these questions.${g < 9 ? ` Try grade ${g + 1} next.` : ''}`]
+  const g = DR.grade, pc = res.length ? ok.length / res.length : 0, maxG = tierFor(trackSubj(DR.track)) === 'F' ? 5 : 9; /* Foundation stops at 5: grade 6 tests are Higher topics */
+  const [head, line] = pc >= .7 ? ['Secure at this level', `You are working at about grade ${g} on these questions.${g < maxG ? ` Try grade ${g + 1} next.` : maxG === 5 ? ' That is the top of Foundation.' : ''}`]
     : pc >= .5 ? ['Nearly there', `A few topics to firm up for grade ${g}. They are listed below.`]
       : ['Building up', `Grade ${g} questions are a stretch right now. Work on the topics below, then try again${g > 3 ? `, or try grade ${g - 1} first` : ''}.`];
   return h('section', { class: 'card test-res' },
@@ -112,7 +112,7 @@ function testResults() {
     h('p', { class: 'big-score' }, `${ok.length} / ${res.length}`), h('p', { class: 'fb-h' }, head), h('p', null, line),
     miss.length > 0 && [h('h3', null, 'To work on'), h('div', { class: 'chips' }, missChips)],
     DR.added ? h('p', { class: 'muted xs' }, `${DR.added} topic${DR.added > 1 ? 's' : ''} added to your fix queue, so Focus brings ${DR.added > 1 ? 'them' : 'it'} back.`) : null,
-    h('div', { class: 'row' }, pc >= .7 && g < 9 && B(`Try grade ${g + 1}`, 'gtGo', 'primary', { 'data-track': DR.track, 'data-g': g + 1 }),
+    h('div', { class: 'row' }, pc >= .7 && g < maxG && B(`Try grade ${g + 1}`, 'gtGo', 'primary', { 'data-track': DR.track, 'data-g': g + 1 }),
       B('Same grade again', 'gtGo', pc >= .7 ? 'ghost' : 'primary', { 'data-track': DR.track, 'data-g': g }), B('Done', 'go', 'link', { 'data-tab': 'gtest' })),
     h('p', { class: 'muted xs' }, 'A rough guide, not a grade: real grades come from full papers.'));
 }
@@ -225,7 +225,7 @@ function vXQ() {
         : [x.calc ? h('div', { class: 'answer' }, x.calc.pre && h('span', { class: 'adorn' }, x.calc.pre), h('input', { id: 'xqans', 'data-draft': 'xq', value: DRAFT.xq || '', maxlength: 80, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: x.calc.kind === 'num' ? 'decimal' : 'text', placeholder: 'Answer', 'aria-label': 'Your answer' }), x.calc.suf && h('span', { class: 'adorn' }, x.calc.suf))
           : h('textarea', { id: 'xqans', class: m >= 9 ? 'long' : '', rows: Math.min(14, 2 + m), 'data-draft': 'xq', value: DRAFT.xq || '', maxlength: 12000, placeholder: 'Write your answer and working, as you would on the paper', 'aria-label': 'Your answer' }),
           x.calc && x.calc.hint && h('p', { class: 'muted xs' }, x.calc.hint),
-          h('div', { class: 'row' }, B('Mark it', 'xqMarkIt', 'primary grow'), !last && B('Skip', 'xqGo', 'ghost', { 'data-i': XQ.i + 1 }))]),
+          h('div', { class: 'row' }, B('Mark it', 'xqMarkIt', 'primary grow'), !last ? B('Skip', 'xqGo', 'ghost', { 'data-i': XQ.i + 1 }) : B('Finish without it', 'xqFinish', 'ghost'))]),
     h('p', { class: 'muted xs center' }, `Question ${XQ.i + 1} of ${XQ.list.length}. Mark it honestly: examiners only give a mark for what is clearly there.`));
 }
 VIEWS.xq = vXQ; PARENT.xq = 'learn'; BACKS.xq = 'Exam questions';
@@ -286,10 +286,11 @@ Object.assign(ACT, {
     if (x.calc && ans) { const r = LEARN.check(x.calc, ans); if (r.valid && r.ok) { XQ.got = XQ.got.map(() => true); XQ.auto = 'Right answer: full marks.'; } else XQ.auto = `The answer is ${x.calc.show}. Tick any method marks your working earned.`; }
     else if (x.def && ans) { XQ.got = LEARN.defTicks({ points: qTicks(c.q) }, ans); XQ.auto = 'The ticks are a first guess from your words. Fix them honestly.'; }
     else if (x.gen && Array.isArray(c.q[2]) && c.q[2].length === 1 && ans && typeof fillOk === 'function' && fillOk(ans, c.q[2][0])) { XQ.got = [true]; XQ.auto = 'That matches the mark scheme.'; }
+    if (!(c.q[2] && c.q[2].lv)) xqSave(); /* saved as soon as it is marked, so leaving by Back keeps it */
     render({ focus: '#xq-next' });
   },
-  xqLevel(el) { const c = xqCur(), [lo, hi] = c.q[2].lv[+el.dataset.l]; if (!(XQ.lv >= lo && XQ.lv <= hi)) XQ.lv = Math.floor((lo + hi) / 2); render(); },
-  xqMarkSet(el) { XQ.lv = +el.dataset.m; render(); },
+  xqLevel(el) { const c = xqCur(), [lo, hi] = c.q[2].lv[+el.dataset.l]; if (!(XQ.lv >= lo && XQ.lv <= hi)) XQ.lv = Math.floor((lo + hi) / 2); xqSave(); render(); },
+  xqMarkSet(el) { XQ.lv = +el.dataset.m; xqSave(); render(); },
   xqNext() { if (!xqSave()) return; xqOpen(XQ.i + 1); render({ focus: '#xqans' }); scrollTo({ top: 0 }); },
   xqGo(el) { if (XQ.marked && !xqSave()) return; xqOpen(+el.dataset.i); render({ focus: '#xqans' }); scrollTo({ top: 0 }); },
   xqFinish() {
@@ -302,7 +303,7 @@ Object.assign(ACT, {
     XQ = null; go('subject');
   }
 });
-CHG.xqTick = el => { if (!XQ) return; XQ.got[+el.dataset.j] = el.checked; render(); };
+CHG.xqTick = el => { if (!XQ) return; XQ.got[+el.dataset.j] = el.checked; const c = xqCur(); if (XQ.marked && !(c && c.q[2] && c.q[2].lv && XQ.lv < 0)) xqSave(); render(); };
 
 /* every exam-question maker run three times: each must give a question and a non-empty mark scheme (run from the console) */
 function xqSelfTest() {

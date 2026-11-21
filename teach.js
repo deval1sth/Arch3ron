@@ -272,7 +272,7 @@ function ltGo() {
   if (!DR || DR.state !== 'learn') return;
   const q = Object.assign(DR.q, { back: true, lt: true });
   (DR.retry = DR.retry || []).push({ q, at: DR.count + 3 });
-  DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' });
+  DR.count++; nextQ(); render({ focus: drFocusSel() });
 }
 function learnCard(q) {
   return h('section', { class: 'card qcard learn-first' },
@@ -301,7 +301,7 @@ function nudge() {
   const q = DR.q, max = hintMax(q); if (!max || (DR.hint || 0) >= max) return;
   if (q.kind === 'mcq') { const hid = DR.hid = DR.hid || [], wrong = q.options.map((_, i) => i).filter(i => i !== q.a && !hid.includes(i)); if (wrong.length) hid.push(pick(wrong)); }
   DR.hint = (DR.hint || 0) + 1; SFX.play('click');
-  render({ focus: q.kind === 'mcq' ? '#opt0' : '#ans' });
+  render({ focus: drFocusSel() });
 }
 function hintList(q) {
   const n = DR.hint || 0; if (!n || q.kind === 'mcq') return null;
@@ -479,7 +479,7 @@ Object.assign(ACT, {
   lsOpen() { if (!LS) return; LS.steps[LS.i].open = true; render({ focus: '#ls-next' }); },
   lsSelf(el) { if (!LS) return; LS.asked++; if (+el.dataset.ok) LS.ok++; lsMove(1); },
   lsBoard() { const st = LS && LS.steps[LS.i]; if (st && st.d) { st.open = true; render(); playBoard(st.d, false, 'Worked example'); } },
-  lsPractise() { const t = lsTopic(); if (!t) return; startDrill(LEARN.trackOf(t), t); LS = null; go('drill', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans'); },
+  lsPractise() { const t = lsTopic(); if (!t) return; startDrill(LEARN.trackOf(t), t); LS = null; go('drill', drFocusSel()); },
   lsCarry() { if (S.tc && S.tc.fl) S.tc.fl.st = 'done'; LS = null; DR = null; save(); render(); },
   lsSkip() { if (S.tc && S.tc.fl) { S.tc.fl.st = 'skip'; ldayAdd(S.tc.fl.tr, LESSONS_A_DAY); } LS = null; DR = null; save(); render(); toast('Skipped. The lesson will be offered again another day.'); },
   ltGo,
@@ -505,7 +505,7 @@ ACT.next = function () {
   return _next();
 };
 ACT.similar = function () {
-  if (DR && DR.ctx === 'lesson') { nextQ(DR.q.id); return render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); }
+  if (DR && DR.ctx === 'lesson') { nextQ(DR.q.id); return render({ focus: drFocusSel() }); }
   return _similar();
 };
 const _reveal = ACT.reveal;

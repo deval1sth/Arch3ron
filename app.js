@@ -935,7 +935,7 @@ function vDailyHub() {
   return h('div', { class: 'stack dash dqhub' },
     mockOrbs([h('em', { class: 'dq-kick' }, 'The Daily'), 'Questions'],
       [n === ts.length ? `All done today${dailyRunTxt()}. New questions tomorrow.` : `One question a day for each of ${dailyNames()}, with a worked answer.`,
-        h('span', { class: 'dq-hint' }, 'Click any orb to continue')], [
+        h('span', { class: 'dq-hint' }, n === ts.length ? 'Click an orb to try it again' : 'Click any orb to continue')], [
       ...ts.map(t => { const s = dailyMark(t); return { act: s === null ? 'daily' : 'dailyReplay', ic: (SUBJ_BY[t] || {}).icon || 'star', name: TRACK_NAME(t),
         sub: s === true ? 'Right today ✓' : s === false ? 'Done · try it again' : 'Today\'s question', c: DQ_C[t], cls: s === null ? '' : s ? 'done' : 'tried', attrs: { 'data-track': t, 'data-d': day } }; }),
       { act: 'go', tab: 'dailyarc', ic: 'calendar', name: 'Archive', sub: 'Every past day', c: '#8a4fe0' }], 'dq-hub'));
@@ -1071,7 +1071,7 @@ function vWrite() {
     card('Plan an answer', null, planBuilder(Object.keys(PLAN_KIND), 'write')),
     card('How to answer English Language questions', null, langGuides()),
     S.plans.length ? card('Saved plans', h('span', { class: 'muted' }, S.plans.length + ' saved'),
-      [...S.plans].reverse().slice(0, 30).map(p => acc('plan' + p.id, h('span', { class: 'pl-h' }, h('b', null, PLAN_KIND[p.kind] ? PLAN_KIND[p.kind][0] : p.kind), h('small', null, `${fmtDate(p.date)} · ${p.prompt}`)),
+      [...S.plans].reverse().map(p => acc('plan' + p.id, h('span', { class: 'pl-h' }, h('b', null, PLAN_KIND[p.kind] ? PLAN_KIND[p.kind][0] : p.kind), h('small', null, `${fmtDate(p.date)} · ${p.prompt}`)),
         [h('dl', { class: 'pl' }, (PLAN_FIELDS[(PLAN_KIND[p.kind] || [, 'lit'])[1]] || []).map((f, i) => p.f[i] ? [h('dt', null, f), h('dd', null, p.f[i])] : null)),
           B([icon('x'), 'Delete plan'], 'pbDel', 'link', { 'data-id': p.id })], { cls: 'saved' }))) : null);
 }
@@ -1377,7 +1377,7 @@ function vMPaper() {
       h('p', { class: 'qtext' }, q.q),
       q.kind === 'mcq' ? h('div', { class: 'mcq' }, q.options.map((o, k) => h('button', { type: 'button', class: 'opt' + (M.ans[i] === String(k) ? ' picked' : ''), 'data-act': 'mpPick', 'data-o': k, 'aria-pressed': String(M.ans[i] === String(k)) }, h('span', { class: 'opt-k' }, String(k + 1)), h('span', null, o)))) :
       h('div', { class: 'answer' }, q.pre && h('span', { class: 'adorn' }, q.pre),
-        h('input', { id: 'mpans', 'data-draft': 'mp', value: DRAFT.mp || '', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: last ? 'done' : 'next', 'aria-label': 'Your answer' }),
+        h('input', { id: 'mpans', 'data-draft': 'mp', value: DRAFT.mp || '', maxlength: 40, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', inputmode: q.kind === 'num' ? 'decimal' : 'text', enterkeyhint: last ? 'done' : 'next', 'aria-label': 'Your answer' }),
         q.suf && h('span', { class: 'adorn' }, q.suf)),
       q.hint && h('p', { class: 'muted xs' }, q.hint),
       h('div', { class: 'row' }, i > 0 && B('Back', 'mpGo', 'ghost', { 'data-i': i - 1 }), last ? B('Finish and mark', 'mpFinish', 'primary grow') : B('Next', 'mpGo', 'primary grow', { 'data-i': i + 1 }))),
@@ -1607,12 +1607,12 @@ function vCards() {
     body = [
       h('button', { type: 'button', class: 'flash' + (CD.flip ? ' flipped' : ''), 'data-act': 'flip', 'aria-label': 'Flashcard. Tap to flip' },
         h('div', { class: 'flash-in' },
-          h('div', { class: 'face front' }, h('span', { class: 'deck-n' }, D.name), h('p', null, o.f), h('small', null, 'Say it out loud, then tap')),
+          h('div', { class: 'face front' }, h('span', { class: 'deck-n' }, D.name), h('p', null, o.f), h('small', null, 'Say it out loud, then click or press Space')),
           h('div', { class: 'face back', 'aria-live': 'polite' }, h('span', { class: 'deck-n' }, o.f), h('p', null, o.b)))),
       h('div', { class: 'row center rate', id: 'rate', hidden: !CD.flip },
-        B('Again soon', 'rate', 'ghost', { 'data-ok': 0 }), B('Got it', 'rate', 'primary', { 'data-ok': 1 })),
+        B('Again soon (1)', 'rate', 'ghost', { 'data-ok': 0 }), B('Got it (2)', 'rate', 'primary', { 'data-ok': 1 })),
       h('div', { class: 'boxes', 'aria-label': `Box ${box} of 5` }, [0, 1, 2, 3, 4, 5].map(b => h('i', { class: b <= box ? 'on' : '' }))),
-      h('p', { class: 'muted center xs' }, `${list.length} to review · after flipping, swipe right if you got it, left for again`)];
+      h('p', { class: 'muted center xs' }, `${list.length} to review · Space flips, then 1 = again soon, 2 = got it (or swipe)`)];
   }
   const C = DRAFT.card, mine = S.custom[CD.deck] || [];
   return h('div', { class: 'stack narrow' },
@@ -1694,7 +1694,7 @@ function vMe() {
   if (!DRAFT.grades) DRAFT.grades = Object.fromEntries(SUBJ.map(s => [s, Object.assign({ cur: '', tgt: '', pct: '' }, S.grades[s])]));
   const G = DRAFT.grades;
   return h('div', { class: 'stack' },
-    subHero('Toolkit', 'Settings', 'tools'),
+    subHero('Toolkit', 'Settings', VIEWS[ME_FROM] && BACKS[ME_FROM] ? ME_FROM : 'tools'),
     h('div', { class: 'cols' },
       h('div', { class: 'stack' },
         card('My subjects and topics', null, h('p', { class: 'muted xs' }, "Hide topics you don't study, e.g. a religion or poetry cluster you're not doing. Hidden topics leave practice, gates and missions."),
@@ -1810,12 +1810,15 @@ function revealAboveNav(e) {
 }
 /* Page changes slide sideways in the direction of travel (View Transitions API, motion tuned after Transitions.dev "Page side-by-side") */
 const SCROLLS = {};
+let ME_FROM = 'tools';
 function go(t, focusSel) {
   if (!VIEWS[t]) return;
   if (t !== TAB) SFX.play('click');
   const dir = ORDER(t) >= ORDER(TAB) ? 'fwd' : 'back';
   const from = TAB, fromY = scrollY; /* Back to a list returns to where you were in it, like a phone app; anywhere else starts at the top */
-  const swap = () => { SCROLLS[from] = fromY; TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, t === PARENT[from] ? SCROLLS[t] || 0 : 0); };
+  if (t === 'me' && from !== 'me') ME_FROM = from; /* Settings' Back returns to wherever you opened it from (the countdown chip is on every screen) */
+  const back = t === PARENT[from] || (from === 'drill' && t === 'subject') || (from === 'me' && t === ME_FROM);
+  const swap = () => { SCROLLS[from] = fromY; TAB = t; if (t === 'plan') PD = new Date().getDay(); CHOOSE = false; render({ enter: true }); scrollTo(0, back ? SCROLLS[t] || 0 : 0); };
   if (HAS_VT && t !== TAB) { document.documentElement.dataset.dir = dir; document.startViewTransition(swap).ready.catch(() => {}); } /* a quick second tap skips the first slide: that is fine */
   else swap();
   setTimeout(() => { const f = focusSel && $(focusSel); (f || $('#view')).focus({ preventScroll: true }); }, HAS_VT ? 60 : 0);
@@ -1823,11 +1826,13 @@ function go(t, focusSel) {
 
 /* two taps instead of the browser's confirm box: browsers can switch that box off for a site ("prevent this page from
    creating dialogs", some app windows), and then it always answers no, which left papers impossible to start */
+/* where the keyboard should land on a new question: a hint can disable option A, and match/order cards have no #ans */
+const drFocusSel = () => { const k = DR && DR.q && DR.q.kind; return !k ? '.dq-go .btn.primary' : k === 'mcq' ? '.mcq .opt:not(:disabled)' : k === 'order' ? '.ord-opt' : k === 'match' ? '.mt-l' : '#ans'; };
 let SURE = null;
-function sure(msg) {
-  const now = Date.now();
-  if (SURE && SURE.k === msg && now - SURE.t < 6000) { SURE = null; return true; }
-  SURE = { k: msg, t: now }; toast(msg + ' Tap again to confirm.'); return false;
+function sure(msg, id = '') { /* id: which row, so "Delete" on paper A then on paper B is two first taps, not one confirm */
+  const now = Date.now(); msg = String(msg); const k = msg + '\u0000' + id;
+  if (SURE && SURE.k === k && now - SURE.t < 6000) { SURE = null; return true; }
+  SURE = { k, t: now }; toast(msg + ' Tap again to confirm.'); return false;
 }
 function toast(m, cls = '') {
   const t = h('div', { class: 'toast t-toast ' + cls }, m);
@@ -1874,7 +1879,11 @@ const ACT = {
   tgl() {
     if (T.run) { if (T.mode === 'focus') accountFocusTime(Date.now(), true); T.left = Math.max(0, (T.end - Date.now()) / 1000); T.run = false; T.focusSavedAt = 0; }
     else { if (T.mode === 'focus') { if (!timerActive()) { T.sid = currentSid(); T.swap = null; DR = null; SFX.play('start'); } T.focusSavedAt = Date.now(); recordStudyActivity(T.focusSavedAt, true); save(); } T.end = Date.now() + T.left * 1000; T.run = true; }
-    saveT(); render(); scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+    saveT(); render();
+    /* on a short window the first question can sit below the fold: bring it up instead of the top of the page */
+    const qc = T.run && T.mode === 'focus' && $('#view .qcard');
+    if (qc && qc.getBoundingClientRect().bottom > innerHeight) { qc.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); $('#view .qcard ' + drFocusSel())?.focus({ preventScroll: true }); }
+    else scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   },
   rst() { if (T.mode === 'focus' && T.run && !sure('End this set early? It will not count as a set.')) return; if (T.run && T.mode === 'focus') accountFocusTime(Date.now(), true); T.run = false; T.focusSavedAt = 0; T.mode = 'focus'; T.len = 0; T.rescue = false; T.swap = null; T.left = tTotal(); T.sid = null; saveT(); render(); },
   skip() { if (T.run && T.mode === 'focus') accountFocusTime(Date.now(), true); T.run = false; T.focusSavedAt = 0; T.mode = T.mode === 'focus' ? 'break' : 'focus'; T.len = 0; T.rescue = false; T.left = tTotal(); saveT(); render(); },
@@ -1888,14 +1897,14 @@ const ACT = {
   choose() { CHOOSE = !CHOOSE; render(); },
   atMore() { AT_MORE = !AT_MORE; render(); },
   wbSkip() { S.tc = S.tc || {}; S.tc.wb = { d: dkey(), skip: true }; save(); render(); },
-  subjTab(el) { SUBJ_TAB[SUBJ_SEL] = el.dataset.k; render(); },
+  subjTab(el) { SUBJ_TAB[SUBJ_SEL] = el.dataset.k; render(); const hb = $('#view .hero'); if (hb && hb.getBoundingClientRect().bottom < 70) scrollTo(0, Math.max(0, scrollY + hb.getBoundingClientRect().bottom - 70)); }, /* the tabs are sticky: the new list starts at its top, just under them */
   gapPick() { GAP_PICK = !GAP_PICK; render(); },
   freeTrack(el) { FREE_TRACK = el.dataset.track; DR = null; render(); },
   preset(el) { S.timer = { focus: +el.dataset.f, brk: +el.dataset.b }; save(); if (!T.run) { T.left = tTotal(); saveT(); } render(); },
   subject(el) { SUBJ_SEL = el.dataset.track; go('subject'); },
   drill(el) {
     if (el.dataset.topic) startDrill(LEARN.trackOf(el.dataset.topic), el.dataset.topic); else startDrill(el.dataset.track || 'all');
-    go('drill', DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans');
+    go('drill', '#view ' + drFocusSel());
   },
   mcq(el) { if (!DR || DR.state !== 'ask') return; DR.picked = +el.dataset.i; finishAnswer(LEARN.check(DR.q, String(DR.picked))); },
   check() {
@@ -1932,9 +1941,9 @@ const ACT = {
   },
   /* worked example first: your own question appears straight away and the example plays beside it (desk) or over it (phone) */
   exWatch() { if (!DR || !DR.ex) return; const d = DR.ex; DR.state = 'ask'; render({ focus: '#ans' }); playBoard(d, false, 'Worked example'); },
-  exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
-  next() { DR.count++; nextQ(); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
-  similar() { DR.count++; nextQ(DR.q.id); render({ focus: DR.q && DR.q.kind === 'mcq' ? '#opt0' : '#ans' }); },
+  exSkip() { if (!DR) return; DR.state = 'ask'; DR.ex = null; render({ focus: drFocusSel() }); },
+  next() { DR.count++; nextQ(); render({ focus: drFocusSel() }); },
+  similar() { DR.count++; nextQ(DR.q.id); render({ focus: drFocusSel() }); },
   drillFix() {
     const q = DR.q, subj = SUBJ_BY[LEARN.trackOf(q.id)].subj;
     S.mistakes.push({ id: newId(), date: dkey(), subj, topic: LEARN.name(q.id), note: `${q.q} → ${q.show}`.slice(0, 300), redo: addDays(3), fixed: false });
@@ -1948,7 +1957,7 @@ const ACT = {
     S.plans.push({ id: newId(), date: dkey(), kind, prompt: PROMPTS[kind][D.pi], f: D.f.map(x => x.trim()) });
     S.stat.plans++; delete DRAFT.plans[kind]; save(); toast('Plan saved. Now write it up on paper.', 'big'); render();
   },
-  pbDel(el) { if (!sure('Delete this plan?')) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
+  pbDel(el) { if (!sure('Delete this plan?', el.dataset.id)) return; S.plans = S.plans.filter(p => p.id !== +el.dataset.id); save(); render(); },
   emblem(el) { S.profile.emblem = el.dataset.id; save(); render(); },
   theme(el) { const t = THEMES.find(x => x[0] === el.dataset.v); if (!t) return; S.theme = t[0]; save(); applyTheme(); render(); toast(t[1] + ' highlighter'); },
   mode(el) { const m = MODES.find(x => x[0] === el.dataset.v); if (!m) return; S.mode = m[0]; save(); applyTheme(); render(); toast('Page: ' + m[1]); },
@@ -1970,7 +1979,7 @@ const ACT = {
     CHART.add(D.subj); xp(25);
     DRAFT.score = blankScore(D.subj); render();
   },
-  delScore(el) { if (!sure('Delete this paper?')) return; S.scores = S.scores.filter(s => s.id !== +el.dataset.id); save(); render(); },
+  delScore(el) { if (!sure('Delete this paper?', el.dataset.id)) return; S.scores = S.scores.filter(s => s.id !== +el.dataset.id); save(); render(); },
   lost2fix(el) {
     S.mistakes.push({ id: newId(), date: dkey(), subj: el.dataset.subj, topic: el.dataset.topic, note: 'From marks to win back', redo: dkey(), fixed: false });
     toast('Added to your fix list'); save(); render();
@@ -1991,7 +2000,7 @@ const ACT = {
     (S.custom[CD.deck] = S.custom[CD.deck] || []).push({ id: 'u' + newId().toString(36), f, b });
     DRAFT.card = { f: '', b: '' }; save(); toast('Card added'); render();
   },
-  delCard(el) { if (!sure('Delete this card?')) return; const id = el.dataset.id; S.custom[CD.deck] = (S.custom[CD.deck] || []).filter(c => c.id !== id); delete S.cards[id]; save(); render(); },
+  delCard(el) { if (!sure('Delete this card?', el.dataset.id)) return; const id = el.dataset.id; S.custom[CD.deck] = (S.custom[CD.deck] || []).filter(c => c.id !== id); delete S.cards[id]; save(); render(); },
   list: el => { LT = el.dataset.k; render(); },
   listGo: el => { LT = el.dataset.k; go('lists'); },
   conf(el) {
@@ -2105,7 +2114,7 @@ const restoreFrom = (data, name, extra) => { RESTORE = Object.assign({ data, nam
 ACT.asideUse = el => { const k = el.dataset.k, d = asideData(k); if (!d) return toast('That copy could not be read'); restoreFrom(d, 'The save set aside ' + whenTxt(+k.split('-unreadable-')[1]), { aside: k }); };
 ACT.asideGet = el => saveText('archeron-set-aside-' + dkey(new Date(+el.dataset.k.split('-unreadable-')[1])) + '.json', read(el.dataset.k) || '');
 ACT.asideDel = el => {
-  const k = el.dataset.k; if (!sure('Delete this set-aside save? A safety copy of it stays on this device for a while.')) return;
+  const k = el.dataset.k; if (!sure('Delete this set-aside save? A safety copy of it stays on this device for a while.', k)) return;
   SNAPS.before('deleted set-aside save', read(k) || '').then(() => { try { localStorage.removeItem(k); } catch (e) {} render(); });
 };
 ACT.snapUse = el => SNAPS.get(el.dataset.id).then(x => { let d = null; try { d = x && JSON.parse(x.json); } catch (e) {} if (!d || typeof d !== 'object') return toast('That safety copy could not be read'); restoreFrom(d, snapName(x)); });
@@ -2120,14 +2129,35 @@ document.addEventListener('click', e => {
   if (ACT[el.dataset.act]) runAct(el.dataset.act, el, e);
 });
 document.addEventListener('change', e => { const el = e.target, f = el.dataset && CHG[el.dataset.act]; if (f) { withUndo(el.dataset.act, () => f(el)); checkAch(); } });
-document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.draft) setPath(DRAFT, el.dataset.draft, el.value); });
+let DSAVE = 0; /* the paper answer being typed is kept in the save, so leaving or reloading mid-question loses nothing */
+document.addEventListener('input', e => {
+  const el = e.target; if (!(el.dataset && el.dataset.draft)) return;
+  setPath(DRAFT, el.dataset.draft, el.value);
+  const d = el.dataset.draft, E = S.exam, M = S.mp;
+  if (d === 'ex' && E && E.ans && !(E.marked && E.marked[E.i])) E.ans[E.i] = el.value;
+  else if (d === 'mp' && M && M.qs[M.i] && M.qs[M.i].kind !== 'mcq') M.ans[M.i] = el.value.slice(0, 40);
+  else return;
+  clearTimeout(DSAVE); DSAVE = setTimeout(save, 500);
+});
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); $('#view .exq .btn.primary')?.click(); return; }
-  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); ACT.check(); checkAch(); return; }
+  if (e.key === 'Enter' && e.target.id === 'mpans') { e.preventDefault(); if (!e.repeat) $('#view .exq .btn.primary')?.click(); return; }
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) { e.preventDefault(); if (!e.repeat) { ACT.check(); checkAch(); } return; } /* a held Enter must not check the next, empty answer */
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, textarea, select')) return;
-  if (DR && ['drill', 'home', 'guide'].includes(TAB) && DR.q) {
+  if (document.getElementById('notes') || document.documentElement.classList.contains('su-open')) return; /* topic notes or set-up are over the page */
+  if (e.key === 'Escape') { const b = $('#view .backlink'); if (b) { e.preventDefault(); b.click(); } return; }
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.target.closest('[role="tablist"]')) {
+    const tabs = [...e.target.closest('[role="tablist"]').querySelectorAll('[role="tab"]')], i = tabs.indexOf(e.target.closest('[role="tab"]'));
+    const t = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]; if (t) { e.preventDefault(); t.click(); $(`#view [role="tab"][data-k="${t.dataset.k}"]`)?.focus(); } return;
+  }
+  if (TAB === 'lesson' && (e.key === 'Enter' || e.key === 'ArrowRight') && !e.target.closest('button, a') && !(DR && DR.ctx === 'lesson' && DR.state === 'ask')) { const n = $('#ls-next'); if (n && !n.disabled) { e.preventDefault(); n.click(); return; } }
+  if (DR && ['drill', 'home', 'guide', 'lesson'].includes(TAB) && DR.q) {
     if (DR.state === 'ask' && DR.q.kind === 'mcq' && /^[1-4]$/.test(e.key)) { $(`[data-act="mcq"][data-i="${+e.key - 1}"]`)?.click(); return; }
-    if (DR.state !== 'ask' && DR.state !== 'mark' && e.key === 'Enter' && !e.target.closest('button')) { ACT.next(); return; }
+    if (TAB !== 'lesson' && DR.state !== 'ask' && DR.state !== 'mark' && DR.state !== 'example' && e.key === 'Enter' && !e.repeat && !e.target.closest('button')) { ACT.next(); return; }
+  }
+  if (TAB === 'listen' && typeof LSN !== 'undefined' && LSN.items.length) {
+    if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); ACT.lsnToggle(); return; }
+    if (e.key === 'ArrowRight') { ACT.lsnSkip(); return; }
+    if (e.key === 'ArrowLeft') { ACT.lsnBack(); return; }
   }
   if (TAB === 'cards') {
     if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); $('.flash')?.click(); }

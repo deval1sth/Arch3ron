@@ -1011,7 +1011,10 @@ const LEARN = (() => {
   /* ---------- answer checking ---------- */
   const norm = s => String(s || '').trim().replace(/[−–—]/g, '-').replace(/\s+/g, ' ');
   function parseNum(s) {
-    const m = norm(s).replace(/,/g, '').match(/-?\d*\.?\d+(e-?\d+)?/i);
+    let t = norm(s);
+    if (/^-?\d+,\d{1,2}$/.test(t)) t = t.replace(',', '.'); /* 0,5 is a decimal comma; 3,000 stays three thousand */
+    t = t.replace(/(\d) (?=\d{3}(\D|$))/g, '$1'); /* 3 000 */
+    const m = t.replace(/,/g, '').match(/-?\d*\.?\d+(e-?\d+)?/i);
     return m ? Number(m[0]) : null;
   }
   function parseFrac(s) {
@@ -1072,6 +1075,8 @@ const LEARN = (() => {
     if (!s) return { valid: false, msg: 'Type an answer first' };
     if (q.kind === 'mcq') { const i = Number(s); return Number.isInteger(i) && i >= 0 && i < q.options.length ? { valid: true, ok: i === q.a } : { valid: false, msg: 'Pick an answer' }; }
     if (q.kind === 'num') {
+      /* 1/2 or 3 × 10^4 would be read as just 1 or 3: ask for a decimal instead of marking it wrong */
+      if (/\d\s*\/\s*\d/.test(s) || /[x×*]\s*10\s*(\^|\*\*)/i.test(s) || /\b10\s*\^/.test(s)) return { valid: false, msg: 'Type it as a decimal number, like 0.5 or 30000' };
       const x = parseNum(s); if (x == null) return { valid: false, msg: 'Type a number' };
       const tol = q.tol != null ? q.tol : q.rel != null ? Math.max(Math.abs(q.v) * q.rel, q.rel >= .005 ? .01 : 0) : 1e-6;
       return { valid: true, ok: Math.abs(x - q.v) <= tol + 1e-12 };
@@ -1193,9 +1198,10 @@ const LEARN = (() => {
       }
       if (q.mode === 'hex') { const d = s.toUpperCase().replace(/\s|^0X/g, ''); if (!/^[0-9A-F]+$/.test(d)) return { valid: false, msg: 'Type hex digits 0–9 and A–F' }; return { valid: true, ok: parseInt(d, 16) === parseInt(q.ans, 16) }; }
       /* words: case and the kind of apostrophe never matter; a missing accent is accepted with a reminder */
-      const flat = t => t.toLowerCase().replace(/[’‘]/g, "'").trim(), bare = t => flat(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const flat = t => t.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/[.!]+$/, ''), bare = t => flat(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
       if (flat(s) === flat(q.ans)) return { valid: true, ok: true };
       if (bare(s) === bare(q.ans)) return { valid: true, ok: true, msg: `Watch the accent: ${q.ans}` };
+      if (bare(s).replace(/[-\s]/g, '') === bare(q.ans).replace(/[-\s]/g, '')) return { valid: true, ok: true, msg: `Watch the spelling: ${q.ans}` }; /* co-operate / cooperate */
       return { valid: true, ok: false };
     }
     if (q.kind === 'formula' || q.kind === 'coef') return CHEM.check(q, s);

@@ -132,6 +132,7 @@ Object.assign(ACT, {
     const tr = el.dataset.track || null, list = fcPick(fcFacts(), tr);
     if (!list.length) return toast('Nothing needs a top-up right now');
     const qs = list.map(f => { const q = f.it.q(); return q && withId(q, f.id); }).filter(Boolean);
+    if (!qs.length) return toast('Nothing needs a top-up right now');
     startTest('topup', tr || LEARN.trackOf(qs[0].id), qs, { fcTrack: tr });
   }
 });
