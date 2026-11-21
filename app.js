@@ -1325,6 +1325,7 @@ const EXACT = {
     const timed = !!(E.end || E.timed), self = p.ppp ? pppCheck(p, E) : null;
     const name = p.name + (timed ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
+    if (typeof rlogPush === 'function') p.qs.forEach((q, k) => { if (done[k]) rlogPush(`p:${E.pid}:${k + 1},${today()},${qScore(q, E.got[k], E.lv[k])},${qMax(q)},${String(q[0]).replace(/[,\r\n]+/g, ';')},${timed ? 1 : 0}`); }); /* review log: marks per question */
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25); dayEv('paper');
     const g = groupOf(p), lostIds = p.qs.filter((q, k) => done[k] && qX(q).tid && qScore(q, E.got[k], E.lv[k]) < qMax(q)).map(q => qX(q).tid);
@@ -1418,7 +1419,7 @@ const MPACT = {
     const blank = M.ans.filter(a => !a).length;
     if (blank && !sure(`${blank} question${blank > 1 ? 's are' : ' is'} blank and will score 0. Mark the paper now?`)) return;
     if (M.ppp && !M.self) { M.self = { i: 0, my: M.qs.map(() => null), why: M.qs.map(() => '') }; save(); render(); return scrollTo({ top: 0 }); } /* PPP: you mark it first */
-    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); if (q.kind !== 'mcq' && a.trim()) dayEv('written'); record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
+    const rows = M.qs.map((q, k) => { const a = M.ans[k], r = a ? LEARN.check(q, a) : { valid: false }; const ok = !!(r.valid && r.ok); if (q.kind !== 'mcq' && a.trim()) dayEv('written'); if (typeof RLX !== 'undefined') RLX.ans = q.kind === 'mcq' && a ? q.options[+a] : a; record(q.id, ok, q.key); return { q, a, ok, msg: r.valid ? r.msg : '' }; });
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));

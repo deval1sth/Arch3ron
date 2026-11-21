@@ -157,14 +157,40 @@ VIEWS.numbers = function () {
    honest as its data. About 25 bytes an answer; save() drops the oldest half if storage ever fills. */
 const RLOG_MAX = 30000;
 const rlogPush = line => { const L = tcArr('rlog'); L.push(line); if (L.length > RLOG_MAX) L.splice(0, L.length - RLOG_MAX); };
-const rlogMeta = (id, key) => {
+/* 11.9.67 (Runo asked for fuller data) adds eight fields after secs:
+   ctx   where it was asked: focus, lesson, daily, gap, grade, sess, guide, learn, paper (generated paper), drill
+   why   new (first time), due (a review that was due), early (seen again before due), retry (back after a miss), fix (fix queue)
+   lvl   question level 1-3 for levelled topics
+   hour  hour of the day, 0-23
+   think seconds from the question appearing to the first key typed (typed answers only)
+   away  seconds the tab was hidden while the question was open
+   shown "s" when Show me was pressed (logged as not right, but it is not a wrong answer)
+   ans   what was given when wrong: the typed text, the picked option, or the order as 2-1-3 (commas become ;, max 40 chars)
+   Paper marks, one line a question: "p:paper:question,day,got,max,topic,timed" (real-format papers) and
+   "p:xq:subject:label:question,day,got,max" (exam questions rounds). */
+const RLX = { ctx: '', ans: null, shown: false };
+const rlClean = s => String(s == null ? '' : s).replace(/[,\r\n]+/g, ';').trim().slice(0, 40);
+const rlWhy = (q, id, key) => {
+  if (q && q.back) return 'retry';
+  if (DR && DR.track === 'fix') return 'fix';
+  if (!key) return id && LEARN.TOPIC[id] && !skill(id).n ? 'new' : '';
+  const m = S.items[key]; if (!m) return 'new';
+  const T = LEARN.TUNE, gap = today() - m[3] - (m[2] > 0 ? T.grow ** (m[2] - 1) : T.miss); /* the same rule as learn.js choose() */
+  return gap >= 0 ? 'due' : 'early';
+};
+const rlogMeta = (id, key, ok) => {
   const q = DR && DR.q && (DR.q.id === id || (key && DR.q.key === key)) ? DR.q : null;
-  return q ? `${q.kind || ''},${DR.hint || 0}${DR.notesQ === q ? 'n' : ''},${DR.tq === q && DR.t0 ? Math.min(900, Math.round((Date.now() - DR.t0) / 1000)) : ''}` : ',,'; /* "1n" = 1 hint, topic notes read first */
+  const lvl = id && LEARN.LEVELLED.has(id) ? levelOf(id) : '', hour = new Date().getHours(), shown = RLX.shown ? 's' : '';
+  if (!q) return `,,,${RLX.ctx},${rlWhy(null, id, key)},${lvl},${hour},,,${shown},${ok || shown || RLX.ans == null ? '' : rlClean(RLX.ans)}`;
+  const mine = DR.tq === q, secs = mine && DR.t0 ? Math.min(900, Math.round((Date.now() - DR.t0) / 1000)) : '';
+  const think = mine && DR.tk1 && DR.t0 ? Math.min(900, Math.round((DR.tk1 - DR.t0) / 1000)) : '', away = mine && DR.away ? Math.round(DR.away / 1000) : '';
+  const ans = ok || shown ? '' : rlClean(q.kind === 'mcq' ? (DR.picked != null && q.options ? q.options[DR.picked] : '') : q.kind === 'order' ? (DR.ord || []).map(i => i + 1).join('-') : q.kind === 'match' ? '' : DRAFT.dr);
+  return `${q.kind || ''},${DR.hint || 0}${DR.notesQ === q ? 'n' : ''},${secs},${RLX.ctx || DR.ctx || 'drill'},${rlWhy(q, id, key)},${lvl},${hour},${think},${away},${shown},${ans}`; /* "1n" = 1 hint, topic notes read first */
 };
 const _recordF = record;
 record = function (id, ok, key) {
   const self = DR && DR.q && DR.q.key === key && DR.q.kind === 'def';
-  if (!self && (key || (id && LEARN.TOPIC[id]))) rlogPush(`${key || 'T:' + id},${today()},${ok ? 1 : 0},${rlogMeta(id, key)}`);
+  if (!self && (key || (id && LEARN.TOPIC[id]))) rlogPush(`${key || 'T:' + id},${today()},${ok ? 1 : 0},${rlogMeta(id, key, ok)}`);
   /* today's missed topics by name, for the Rival page (rival.js): { d: day, t: { id: [name, subject, misses, firstMissMs] } } */
   if (!ok && id && LEARN.TOPIC[id]) {
     const M = tcObj('miss'), d = dkey();
@@ -193,7 +219,25 @@ record = function (id, ok, key) {
 };
 /* the clock for "secs" starts when a question first appears */
 const _drillPanelF = drillPanel;
-drillPanel = function () { if (DR && DR.q && DR.state === 'ask' && DR.tq !== DR.q) { DR.tq = DR.q; DR.t0 = Date.now(); } return _drillPanelF(); };
+drillPanel = function () { if (DR && DR.q && DR.state === 'ask' && DR.tq !== DR.q) { DR.tq = DR.q; DR.t0 = Date.now(); DR.tk1 = 0; DR.away = 0; DR.awayAt = 0; } return _drillPanelF(); };
+/* think: the first key typed into the answer box; away: time the tab was hidden while a question was open */
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.draft === 'dr' && DR && DR.q && DR.tq === DR.q && DR.state === 'ask' && !DR.tk1) DR.tk1 = Date.now(); });
+document.addEventListener('visibilitychange', () => {
+  if (!DR || !DR.q || DR.tq !== DR.q || DR.state !== 'ask') return;
+  if (document.hidden) DR.awayAt = Date.now(); else if (DR.awayAt) { DR.away = (DR.away || 0) + Date.now() - DR.awayAt; DR.awayAt = 0; }
+});
+/* Show me, and answers marked at the end of a generated paper */
+const _revealF = ACT.reveal;
+ACT.reveal = function (...a) { RLX.shown = true; try { return _revealF.apply(this, a); } finally { RLX.shown = false; } };
+const _mpFinishF = ACT.mpFinish;
+ACT.mpFinish = function (...a) { RLX.ctx = 'paper'; try { return _mpFinishF.apply(this, a); } finally { RLX.ctx = ''; RLX.ans = null; } };
+/* exam questions rounds: one line per marked question when the round is finished */
+const _xqFinishF = ACT.xqFinish;
+ACT.xqFinish = function (...a) {
+  const X = XQ, r = _xqFinishF.apply(this, a);
+  if (X && XQ !== X) (X.res || []).forEach((d, i) => { if (d) rlogPush(`p:xq:${String(X.sid + ':' + X.label).replace(/[,\r\n]+/g, ';')}:${i + 1},${today()},${d[0]},${d[1]}`); });
+  return r;
+};
 /* study before testing: a new-fact card, a lesson */
 const _ltGoF = ltGo; /* reached by the Got it button (ACT.ltGo) and by Enter (teach.js ACT.next calls ltGo()) */
 ltGo = function () { if (DR && DR.state === 'learn' && DR.q) rlogPush(`c:${DR.q.key || DR.q.id},${today()}`); return _ltGoF(); };
@@ -215,7 +259,7 @@ function rlogCard() {
 }
 ACT.rlogExport = () => {
   const L = tcArr('rlog'); if (!L.length) return;
-  const data = { app: 'archeron', kind: 'review-log', v: 2, exported: dkey(), mock: S.mock, fields: 'key,day,right,type,hints (n = topic notes read first),secs (older entries: key,day,right); c:key,day = fact card shown; l:lesson,day = lesson started; T:topic = calculation topic', reviews: L };
+  const data = { app: 'archeron', kind: 'review-log', v: 3, exported: dkey(), mock: S.mock, fields: 'key,day,right,type,hints (n = topic notes read first),secs,ctx,why (new/due/early/retry/fix),lvl,hour,think (secs to first key),away (secs tab hidden),shown (s = Show me),ans (what was given when wrong) - entries before 11.9.67 stop after secs, before 11.9.51 after right; c:key,day = fact card shown; l:lesson,day = lesson started; T:topic = calculation topic; p:paper:question,day,got,max,topic,timed and p:xq:subject:label:question,day,got,max = paper marks', reviews: L };
   const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: `archeron-reviews-${dkey()}.json` });
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast(`${L.length.toLocaleString('en-GB')} answers exported`);
