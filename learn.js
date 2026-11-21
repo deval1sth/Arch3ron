@@ -869,7 +869,10 @@ const LEARN = (() => {
   const gap = m => m.ago - (m.s > 0 ? TUNE.grow ** (m.s - 1) : TUNE.miss); /* ≥ 0 means due: a miss comes back the next day, then 1, 2, 4, 8… days after each right answer */
   function choose(list, keyOf) {
     const rows = list.map(it => { const k = hkey(keyOf(it)); return { it, k, m: itemInfo(k) }; });
-    const pool = rows.length > 1 && rows.some(r => !RECENT.includes(r.k)) ? rows.filter(r => !RECENT.includes(r.k)) : rows;
+    /* Small topics (9 plate-margin facts) are all in RECENT after one pass; then keep the half seen longest ago, so the same
+       fact can't come back question after question (Runo's log: one fact 6 times in a row, 2026-11-12). */
+    const unseen = rows.filter(r => !RECENT.includes(r.k)), ago = k => RECENT.lastIndexOf(k);
+    const pool = rows.length < 2 ? rows : unseen.length ? unseen : rows.slice().sort((a, b) => ago(a.k) - ago(b.k)).slice(0, Math.ceil(rows.length / 2));
     const fresh = pool.filter(r => !r.m), due = pool.filter(r => r.m && gap(r.m) >= 0);
     /* Reviews that are due come first: that is what makes facts stick. With a backlog, the ones that have only just come due go
        first, while they can still be saved; long-overdue ones are nearly new again and wait their turn. About a quarter of
