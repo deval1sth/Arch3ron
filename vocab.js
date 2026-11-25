@@ -157,4 +157,83 @@ cavernous|huge and hollow, like a cave|The cavernous hall swallowed our voices.
 ramshackle|badly made and falling apart|A ramshackle hut stood by the shore.
 vast|extremely large|A vast desert lay ahead of us.
 expanse|a wide, open area|An expanse of white snow covered the field.`],
+
+  /* ---------- English Literature: evaluative vocabulary for essays (third item = subject). Examples use Runo's texts:
+     Macbeth, A Christmas Carol, Journey's End and the Power and Conflict poems. Single words only, so they can be spelled. ---------- */
+  'v-lit-methods': ['What the writer does', `
+conveys|gets an idea or feeling across to the reader|Dickens conveys Scrooge's isolation by calling him "solitary as an oyster".
+evokes|brings a feeling or image into the reader's mind|Ross's description of darkness in the daytime evokes a world thrown out of its natural order.
+emphasises|makes something stand out as important|The repeated imagery of blood emphasises how guilt clings to Macbeth.
+foreshadows|hints at something that will happen later|The witches' chant "fair is foul" foreshadows the deception to come.
+juxtaposes|places two contrasting things side by side|Dickens juxtaposes Scrooge's cold office with the warmth of the Cratchits' Christmas.
+subverts|turns an expected idea upside down|Lady Macbeth subverts expectations of a Jacobean wife when she asks the spirits to "unsex me here".
+exposes|reveals something hidden or wrong|Sherriff exposes the strain of the trenches through Stanhope's heavy drinking.
+critiques|points out the faults in something|Dickens critiques the Poor Law through Scrooge's question, "Are there no prisons?"
+condemns|says strongly that something is wrong|Dickens condemns a society that ignores the poor through the children Ignorance and Want.
+symbolises|stands for a bigger idea|The floating dagger symbolises the ambition pulling Macbeth towards murder.
+reinforces|makes an idea stronger by adding to it|The wild storm on the night of the murder reinforces the sense of disorder.
+undermines|weakens something or makes it less believable|Macbeth's hallucinations undermine his image as a fearless soldier.
+portrays|shows a character in a particular way|Sherriff portrays Raleigh as innocent and full of hero-worship for Stanhope.
+heightens|makes a feeling more intense|The knocking at the gate heightens the tension straight after the murder.
+satirises|uses humour to mock and criticise|Dickens satirises the businessmen who will only go to Scrooge's funeral if lunch is provided.
+epitomises|is a perfect example of something|At the start of the novella Scrooge epitomises greed and selfishness.
+personifies|gives human qualities to something that is not human|Owen personifies the "merciless iced east winds that knive us" in "Exposure".
+challenges|questions or confronts someone or an accepted idea|Lady Macbeth challenges her husband's manhood to push him towards murder.`, 'englit'],
+
+  'v-lit-readings': ['Exploring different readings', `
+arguably|it could be argued (for a point that can be debated)|Arguably, Macbeth is driven more by his wife than by the witches.
+alternatively|offering a different possible reading|Alternatively, the witches may only voice desires Macbeth already has.
+ambiguous|open to more than one meaning|The witches' prophecies are deliberately ambiguous.
+ambivalent|having mixed feelings about something|Stanhope feels ambivalent about Raleigh: fond of him, but afraid of what he will write home.
+implicitly|suggested without being said directly|Dickens implicitly asks his readers to change, just as Scrooge does.
+explicitly|said clearly and directly|The Ghost of Christmas Present explicitly tells Scrooge to "beware" Ignorance and Want.
+connotations|ideas a word suggests beyond its basic meaning|The word "blood" carries connotations of guilt as well as violence.
+interpretation|one way of understanding a text|One interpretation of the ending is that order returns with Malcolm as king.
+ostensibly|on the surface, but perhaps not really|Ostensibly loyal, Macbeth is already thinking about killing Duncan.
+paradox|a statement that seems to contradict itself but holds a truth|"Fair is foul, and foul is fair" is a paradox that sets up the play's deceptions.
+ironic|the opposite of what you would expect, in a pointed way|It is ironic that Duncan trusts Macbeth straight after saying you cannot read a traitor's mind in his face.
+tentatively|carefully, without claiming to be certain|Writing tentatively, with words like "perhaps", shows you are weighing up ideas.
+nuanced|showing small but important differences|A nuanced reading sees Lady Macbeth as both ruthless and fragile.
+multifaceted|having many sides|Stanhope is a multifaceted character: brave, bitter and caring.
+sympathetic|making the reader feel pity or understanding|When Stanhope admits his own fear, Sherriff makes Hibbert's terror seem sympathetic rather than cowardly.
+subtext|a meaning hidden underneath what is said|The subtext of the officers' jokes is their fear of dying.
+equivocation|using words that can mean two things, to mislead|The witches' equivocation tells Macbeth truths that lead him to ruin.`, 'englit'],
+
+  'v-lit-effect': ['Judging the effect', `
+effectively|in a way that works well|Sherriff effectively builds tension as the German attack draws closer.
+vividly|in a way that creates a clear, strong picture|Dickens vividly describes the food and dancing at the Fezziwigs' party.
+poignantly|in a way that brings out sadness|The play ends poignantly, with Raleigh dying in the dugout.
+ominously|in a threatening way, warning of something bad|Ominously, an owl shrieks while Duncan is being murdered.
+starkly|in a plain, harsh and very clear way|Owen starkly repeats that "nothing happens" while the men freeze.
+deliberately|on purpose|Shakespeare deliberately gives the witches chanting rhymes that set them apart.
+subtly|in a quiet way that is not obvious|Dickens subtly shows Scrooge softening as he watches his younger self.
+evocative|bringing strong images or feelings to mind|Dickens's evocative description of the fog makes London feel cold and gloomy.
+emotive|causing strong feelings|Tiny Tim is an emotive figure designed to move the reader.
+haunting|staying in the mind in a sad or eerie way|Marley's heavy chains create a haunting image of the cost of greed.
+visceral|felt deep in the body, not just thought about|Owen's visceral description of the cold makes the reader almost feel it.
+unsettling|making someone feel uneasy|The witches' unsettling chants open the play.
+compelling|holding your attention powerfully|Stanhope is compelling because of the conflict inside him.
+grotesque|ugly or twisted in a disturbing way|The witches' grotesque ingredients, such as "eye of newt", disgust the audience.
+cathartic|releasing strong emotions, leaving a sense of relief|Macbeth's death may feel cathartic for the audience after so much violence.
+didactic|intended to teach a moral lesson|A Christmas Carol is didactic: it teaches readers to be generous.
+pathos|a quality that makes the reader feel pity or sadness|Dickens creates pathos with Tiny Tim's empty seat and his crutch without an owner.`, 'englit'],
+
+  'v-lit-context': ['Linking to context', `
+reflects|shows or mirrors something about its time|The play reflects Jacobean fears about killing a king after the Gunpowder Plot.
+regicide|the killing of a king|Macbeth's regicide breaks the natural order that a Jacobean audience believed in.
+hierarchy|a system where people are ranked by importance|The Great Chain of Being placed the king near the top of a God-given hierarchy.
+patriarchal|run by men, with men holding the power|In a patriarchal society, Lady Macbeth can only gain power through her husband.
+Victorian|from the reign of Queen Victoria (1837 to 1901)|Dickens wrote for a Victorian audience in 1843.
+Jacobean|from the reign of King James I (1603 to 1625)|A Jacobean audience would have believed the witches were truly dangerous.
+philanthropy|helping others, especially by giving money|By the end, Scrooge turns to philanthropy and raises Bob's salary.
+industrialisation|the growth of factories and industry|Dickens wrote during rapid industrialisation, when many poor children worked long hours.
+morality|ideas about right and wrong|Dickens's novella is a morality tale about kindness and generosity.
+convention|an expected feature of a type of writing|Shakespeare follows the convention of tragedy by giving Macbeth a fatal flaw.
+hamartia|the fatal flaw of a tragic hero|Macbeth's hamartia is his ambition.
+hubris|extreme pride that leads to a downfall|Macbeth's hubris shows when he believes no man born of woman can harm him.
+patriotism|love of and loyalty to your country|Early in the war, patriotism led many young men like Raleigh to sign up eagerly.
+trauma|deep shock and distress caused by a terrible experience|Sherriff, who fought on the Western Front, shows the trauma that drives Stanhope to drink.
+propaganda|information spread to persuade people, often misleading|Wartime propaganda made the war seem glorious, unlike the dugout in Journey's End.
+tyranny|cruel and unfair rule|Shelley mocks tyranny in "Ozymandias", where a proud king's statue lies in ruins.
+transience|the quality of lasting only a short time|"Ozymandias" shows the transience of human power.`, 'englit'],
 };

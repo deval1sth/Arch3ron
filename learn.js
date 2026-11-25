@@ -947,8 +947,8 @@ const LEARN = (() => {
 
   /* ---------- Descriptive vocabulary: spell it, know its meaning, use it in a sentence ---------- */
   const VB = {};
-  for (const [id, [title, text]] of Object.entries(typeof VOCAB !== 'undefined' ? VOCAB : {}))
-    VB[id] = { name: title, items: text.trim().split('\n').map(l => l.split('|')).filter(p => p.length === 3).map(([w, m, e]) => ({ w: w.trim(), m: m.trim(), e: e.trim() })) };
+  for (const [id, [title, text, subject]] of Object.entries(typeof VOCAB !== 'undefined' ? VOCAB : {})) /* optional third item: the subject (English Language by default) */
+    VB[id] = { name: title, subject: subject || 'englang', items: text.trim().split('\n').map(l => l.split('|')).filter(p => p.length === 3).map(([w, m, e]) => ({ w: w.trim(), m: m.trim(), e: e.trim() })) };
   const blankOut = it => it.e.replace(new RegExp(it.w.slice(0, Math.max(4, it.w.length - 3)) + '[a-z]*', 'i'), '_____');
   function genVocab(id) {
     const t = VB[id], [it, key] = choose(t.items, x => 'vocab|' + x.w);
@@ -982,7 +982,7 @@ const LEARN = (() => {
   const CH = typeof CHEM !== 'undefined' ? CHEM.TOPICS : {};
   if (typeof CHEM !== 'undefined') CHEM.setChooser(choose);
   for (const [id, c] of Object.entries(CH)) TOPIC[id] = { name: c[0], subject: 'chemistry', type: 'eq' };
-  for (const [id, v] of Object.entries(VB)) TOPIC[id] = { name: v.name, subject: 'englang', type: 'vocab', size: v.items.length };
+  for (const [id, v] of Object.entries(VB)) TOPIC[id] = { name: v.name, subject: v.subject, type: 'vocab', size: v.items.length };
   const SUBJECTS = [
     ['maths', 'Maths', 'pi', 'Maths'], ['biology', 'Biology', 'dna', 'Science'], ['chemistry', 'Chemistry', 'flask', 'Science'], ['physics', 'Physics', 'atom', 'Science'],
     ['englit', 'English Literature', 'booktext', 'English Literature'], ['englang', 'English Language', 'pen', 'English Language'],
@@ -1221,7 +1221,7 @@ const LEARN = (() => {
     for (const [id, t] of Object.entries(R)) for (const it of t.items) add(t.subject, 'recall', hkey(id + '|' + it.q));
     for (const [id, t] of Object.entries(DF)) for (const it of t.items) add(t.subject, 'def', hkey(id + '|' + it.t));
     if (typeof CHEM !== 'undefined') for (const k of CHEM.keys()) add('chemistry', 'eq', hkey(k));
-    for (const t of Object.values(VB)) for (const it of t.items) add('englang', 'vocab', hkey('vocab|' + it.w));
+    for (const t of Object.values(VB)) for (const it of t.items) add(t.subject, 'vocab', hkey('vocab|' + it.w));
     return BANK;
   }
   /* topics whose questions change with level (1 easier, 3 harder) */

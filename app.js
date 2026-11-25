@@ -854,7 +854,7 @@ function vSubject() {
     h('div', { class: 'row' }, B([icon('play'), 'Mixed practice'], 'drill', 'primary', { 'data-track': s.id }), extras,
       typeof SEQS !== 'undefined' && SEQS.some(x => ids.includes(x.topic)) && B([icon('grid'), 'Put it in order'], 'ordDrill', 'ghost', { 'data-track': s.id }),
       B([icon('listen'), 'Listen'], 'listenGo', 'ghost', { 'data-track': s.id }), tests && B([icon('target'), 'Gap finder'], 'gapStart', 'ghost', { 'data-track': s.id })),
-    group('def', 'Definitions'), group('vocab', 'Descriptive vocabulary: spell it, know it, use it'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
+    group('def', 'Definitions'), group('vocab', s.id === 'englit' ? 'Essay vocabulary: spell it, know it, use it' : 'Descriptive vocabulary: spell it, know it, use it'), group('recall', 'Key facts'), group('eq', 'Equations and formulae'), group('calc', s.id === 'maths' ? 'Topics' : s.id === 'physics' ? 'Equations' : 'Calculations'), group('quote', 'Quotes'),
     !ids.length && card(null, null, h('p', { class: 'muted' }, 'All topics in this subject are hidden. Turn them back on in Settings.'))];
   else if (tab === 'exam') body = [
     h('div', { class: 'row' }, EXAMS.some(p => p.name.toLowerCase().startsWith(s.name.toLowerCase())) && B([icon('scroll'), 'Practice papers'], 'go', 'ghost', { 'data-tab': 'exam' }),
@@ -1438,7 +1438,7 @@ function vStats() {
   let allL = 0, allT = 0;
   const rows = mySubjects().map(s => {
     const b = BK[s.id] || { def: [], recall: [], eq: [], vocab: [] }, calc = s.topics.filter(id => LEARN.TOPIC[id].type === 'calc');
-    const parts = [['Definitions', b.def], ['Descriptive vocabulary', b.vocab || []], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
+    const parts = [['Definitions', b.def], [s.id === 'englit' ? 'Essay vocabulary' : 'Descriptive vocabulary', b.vocab || []], ['Key facts', b.recall], ['Equations and formulae', b.eq]].filter(([, k]) => k.length).map(([n, k]) => [n, k.filter(learned).length, k.length, k.filter(x => S.items[x]).length]);
     if (calc.length) parts.push(['Calculation skills mastered', masteredIn(calc), calc.length, calc.filter(id => skill(id).n).length]);
     const L = parts.reduce((a, p) => a + p[1], 0), T = parts.reduce((a, p) => a + p[2], 0); allL += L; allT += T;
     const papers = S.scores.filter(x => s.subj === 'Science' ? x.paper.startsWith(s.name) : x.subj === s.subj).sort((a, b) => a.date < b.date ? -1 : 1);
