@@ -205,7 +205,7 @@ function normalize(raw, only, into) {
   part('scores', ['scores'], () => {
     s.scores = arr(r.scores).map(obj).filter(x => num(x.max) > 0 && Number.isFinite(+x.score)).map(x => ({
       id: num(x.id, newId()), date: isKey(x.date) ? x.date : dkey(), subj: str(x.subj, 40), paper: str(x.paper, 80),
-      score: Math.max(0, +x.score), max: +x.max,
+      score: Math.max(0, +x.score), max: +x.max, ...(num(x.mins) > 0 ? { mins: clamp(Math.round(num(x.mins)), 1, 300) } : {}),
       lost: arr(x.lost).map(obj).map(l => ({ topic: str(l.topic, 60), type: str(l.type || 'Recall', 30), marks: Math.max(0, num(l.marks)) })).filter(l => l.topic && l.marks > 0),
       tp: arr(x.tp).map(obj).map(t => ({ topic: str(t.topic, 60), got: Math.max(0, num(t.got)), max: Math.max(0, num(t.max)) })).filter(t => t.topic && t.max > 0) }));
   });
@@ -1324,14 +1324,15 @@ const EXACT = {
     const tps = Object.values(tp), got = tps.reduce((a, t) => a + t.got, 0), max = tps.reduce((a, t) => a + t.max, 0), pc = Math.round(got / max * 100);
     const timed = !!(E.end || E.timed), self = p.ppp ? pppCheck(p, E) : null;
     const name = p.name + (timed ? ' (timed)' : '') + (n < p.qs.length ? ` (${n} of ${p.qs.length} questions)` : ''), prevBest = Math.max(-1, ...subjPts(p.subj).map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, lost: Object.values(lost), tp: tps });
+    const used = E.used || (E.end ? Math.max(1, Math.min(p.mins, Math.round((Date.now() - (E.end - p.mins * 60000)) / 60000))) : 0);
+    S.scores.push({ id: newId(), date: dkey(), subj: p.subj, paper: name, score: got, max, mins: used || Math.max(1, Math.round(p.mins * n / p.qs.length)), lost: Object.values(lost), tp: tps }); /* mins: time on the paper, counted as focus time on Stats */
     if (typeof rlogPush === 'function') p.qs.forEach((q, k) => { if (done[k]) rlogPush(`p:${E.pid}:${k + 1},${today()},${qScore(q, E.got[k], E.lv[k])},${qMax(q)},${String(q[0]).replace(/[,\r\n]+/g, ';')},${timed ? 1 : 0}`); }); /* review log: marks per question */
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25); dayEv('paper');
     const g = groupOf(p), lostIds = p.qs.filter((q, k) => done[k] && qX(q).tid && qScore(q, E.got[k], E.lv[k]) < qMax(q)).map(q => qX(q).tid);
     const added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0) + (lostIds.length ? addFix([...new Set(lostIds)], `Lost marks on ${p.name}`) : 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
-    EXRES = { name, got, max, tp: tps, subj: p.subj, timed, mins: p.mins, used: E.used || (E.end ? Math.max(1, Math.min(p.mins, Math.round((Date.now() - (E.end - p.mins * 60000)) / 60000))) : 0), marked: n, total: p.qs.length, ppp: !!p.ppp, self };
+    EXRES = { name, got, max, tp: tps, subj: p.subj, timed, mins: p.mins, used, marked: n, total: p.qs.length, ppp: !!p.ppp, self };
     S.exam = null; DRAFT.ex = ''; save(); go(p.ppp ? 'ppp' : 'exam');
   }
 };
@@ -1423,7 +1424,7 @@ const MPACT = {
     const tp = {}, lost = {};
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
-    S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ` (${rows.length} questions)` : ''}`, score, max: rows.length, lost: Object.values(lost), tp: Object.values(tp) });
+    S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ` (${rows.length} questions)` : ''}`, score, max: rows.length, mins: Math.round(rows.length * 1.5), lost: Object.values(lost), tp: Object.values(tp) });
     const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
     CHART.add(subj); xp(25); dayEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });

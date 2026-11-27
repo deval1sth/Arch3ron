@@ -187,10 +187,34 @@ const rlogMeta = (id, key, ok) => {
   const ans = ok || shown ? '' : rlClean(q.kind === 'mcq' ? (DR.picked != null && q.options ? q.options[DR.picked] : '') : q.kind === 'order' ? (DR.ord || []).map(i => i + 1).join('-') : q.kind === 'match' ? '' : DRAFT.dr);
   return `${q.kind || ''},${DR.hint || 0}${DR.notesQ === q ? 'n' : ''},${secs},${RLX.ctx || DR.ctx || 'drill'},${rlWhy(q, id, key)},${lvl},${hour},${think},${away},${shown},${ans}`; /* "1n" = 1 hint, topic notes read first */
 };
+/* Practice time (11.9.69, Runo asked): time spent answering outside Focus sets and papers, so Stats' "focused" counts it.
+   Kept per day in ev.pms (seconds): each answer's secs minus time away, at most 5 minutes an answer. Not counted: Focus
+   sets and sessions (their set time counts already) and papers (counted per paper). Log lines before 11.9.67 and lessons
+   do not say whether they were inside a Focus set, so the one-off backfill counts those only on days with no sets. */
+const PM_SKIP = new Set(['focus', 'sess', 'paper']);
+const pmSecs = line => {
+  const f = String(line).split(','), s = +f[5], ctx = f[6] || '';
+  if (/^[clp]:/.test(f[0]) || !f[5] || !(s > 0) || PM_SKIP.has(ctx)) return null;
+  return { day: +f[1], secs: Math.max(0, Math.min(300, s) - (+f[11] || 0)), sure: !!ctx && ctx !== 'lesson' };
+};
+const pmAdd = line => {
+  const r = pmSecs(line); if (!r || !r.secs || (T && T.run && T.mode === 'focus')) return;
+  const d = ensureDay(dkey()); d.ev = d.ev || {}; d.ev.pms = (d.ev.pms || 0) + r.secs;
+};
+(function pmBackfill() {
+  const t = TCD(); if (t.pmb) return;
+  for (const line of tcArr('rlog')) {
+    const r = pmSecs(line); if (!r || !r.secs || !(r.day > 0)) continue;
+    const g = dkey(new Date(r.day * 864e5)), k = [g, addDays(-1, g), addDays(1, g)].find(x => dayNum(x) === r.day); /* dayNum counts from midday, so check */
+    if (!k || (!r.sure && setsOn(k) > 0)) continue;
+    const d = ensureDay(k); d.ev = d.ev || {}; d.ev.pms = (d.ev.pms || 0) + r.secs;
+  }
+  t.pmb = 1;
+})();
 const _recordF = record;
 record = function (id, ok, key) {
   const self = DR && DR.q && DR.q.key === key && DR.q.kind === 'def';
-  if (!self && (key || (id && LEARN.TOPIC[id]))) rlogPush(`${key || 'T:' + id},${today()},${ok ? 1 : 0},${rlogMeta(id, key, ok)}`);
+  if (!self && (key || (id && LEARN.TOPIC[id]))) { const line = `${key || 'T:' + id},${today()},${ok ? 1 : 0},${rlogMeta(id, key, ok)}`; rlogPush(line); pmAdd(line); }
   /* today's missed topics by name, for the Rival page (rival.js): { d: day, t: { id: [name, subject, misses, firstMissMs] } } */
   if (!ok && id && LEARN.TOPIC[id]) {
     const M = tcObj('miss'), d = dkey();

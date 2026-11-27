@@ -23,6 +23,10 @@ function statRange(p) {
 function keysBetween(a, b) { const out = []; for (let k = a; k <= b && out.length < 1000; k = addDays(1, k)) out.push(k); return out; }
 const studied = k => { const d = S.days[k]; return !!d && (setsOn(k) > 0 || ((d.ev || {}).sets || 0) > 0 || (d.qa || 0) >= 20); };
 
+/* time logged by hand for revision away from the app: S.tc.tlog = [{ id, k: day, m: minutes, s: subject, n: note }] */
+const tlogList = () => (S.tc && Array.isArray(S.tc.tlog) ? S.tc.tlog : []).filter(x => x && isKey(x.k) && x.m > 0); /* not tcArr: teach.js loads later and Stats can render at boot */
+/* minutes spent on a paper: saved since 11.9.69; older ones estimated (generated: 1.5 min a question, real papers: about 1.15 min a mark) */
+const paperMinsOf = p => p.mins || Math.min(150, Math.round(p.max * (/^(Generated|PPP) .* paper( \(|$)/.test(p.paper) ? 1.5 : 1.15)));
 function statsFor(from, to) {
   const keys = keysBetween(from, to), focus = S.timer.focus || 25;
   const per = keys.map(k => { const d = S.days[k] || {}, ev = d.ev || {}; return { k, sets: Math.max(setsOn(k), ev.sets || 0), plan: daySets(parseKey(k).getDay()), qa: d.qa || 0, qr: d.qr || 0, t: d.t || {}, ev }; });
@@ -35,9 +39,10 @@ function statsFor(from, to) {
     const key = p.subj + '|' + l.topic.toLowerCase();
     lost[key] = lost[key] || { subj: p.subj, topic: l.topic, marks: 0 }; lost[key].marks += l.marks; lostT[l.type] = (lostT[l.type] || 0) + l.marks; lostSum += l.marks;
   }
-  const sets = sum(d => d.sets), rescue = Math.min(sets, sum(d => d.ev.rescue || 0)), qa = sum(d => d.qa), qr = sum(d => d.qr);
+  const sets = sum(d => d.sets), rescue = Math.min(sets, sum(d => d.ev.rescue || 0)), qa = sum(d => d.qa), qr = sum(d => d.qr), pmins = papers.reduce((a, p) => a + paperMinsOf(p), 0);
+  const amins = Math.round(sum(d => d.ev.pms || 0) / 60), logs = tlogList().filter(x => x.k >= from && x.k <= to), lmins = logs.reduce((a, x) => a + x.m, 0);
   return {
-    keys, per, sets, plan: sum(d => d.plan), rescue, mins: (sets - rescue) * focus + rescue * 10, qa, qr, acc: qa ? Math.round(qr / qa * 100) : null,
+    keys, per, sets, plan: sum(d => d.plan), rescue, pmins, amins, logs, lmins, mins: (sets - rescue) * focus + rescue * 10 + pmins + amins + lmins, qa, qr, acc: qa ? Math.round(qr / qa * 100) : null,
     active: keys.filter(studied).length, fix: sum(d => d.ev.fix || 0), run: Math.max(0, ...per.map(d => d.ev.run || 0)),
     papers, avg: pcs.length ? Math.round(pcs.reduce((a, b) => a + b, 0) / pcs.length) : null, best: pcs.length ? Math.max(...pcs) : null,
     marks: papers.reduce((a, p) => a + p.score, 0), outOf: papers.reduce((a, p) => a + p.max, 0),
@@ -153,7 +158,7 @@ function recordsCard() {
       rec(bestDay ? `${bestDay.sets} sets` : '–', 'best day', bestDay && fmtDate(bestDay.k)),
       rec(bestP ? `${pctOf(bestP)}%` : '–', 'best paper', bestP && bestP.paper),
       rec(String(S.stat.bestRun || 0), 'right in a row', 'longest run of right answers'),
-      rec(fmtHours(all.mins), 'focused in total', `${all.sets} sets`),
+      rec(fmtHours(all.mins), 'focused in total', `${all.sets} sets, ${all.papers.length} papers`),
       rec(all.qa.toLocaleString('en-GB'), 'questions answered', all.acc == null ? null : `${all.acc}% right`)));
 }
 
@@ -179,7 +184,8 @@ function vNumbers() {
         stTile(String(st.fix), st.fix === 1 ? 'topic fixed' : 'topics fixed', h('small', null, `${st.mistakes} mistake${st.mistakes === 1 ? '' : 's'} logged`)),
         stTile(rd.pct + '%', 'mock ready', P === 'all' || rdWas == null ? null : h('small', { class: 'trend ' + (rd.pct > rdWas ? 'up' : rd.pct < rdWas ? 'down' : '') },
           rd.pct === rdWas ? `no change since ${P === 'day' ? 'yesterday' : P === 'week' ? 'Monday' : 'the 1st'}` : `${rd.pct > rdWas ? '▲' : '▼'} ${Math.abs(rd.pct - rdWas)}% since ${P === 'day' ? 'yesterday' : P === 'week' ? 'Monday' : 'the 1st'}`))),
-      R.prev && h('p', { class: 'muted xs' }, `Arrows compare with the same stretch of ${R.vs}. Focus time counts 25-minute sets and 10-minute rescue sets.`)),
+      h('p', { class: 'muted xs' }, `${R.prev ? `Arrows compare with the same stretch of ${R.vs}. ` : ''}Focused = ${[[st.mins - st.pmins - st.amins - st.lmins, 'sets'], [st.pmins, 'papers'], [st.amins, 'practice outside sets'], [st.lmins, 'logged by you']].filter(x => x[0] > 0).map(x => `${fmtHours(x[0])} ${x[1]}`).join(' + ') || 'sets, papers, practice outside sets and time you log'}.`)),
+    timeLogCard(st, R),
     activityCard(P, R, st),
     gradesTable(st),
     marksCard(st, R),
@@ -188,6 +194,36 @@ function vNumbers() {
     recordsCard());
 }
 
+/* revision done away from the app (books, videos, essays on paper): added to focused time */
+function timeLogCard(st, R) {
+  const D = DRAFT.tlog = DRAFT.tlog || { k: dkey(), m: '', s: 'Maths', n: '' };
+  return card('Log time away from the app', h('span', { class: 'muted' }, st.lmins ? `${fmtHours(st.lmins)} logged` : 'books, videos, essays'),
+    h('div', { class: 'grid2' }, field('Date', h('input', { type: 'date', 'data-draft': 'tlog.k', value: D.k, max: dkey() })),
+      field('Minutes', h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 600, 'data-draft': 'tlog.m', value: D.m, placeholder: 'e.g. 45', id: 'tlm' }))),
+    h('div', { class: 'grid2' }, field('Subject', selectSubj('tlog.s', D.s)),
+      field('What you did', h('input', { 'data-draft': 'tlog.n', value: D.n, placeholder: 'e.g. textbook notes', maxlength: 60 }))),
+    B('Add time', 'tlogAdd', 'primary wide'),
+    st.logs.length ? h('ul', { class: 'list' }, [...st.logs].sort((a, b) => a.k < b.k ? 1 : -1).map(x => h('li', null,
+      h('i', { class: 'sw', style: `background:${SUBJ_COLOR[x.s] || 'var(--m)'}` }),
+      h('div', { class: 'grow' }, h('b', null, x.s || 'Revision'), h('small', null, [fmtDate(x.k), x.n].filter(Boolean).join(' · '))),
+      h('div', { class: 'num' }, h('b', null, fmtHours(x.m))),
+      B(icon('x'), 'tlogDel', 'ghost icon-only', { 'data-id': x.id, 'aria-label': `Delete ${fmtHours(x.m)} logged on ${fmtDate(x.k)}` }))))
+      : null);
+}
+
 Object.assign(PLUSACT, {
-  statP(el) { if (!STAT_PERIODS.some(x => x[0] === el.dataset.p)) return; STAT_P = el.dataset.p; render(); }
+  statP(el) { if (!STAT_PERIODS.some(x => x[0] === el.dataset.p)) return; STAT_P = el.dataset.p; render(); },
+  tlogAdd() {
+    const D = DRAFT.tlog || {}, m = Math.round(parseFloat(D.m)), k = isKey(D.k) && D.k <= dkey() ? D.k : null;
+    if (!(m > 0)) { toast('Enter the minutes'); $('#tlm')?.focus(); return; }
+    if (m > 600) return toast('That is more than 10 hours. Split it over the days you did it.');
+    if (!k) return toast('Pick a date up to today');
+    tcArr('tlog').push({ id: newId(), k, m, s: SUBJ.includes(D.s) ? D.s : 'Maths', n: String(D.n || '').trim().slice(0, 60) });
+    toast(`${fmtHours(m)} added to ${k === dkey() ? 'today' : fmtDate(k)}`);
+    DRAFT.tlog = { k: dkey(), m: '', s: D.s, n: '' }; save(); render();
+  },
+  tlogDel(el) {
+    if (!sure('Delete this logged time?', el.dataset.id)) return;
+    S.tc.tlog = tlogList().filter(x => x.id !== +el.dataset.id); save(); render();
+  }
 });
