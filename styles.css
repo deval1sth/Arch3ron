@@ -1436,3 +1436,16 @@ button.dq-orb:hover .dq-ball{transform:scale(1.15)}
 @keyframes aiGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes aiPop{from{transform:scale(0)}to{transform:scale(1)}}
 html.rm .ai *{animation:none !important}
+/* Rounds (rounds.js, 11.10.0) */
+.rd-dots{display:inline-flex;gap:4px;flex-wrap:wrap}.rd-dots i{width:9px;height:9px;border-radius:50%;background:var(--line);transition:background .25s,transform .25s}
+.rd-dots i.ok{background:rgb(var(--g-rgb))}.rd-dots i.no{background:rgba(var(--no-rgb),.55)}.rd-dots i.now{background:var(--y);transform:scale(1.25)}
+.rd-end{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.rd-end .eyebrow{margin:0}.rd-end .fb-h{margin:2px 0 4px}
+.rd-score{margin:2px 0;font-size:54px;line-height:1;font-weight:800;letter-spacing:-.02em;animation:rdPop .5s cubic-bezier(.2,1.4,.4,1) both}
+.rd-score span{font-size:24px;font-weight:700;color:var(--m)}
+.rd-pace{display:flex;gap:10px;align-items:flex-start;text-align:left;margin:8px 0 2px;padding:10px 12px;border-radius:var(--r-sm);background:rgba(var(--y-rgb),.08);border:1px solid rgba(var(--y-rgb),.25);font-size:14px;line-height:1.45}
+.rd-btns{display:flex;gap:8px;width:100%;margin-top:8px;flex-wrap:wrap}
+.rd-paper{display:flex;flex-direction:column;gap:4px;padding:12px 14px;margin-bottom:12px;border-radius:var(--r-sm);border:1px solid var(--line2);background:var(--card)}
+.rd-paper small{color:var(--m);font-size:13px}.rd-paper .row{margin-top:6px}
+@keyframes rdPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+html.rm .rd-score{animation:none}

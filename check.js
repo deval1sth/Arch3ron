@@ -297,7 +297,7 @@ Object.assign(ACT, {
     if (!xqSave()) return;
     const done = XQ.res.filter(Boolean), got = done.reduce((a, d) => a + d[0], 0), max = done.reduce((a, d) => a + d[1], 0);
     if (!max) { XQ = null; return go('subject'); }
-    const pc = got / max, added = pc < .75 ? addFix(EXAM_LINK[`${XQ_G[XQ.sid]}|${XQ.label}`] || [], `${got}/${max} on ${XQ.label} exam questions`) : 0;
+    const pc = got / max, added = pc < .75 ? addFix(EXAM_LINK[`${XQ_G[XQ.sid]}|${XQ.label}`] || [], `${got}/${max} on ${XQ.label} exam questions`, true) : 0;
     dayEv('xq'); xp(10); save();
     toast(`${got} / ${max} marks on ${XQ.label}${added ? ` · ${added} topic${added > 1 ? 's' : ''} added to your fix queue` : ''}`, 'big');
     XQ = null; go('subject');

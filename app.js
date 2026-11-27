@@ -393,7 +393,12 @@ function record(id, ok, key) {
   levelUp(id, ok);
   const k = S.skill[id] = skill(id);
   k.n++; k.rec = [...k.rec, ok].slice(-6);
-  if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
+  /* 11.9.70: the right streak (which sets the gap before a fact comes back) grows at most once a day, so three right answers in
+     one sitting no longer count as three spaced reviews; and a fact recalled very slowly (over 45 s of a quick recall question)
+     keeps its gap, like a hinted answer (teach.js recordHinted), so a shaky fact comes back sooner. */
+  const slow = !!(ok && key && DR && DR.q && DR.q.key === key && DR.tq === DR.q && DR.t0 && (DR.q.kind === 'mcq' || DR.q.kind === 'str') && (Date.now() - DR.t0 - (DR.away || 0)) > 45000);
+  if (key) { const m = S.items[key] || [0, 0, 0, 0]; m[0]++; if (ok) { m[1]++; if (!slow && (m[2] === 0 || m[3] !== today())) m[2]++; } else m[2] = 0; m[3] = today(); S.items[key] = m; }
+  DUE_C.v = {};
   const d = ensureDay(dkey()); d.qa = (d.qa || 0) + 1; d.qr = (d.qr || 0) + (ok ? 1 : 0);
   const tr = LEARN.TOPIC[id] && LEARN.TOPIC[id].subject; if (tr) { d.t = d.t || {}; d.t[tr] = (d.t[tr] || 0) + 1; } /* per-subject practice, so priorities can balance */
   if (ok) {
@@ -401,26 +406,49 @@ function record(id, ok, key) {
     const t = LEARN.TOPIC[id]; if (t) { dayEv(t.type); dayEv('s:' + t.subject); }
   } else k.run = 0;
   const qi = S.queue.findIndex(x => x.id === id);
-  if (ok && qi >= 0 && k.run >= 3) { S.queue.splice(qi, 1); dayEv('fix'); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
+  /* a topic leaves the fix queue after 3 right in a row on a later day than it went in, so a fix is checked after a gap (11.9.70) */
+  if (ok && qi >= 0 && k.run >= 3) {
+    if (S.queue[qi].date < dkey()) { S.queue.splice(qi, 1); dayEv('fix'); toast(`Fixed: ${LEARN.name(id)} · 3 right in a row`, 'big'); }
+    else if (k.run === 3) toast(`3 right in a row on ${LEARN.name(id)}. It comes back on another day to check it stuck.`);
+  }
   save();
 }
 /* Fix queue: topics where marks were lost come back in Focus and mixed practice until you get 3 right in a row */
-function addFix(ids, why) {
+function addFix(ids, why, paper) {
   let n = 0;
+  if (paper) { /* topics that lost marks on a paper get extra practice for 3 weeks, even after they leave the fix queue (pickTopic) */
+    if (!S.tc || typeof S.tc !== 'object' || Array.isArray(S.tc)) S.tc = {};
+    const PL = S.tc.plost = S.tc.plost && typeof S.tc.plost === 'object' ? S.tc.plost : {}, old = addDays(-21);
+    for (const id of new Set(ids)) if (LEARN.TOPIC[id]) PL[id] = dkey();
+    for (const id of Object.keys(PL)) if (!(PL[id] >= old)) delete PL[id];
+  }
   for (const id of new Set(ids)) if (LEARN.TOPIC[id] && !S.hidden[id] && !S.queue.some(x => x.id === id)) { S.queue.push({ id, why, date: dkey() }); n++; }
   if (S.queue.length > 40) S.queue = S.queue.slice(-40);
   return n;
+}
+/* share of a topic's seen facts that are due for review today, by the same rule as learn.js choose(); cached until the next answer */
+const DUE_C = { d: '', v: {} };
+function dueShare(id) {
+  if (DUE_C.d !== dkey()) { DUE_C.d = dkey(); DUE_C.v = {}; }
+  if (id in DUE_C.v) return DUE_C.v[id];
+  const T = LEARN.TUNE, now = today(); let seen = 0, due = 0;
+  for (const it of LEARN.itemsOf(id)) { const m = S.items[it.k]; if (!m) continue; seen++; if (now - m[3] - (m[2] > 0 ? T.grow ** (m[2] - 1) : T.miss) >= 0) due++; }
+  return DUE_C.v[id] = seen ? due / seen : 0;
 }
 const higherPull = () => { const a = LEARN.MATHS.map(id => { const k = skill(id); return k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : null; }).filter(x => x != null), m = a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; return m >= .7 ? 1.5 : m >= .5 ? 1 : .6; };
 function pickTopic(track, avoid) {
   const ids = topicsFor(track); if (!ids.length) return null;
   const pool = ids.length > 1 ? ids.filter(i => i !== avoid) : ids;
   const pull = higherPull(); /* Higher topics come up more as your Maths gets stronger */
+  const PL = (S.tc && S.tc.plost) || {}, old = addDays(-21);
   const w = pool.map(id => {
     const core = (LEARN.TOPIC[id].type === 'eq' ? .3 : 1) * (LEARN.TOPIC[id].tier === 'H' ? pull : 1); /* Science core: 600+ formula and equation drills come up less, key terms and facts more */
-    const k = skill(id), boost = S.queue.some(x => x.id === id) ? 4 * core : core; if (!k.n) return 3 * boost;
+    const k = skill(id), lostOn = PL[id] && PL[id] >= old, boost = (S.queue.some(x => x.id === id) ? 4 : lostOn ? 1.5 : 1) * core; if (!k.n) return 3 * boost;
     const accu = k.rec.length ? k.rec.filter(Boolean).length / k.rec.length : 0;
-    return (k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3) * boost;
+    /* 11.9.70: a strong topic whose facts are due for review gets up to the weight of a new topic, so it is not left to fade
+       (before, only accuracy counted). A max, not a sum: adding it starved calculation topics, which have no facts to fall
+       due (50-student sim: Physics 5.4 -> 4.3); as a max Physics held at 5.2 and the average gain was 8.1 vs 7.9 before. */
+    return Math.max(k.best >= 5 && accu >= .8 ? .5 : 1 + (1 - accu) * 3, 3 * dueShare(id)) * boost;
   });
   let r = Math.random() * w.reduce((a, b) => a + b);
   for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
@@ -1238,8 +1266,10 @@ function vExamQ() {
     h('div', { class: 'exdots', 'aria-label': `Part ${i + 1} of ${p.qs.length}` }, p.qs.map((qq, k) => h('button', { type: 'button', class: 'exdot' + (k === i ? ' on' : '') + ((sit ? E.ans[k] : qDone(E, k, qq)) ? ' done' : '') + (k && qX(qq).g0 ? ' gs' : ''), 'data-act': 'exGo', 'data-i': k, 'aria-label': `Question ${qX(qq).n || k + 1}` }))),
     mockBar(),
     !E.end && hallBtn() && h('div', { class: 'row end' }, hallBtn()),
-    i === 0 && sit ? h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, 'Real exam format'),
-        h('p', null, `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real ${pppBoard(p.ppp.track)} ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
+    i === 0 && sit ? h('div', { class: 'banner' }, icon('sparkle'), h('div', null, h('b', null, / \(section\)$/.test(p.name) ? 'A section of a real-format paper' : 'Real exam format'),
+        h('p', null, / \(section\)$/.test(p.name) /* rounds.js paper block: the first ~30 minutes of a PPP paper */
+          ? `The first ${parts} parts of a ${pppBoard(p.ppp.track)} ${p.g} paper: ${marks} marks, ${hrs(p.mins)}. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`
+          : `${p.ppp.qn} questions (${parts} parts), ${marks} marks, ${hrs(p.mins)}: the same as the real ${pppBoard(p.ppp.track)} ${p.g} paper. No marking until the end, like the real thing. Then you mark it yourself against the mark scheme.`),
         E.printed ? h('p', { class: 'muted xs' }, 'Sitting it on paper? Write your answers there. When you finish, press Pens down and mark each part here.')
           : p.g === 'Maths' && h('p', { class: 'muted xs' }, 'Do your working on paper and type the final answer. Fractions like 3/8; standard form like 4.7 x 10^5.'),
         isDesk() && B([icon('scroll'), 'Print this paper'], 'printRun', 'link')))
@@ -1330,7 +1360,7 @@ const EXACT = {
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${p.subj}!`, 'big'); } else toast(`${pc}% saved. Every paper sharpens you.`);
     CHART.add(p.subj); xp(25); dayEv('paper');
     const g = groupOf(p), lostIds = p.qs.filter((q, k) => done[k] && qX(q).tid && qScore(q, E.got[k], E.lv[k]) < qMax(q)).map(q => qX(q).tid);
-    const added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`), 0) + (lostIds.length ? addFix([...new Set(lostIds)], `Lost marks on ${p.name}`) : 0);
+    const added = tps.filter(t => t.got / t.max < .75).reduce((a, t) => a + addFix(EXAM_LINK[g + '|' + t.topic] || [], `${t.got}/${t.max} on ${t.topic} (${p.name})`, true), 0) + (lostIds.length ? addFix([...new Set(lostIds)], `Lost marks on ${p.name}`, true) : 0);
     if (added) setTimeout(() => toast(`${added} topic${added > 1 ? 's' : ''} added to your fix queue`), 1600);
     EXRES = { name, got, max, tp: tps, subj: p.subj, timed, mins: p.mins, used, marked: n, total: p.qs.length, ppp: !!p.ppp, self };
     S.exam = null; DRAFT.ex = ''; save(); go(p.ppp ? 'ppp' : 'exam');
@@ -1425,7 +1455,7 @@ const MPACT = {
     for (const r of rows) { const t = tp[r.q.id] = tp[r.q.id] || { topic: LEARN.name(r.q.id), got: 0, max: 0 }; t.max++; if (r.ok) t.got++; else { const l = lost[r.q.id] = lost[r.q.id] || { topic: LEARN.name(r.q.id), type: track === 'maths' ? 'Calculation' : 'Recall', marks: 0 }; l.marks++; } }
     const score = rows.filter(r => r.ok).length, pc = Math.round(score / rows.length * 100), prevBest = Math.max(-1, ...subjPts(subj).map(pctOf));
     S.scores.push({ id: newId(), date: dkey(), subj, paper: `${M.ppp ? 'PPP' : 'Generated'} ${tn} paper${rows.length > 20 ? ` (${rows.length} questions)` : ''}`, score, max: rows.length, mins: Math.round(rows.length * 1.5), lost: Object.values(lost), tp: Object.values(tp) });
-    const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`);
+    const added = addFix(rows.filter(r => !r.ok).map(r => r.q.id), `Wrong on a generated ${tn} paper`, true);
     if (prevBest >= 0 && pc > prevBest) { S.stat.improve++; toast(`${pc}% · a personal best in ${subj}!`, 'big'); } else toast(`${pc}% saved.`);
     CHART.add(subj); xp(25); dayEv('paper'); MPRES = { rows, score, added, track, ppp: !!M.ppp, self: M.self ? selfReport(M, rows) : null }; S.mp = null; DRAFT.mp = ''; save(); render(); scrollTo({ top: 0 });
   }
@@ -1726,6 +1756,8 @@ function vMe() {
         card('Sound', null, h('p', { class: 'muted xs' }, 'Effects for right answers, streaks, the timer, flashcards and the board. Made on your device, so they work offline.'),
           h('div', { class: 'chips' }, [['off', 'Off'], ['quiet', 'Quiet'], ['normal', 'Normal']].map(([v, l]) => chip(l, S.sound === v, 'sound', { 'data-v': v })))),
         card('Mocks', null, field('First mock exam', h('input', { type: 'date', value: S.mock, 'data-act': 'mock' })), h('p', { class: 'muted xs' }, 'Used for the trend line on your score chart.')),
+        card('Focus style', null, h('p', { class: 'muted xs' }, 'Rounds: practice in sets comes in rounds of about 12 questions with a score, a win-back round after a tough one, and a paper to end the day. Classic: the open drill until the timer ends. Your progress is shared, so switching loses nothing.'),
+          h('div', { class: 'chips' }, chip('Rounds', !(S.tc && S.tc.rdOff), 'rdStyle', { 'data-v': 'rounds' }), chip('Classic drill', !!(S.tc && S.tc.rdOff), 'rdStyle', { 'data-v': 'classic' }))),
         card('Sebastian', null, h('p', { class: 'muted xs' }, 'The resident rat on Focus. Purely for fun.'),
           h('div', { class: 'chips' }, chip('Show him', S.seb !== false, 'sebShow', { 'data-v': '1' }), chip('Hide him', S.seb === false, 'sebShow', { 'data-v': '0' }))),
         card('Text size', null, h('p', { class: 'muted xs' }, 'Makes guides, questions and sources bigger. The top bar and tabs stay the same.'),
